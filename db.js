@@ -13,12 +13,22 @@ const pool = new Pool({
   database: process.env.POSTGRES_DB || 'cellventas_db'
 });
 
-// Inicialización de Esquemas y Semillas
-async function initDb() {
+// Inicialización de Esquemas y Semillas con reintentos
+async function initDb(retries = 6, delay = 2000) {
   let client;
+  for (let i = 1; i <= retries; i++) {
+    try {
+      client = await pool.connect();
+      console.log('✅ Base de Datos PostgreSQL conectada exitosamente a CELLVENTAS.');
+      break;
+    } catch (err) {
+      console.log(`⏳ Esperando disponibilidad de PostgreSQL (Intento ${i}/${retries})...`);
+      if (i === retries) throw err;
+      await new Promise(res => setTimeout(res, delay));
+    }
+  }
+
   try {
-    client = await pool.connect();
-    console.log('✅ Base de Datos PostgreSQL conectada exitosamente a CELLVENTAS.');
 
     // 1. MARCAS DE CELULARES (Apple, Samsung, Xiaomi, Motorola, etc.)
     await pool.query(`
