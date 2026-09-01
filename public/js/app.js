@@ -38,7 +38,7 @@ function switchTab(tabId) {
   if (target) target.classList.remove('hidden');
 
   document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.className = 'nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-slate-400 hover:bg-slate-900 hover:text-white font-bold transition-all';
+    btn.className = 'nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-bold transition-all';
   });
   const activeBtn = document.getElementById('btn-tab-' + tabId);
   if (activeBtn) {
@@ -135,7 +135,7 @@ async function loadAssistantModelData(customModelId = null) {
   const container = document.getElementById('assistant-results-container');
   if (!modelId) return;
 
-  container.innerHTML = `<div class="text-center py-12 text-slate-400 font-bold text-sm"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Consultando ficha de compatibilidades...</div>`;
+  container.innerHTML = `<div class="text-center py-12 text-gray-500 font-bold text-sm"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Consultando ficha de compatibilidades...</div>`;
 
   try {
     const res = await fetch(`/api/compatibilities/assistant/${modelId}`);
@@ -154,7 +154,7 @@ async function loadAssistantModelData(customModelId = null) {
     const renderCard = (p) => {
       const isLow = p.stock <= 0;
       const sharedBadges = (p.shared_with && p.shared_with.length > 0) ? `
-        <div class="mt-2 p-2 bg-indigo-50/80 rounded-xl border border-indigo-100/80">
+        <div class="mt-2 p-2 bg-indigo-50 rounded-xl border border-indigo-100">
           <p class="text-[10px] font-black text-indigo-900 leading-tight">
             <i class="fa-solid fa-share-nodes text-indigo-600 mr-1"></i> También le hace a:
           </p>
@@ -163,23 +163,23 @@ async function loadAssistantModelData(customModelId = null) {
       ` : '';
 
       return `
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+        <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
           <div>
             <div class="flex justify-between items-start mb-1.5">
-              <span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-md">${p.category}</span>
-              <span class="text-[10px] font-mono text-slate-400">#${p.code}</span>
+              <span class="bg-gray-100 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-md">${p.category}</span>
+              <span class="text-[10px] font-mono text-gray-400">#${p.code}</span>
             </div>
-            <h4 class="font-bold text-xs text-slate-900 line-clamp-2">${p.name}</h4>
+            <h4 class="font-bold text-xs text-gray-900 line-clamp-2">${p.name}</h4>
             ${sharedBadges}
           </div>
-          <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
+          <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
             <div>
-              <span class="text-[10px] font-bold ${isLow ? 'text-rose-600' : 'text-emerald-700'}">
+              <span class="text-[10px] font-bold ${isLow ? 'text-red-600' : 'text-green-700'}">
                 Stock: ${p.stock} und.
               </span>
               <p class="text-base font-black text-indigo-600">S/ ${p.price.toFixed(2)}</p>
             </div>
-            <button onclick="addToCartFromAssistant(${p.id})" ${isLow ? 'disabled' : ''} class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5">
+            <button onclick="addToCartFromAssistant(${p.id})" ${isLow ? 'disabled' : ''} class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5">
               <i class="fa-solid fa-cart-plus"></i> Vender
             </button>
           </div>
@@ -192,19 +192,19 @@ async function loadAssistantModelData(customModelId = null) {
       <div class="bg-white p-6 rounded-3xl border border-indigo-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <span class="text-xs font-black uppercase tracking-wider text-indigo-600">${model.brand_name}</span>
-          <h3 class="text-2xl font-black text-slate-900 mt-0.5 flex items-center gap-2">
+          <h3 class="text-2xl font-black text-gray-900 mt-0.5 flex items-center gap-2">
             <i class="fa-solid fa-mobile text-indigo-600"></i> ${model.model_name}
           </h3>
-          <p class="text-xs text-slate-400">Año de lanzamiento: ${model.release_year || 2024}</p>
+          <p class="text-xs text-gray-400">Año de lanzamiento: ${model.release_year || 2024}</p>
         </div>
         <div class="flex gap-3">
           <div class="px-4 py-2 bg-indigo-50 text-indigo-900 rounded-2xl border border-indigo-100 text-center">
-            <p class="text-[10px] uppercase font-bold text-slate-500">Fundas / Cases</p>
+            <p class="text-[10px] uppercase font-bold text-gray-500">Fundas / Cases</p>
             <p class="text-lg font-black text-indigo-700">${cases.length} opciones</p>
           </div>
-          <div class="px-4 py-2 bg-emerald-50 text-emerald-900 rounded-2xl border border-emerald-100 text-center">
-            <p class="text-[10px] uppercase font-bold text-slate-500">Micas / Protectores</p>
-            <p class="text-lg font-black text-emerald-700">${micas.length} opciones</p>
+          <div class="px-4 py-2 bg-green-50 text-green-900 rounded-2xl border border-green-100 text-center">
+            <p class="text-[10px] uppercase font-bold text-gray-500">Micas / Protectores</p>
+            <p class="text-lg font-black text-green-700">${micas.length} opciones</p>
           </div>
         </div>
       </div>
@@ -213,11 +213,11 @@ async function loadAssistantModelData(customModelId = null) {
       <div class="space-y-3">
         <div class="flex items-center gap-2">
           <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-shield-cat"></i></div>
-          <h3 class="text-base font-black text-slate-800">1. Fundas, Cases y Protectores Antigolpe (${cases.length})</h3>
+          <h3 class="text-base font-black text-gray-800">1. Fundas, Cases y Protectores Antigolpe (${cases.length})</h3>
         </div>
         ${cases.length === 0 ? `
-          <div class="p-6 bg-rose-50 border border-rose-100 text-rose-800 rounded-2xl text-xs font-bold flex items-center gap-2">
-            <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base"></i> No hay fundas ni cases registrados o en stock para este modelo.
+          <div class="p-6 bg-red-50 border border-red-100 text-red-800 rounded-2xl text-xs font-bold flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-red-600 text-base"></i> No hay fundas ni cases registrados o en stock para este modelo.
           </div>
         ` : `<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">${cases.map(renderCard).join('')}</div>`}
       </div>
@@ -225,12 +225,12 @@ async function loadAssistantModelData(customModelId = null) {
       <!-- SECCIÓN 2: MICAS Y VIDRIOS TEMPLADOS -->
       <div class="space-y-3">
         <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-square"></i></div>
-          <h3 class="text-base font-black text-slate-800">2. Micas de Vidrio, Cerámica, Hidrogel & Cámara (${micas.length})</h3>
+          <div class="w-7 h-7 rounded-lg bg-green-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-square"></i></div>
+          <h3 class="text-base font-black text-gray-800">2. Micas de Vidrio, Cerámica, Hidrogel & Cámara (${micas.length})</h3>
         </div>
         ${micas.length === 0 ? `
-          <div class="p-6 bg-rose-50 border border-rose-100 text-rose-800 rounded-2xl text-xs font-bold flex items-center gap-2">
-            <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base"></i> Alerta: 0 micas registradas para este modelo.
+          <div class="p-6 bg-red-50 border border-red-100 text-red-800 rounded-2xl text-xs font-bold flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-red-600 text-base"></i> Alerta: 0 micas registradas para este modelo.
           </div>
         ` : `<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">${micas.map(renderCard).join('')}</div>`}
       </div>
@@ -239,8 +239,8 @@ async function loadAssistantModelData(customModelId = null) {
       ${(cargadores.length > 0 || otros.length > 0) ? `
         <div class="space-y-3">
           <div class="flex items-center gap-2">
-            <div class="w-7 h-7 rounded-lg bg-amber-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-bolt"></i></div>
-            <h3 class="text-base font-black text-slate-800">3. Cargadores, Cables y Repuestos Compatibles (${cargadores.length + otros.length})</h3>
+            <div class="w-7 h-7 rounded-lg bg-yellow-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-bolt"></i></div>
+            <h3 class="text-base font-black text-gray-800">3. Cargadores, Cables y Repuestos Compatibles (${cargadores.length + otros.length})</h3>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
             ${[...cargadores, ...otros].map(renderCard).join('')}
@@ -250,7 +250,7 @@ async function loadAssistantModelData(customModelId = null) {
     `;
 
   } catch (err) {
-    container.innerHTML = `<div class="p-6 bg-rose-50 border border-rose-100 text-rose-800 rounded-2xl text-xs font-bold">Error: ${err.message}</div>`;
+    container.innerHTML = `<div class="p-6 bg-red-50 border border-red-100 text-red-800 rounded-2xl text-xs font-bold">Error: ${err.message}</div>`;
   }
 }
 
@@ -267,12 +267,12 @@ function switchCompatSubtab(subtab) {
     document.getElementById('subtab-coverage').classList.remove('hidden');
     document.getElementById('subtab-catalog').classList.add('hidden');
     document.getElementById('subtab-btn-coverage').className = 'font-bold text-xs pb-3 border-b-2 border-indigo-600 text-indigo-600';
-    document.getElementById('subtab-btn-catalog').className = 'font-bold text-xs pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-700';
+    document.getElementById('subtab-btn-catalog').className = 'font-bold text-xs pb-3 border-b-2 border-transparent text-gray-400 hover:text-gray-700';
     loadCoverageData();
   } else {
     document.getElementById('subtab-coverage').classList.add('hidden');
     document.getElementById('subtab-catalog').classList.remove('hidden');
-    document.getElementById('subtab-btn-coverage').className = 'font-bold text-xs pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-700';
+    document.getElementById('subtab-btn-coverage').className = 'font-bold text-xs pb-3 border-b-2 border-transparent text-gray-400 hover:text-gray-700';
     document.getElementById('subtab-btn-catalog').className = 'font-bold text-xs pb-3 border-b-2 border-indigo-600 text-indigo-600';
     renderCompatibilityMatrix();
   }
@@ -295,7 +295,7 @@ function filterCoverage(mode) {
     if (btn) {
       btn.className = (m === mode) 
         ? 'px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-bold' 
-        : 'px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-200';
+        : 'px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-200';
     }
   });
   renderCoverageGrid();
@@ -314,33 +314,33 @@ function renderCoverageGrid() {
   document.getElementById('cov-count-label').innerText = `${filtered.length} modelos mostrados`;
 
   if (filtered.length === 0) {
-    container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 font-bold text-xs">No hay modelos que coincidan con el filtro.</div>`;
+    container.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 font-bold text-xs">No hay modelos que coincidan con el filtro.</div>`;
     return;
   }
 
   container.innerHTML = filtered.map(m => `
-    <div class="bg-white p-5 rounded-3xl border ${m.needsMicas || m.needsCases ? 'border-amber-200 bg-amber-50/20' : 'border-slate-200'} shadow-sm space-y-3">
+    <div class="bg-white p-5 rounded-3xl border ${m.needsMicas || m.needsCases ? 'border-yellow-200 bg-yellow-50/20' : 'border-gray-200'} shadow-sm space-y-3">
       <div class="flex justify-between items-start">
         <div>
           <span class="text-[10px] font-black uppercase text-indigo-600">${m.brand_name}</span>
-          <h4 class="font-black text-sm text-slate-900">${m.model_name}</h4>
-          <p class="text-[10px] text-slate-400">Año ${m.release_year}</p>
+          <h4 class="font-black text-sm text-gray-900">${m.model_name}</h4>
+          <p class="text-[10px] text-gray-400">Año ${m.release_year}</p>
         </div>
         <button onclick="switchTab('assistant'); document.getElementById('assistant-brand-select').value='${m.brand_id}'; onAssistantBrandChange(); document.getElementById('assistant-model-select').value='${m.id}'; loadAssistantModelData(${m.id});" class="text-indigo-600 hover:text-indigo-800 text-xs font-bold bg-indigo-50 px-2.5 py-1 rounded-xl">
           Ver 360° <i class="fa-solid fa-arrow-right ml-1"></i>
         </button>
       </div>
 
-      <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-        <div class="p-2.5 rounded-2xl ${m.needsCases ? 'bg-rose-50 text-rose-800 border border-rose-100' : 'bg-slate-50 text-slate-700'}">
-          <p class="text-[9px] uppercase font-bold text-slate-400">Cases / Fundas</p>
-          <p class="text-xs font-black ${m.needsCases ? 'text-rose-600' : 'text-slate-900'}">${m.casesStock} en stock (${m.casesCount} tipos)</p>
-          ${m.needsCases ? '<span class="text-[9px] font-bold text-rose-600 uppercase">⚠️ Desabastecido</span>' : ''}
+      <div class="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
+        <div class="p-2.5 rounded-2xl ${m.needsCases ? 'bg-red-50 text-red-800 border border-red-100' : 'bg-gray-50 text-gray-700'}">
+          <p class="text-[9px] uppercase font-bold text-gray-400">Cases / Fundas</p>
+          <p class="text-xs font-black ${m.needsCases ? 'text-red-600' : 'text-gray-900'}">${m.casesStock} en stock (${m.casesCount} tipos)</p>
+          ${m.needsCases ? '<span class="text-[9px] font-bold text-red-600 uppercase">⚠️ Desabastecido</span>' : ''}
         </div>
-        <div class="p-2.5 rounded-2xl ${m.needsMicas ? 'bg-rose-50 text-rose-800 border border-rose-100' : 'bg-slate-50 text-slate-700'}">
-          <p class="text-[9px] uppercase font-bold text-slate-400">Micas / Vidrios</p>
-          <p class="text-xs font-black ${m.needsMicas ? 'text-rose-600' : 'text-slate-900'}">${m.micasStock} en stock (${m.micasCount} tipos)</p>
-          ${m.needsMicas ? '<span class="text-[9px] font-bold text-rose-600 uppercase">⚠️ Desabastecido</span>' : ''}
+        <div class="p-2.5 rounded-2xl ${m.needsMicas ? 'bg-red-50 text-red-800 border border-red-100' : 'bg-gray-50 text-gray-700'}">
+          <p class="text-[9px] uppercase font-bold text-gray-400">Micas / Vidrios</p>
+          <p class="text-xs font-black ${m.needsMicas ? 'text-red-600' : 'text-gray-900'}">${m.micasStock} en stock (${m.micasCount} tipos)</p>
+          ${m.needsMicas ? '<span class="text-[9px] font-bold text-red-600 uppercase">⚠️ Desabastecido</span>' : ''}
         </div>
       </div>
     </div>
@@ -352,25 +352,25 @@ function renderCompatibilityMatrix() {
   if (!container) return;
 
   if (BRANDS.length === 0) {
-    container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 font-bold">No hay marcas ni modelos registrados.</div>`;
+    container.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 font-bold">No hay marcas ni modelos registrados.</div>`;
     return;
   }
 
   container.innerHTML = BRANDS.map(b => `
-    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-      <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+    <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm space-y-3">
+      <div class="flex justify-between items-center pb-2 border-b border-gray-100">
         <h3 class="font-black text-indigo-900 text-sm flex items-center gap-2">
           <i class="fa-solid fa-mobile text-indigo-600"></i> ${b.name}
         </h3>
         <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-0.5 rounded-full">${b.models.length} Modelos</span>
       </div>
-      <div class="divide-y divide-slate-100 max-h-56 overflow-y-auto custom-scrollbar">
+      <div class="divide-y divide-gray-100 max-h-56 overflow-y-auto custom-scrollbar">
         ${b.models.map(m => `
           <div class="py-2 flex justify-between items-center text-xs">
-            <span class="font-bold text-slate-800"><i class="fa-solid fa-angle-right text-indigo-400 mr-1.5"></i>${m.model_name}</span>
+            <span class="font-bold text-gray-800"><i class="fa-solid fa-angle-right text-indigo-400 mr-1.5"></i>${m.model_name}</span>
             <div class="flex items-center gap-2">
-              <span class="text-slate-400 text-[10px]">${m.release_year || 2024}</span>
-              <button onclick="deleteModel(${m.id})" class="text-rose-400 hover:text-rose-600 text-[10px] font-bold"><i class="fa-solid fa-trash"></i></button>
+              <span class="text-gray-400 text-[10px]">${m.release_year || 2024}</span>
+              <button onclick="deleteModel(${m.id})" class="text-red-400 hover:text-red-600 text-[10px] font-bold"><i class="fa-solid fa-trash"></i></button>
             </div>
           </div>
         `).join('')}
@@ -392,7 +392,7 @@ function openBulkCompatModal() {
       html += `<div class="col-span-full font-black text-indigo-900 text-[10px] uppercase border-b border-indigo-100 pt-2">${b.name}</div>`;
       b.models.forEach(m => {
         html += `
-          <label class="flex items-center gap-1.5 cursor-pointer bg-white p-1.5 rounded-xl border border-slate-200 hover:border-indigo-300">
+          <label class="flex items-center gap-1.5 cursor-pointer bg-white p-1.5 rounded-xl border border-gray-200 hover:border-indigo-300">
             <input type="checkbox" name="bulk_compat_models" value="${m.id}" class="rounded text-indigo-600">
             <span class="truncate">${m.model_name}</span>
           </label>
@@ -551,7 +551,7 @@ function renderProducts() {
   });
 
   if (filtered.length === 0) {
-    grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 font-bold text-xs">No se encontraron productos ni accesorios compatibles.</div>`;
+    grid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 font-bold text-xs">No se encontraron productos ni accesorios compatibles.</div>`;
     return;
   }
 
@@ -562,18 +562,18 @@ function renderProducts() {
     `).join('');
 
     return `
-      <div onclick="handleProductClick(${p.id})" class="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group">
+      <div onclick="handleProductClick(${p.id})" class="bg-white p-4 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group">
         <div>
           <div class="flex justify-between items-start mb-1.5">
-            <span class="bg-slate-100 text-slate-600 text-[9px] font-bold px-2 py-0.5 rounded-md truncate max-w-[110px]">${p.category}</span>
-            ${isSerialized ? '<span class="bg-amber-100 text-amber-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded">IMEI</span>' : ''}
+            <span class="bg-gray-100 text-gray-600 text-[9px] font-bold px-2 py-0.5 rounded-md truncate max-w-[110px]">${p.category}</span>
+            ${isSerialized ? '<span class="bg-yellow-100 text-yellow-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded">IMEI</span>' : ''}
           </div>
-          <h3 class="font-bold text-slate-900 text-xs group-hover:text-indigo-600 transition-colors line-clamp-2">${p.name}</h3>
+          <h3 class="font-bold text-gray-900 text-xs group-hover:text-indigo-600 transition-colors line-clamp-2">${p.name}</h3>
           <div class="mt-2 flex flex-wrap gap-1">${modelBadges}</div>
         </div>
-        <div class="mt-4 flex justify-between items-end pt-2 border-t border-slate-100">
+        <div class="mt-4 flex justify-between items-end pt-2 border-t border-gray-100">
           <div>
-            <p class="text-[10px] text-slate-400 font-bold">Stock: ${p.stock}</p>
+            <p class="text-[10px] text-gray-400 font-bold">Stock: ${p.stock}</p>
             <p class="text-sm font-black text-indigo-600">S/ ${p.price.toFixed(2)}</p>
           </div>
           <button class="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all">
@@ -597,24 +597,24 @@ async function handleProductClick(productId) {
     pendingImeiProduct = prod;
     document.getElementById('modal-imei-prod-name').innerText = `${prod.name} (#${prod.code})`;
     const listContainer = document.getElementById('modal-imei-list');
-    listContainer.innerHTML = '<p class="text-xs text-slate-400">Consultando IMEIs disponibles...</p>';
+    listContainer.innerHTML = '<p class="text-xs text-gray-400">Consultando IMEIs disponibles...</p>';
     document.getElementById('modal-select-imei').classList.remove('hidden');
 
     try {
       const res = await fetch(`/api/imeis/available/${productId}`);
       const imeis = await res.json();
       if (imeis.length === 0) {
-        listContainer.innerHTML = '<p class="text-xs text-rose-500 font-bold">⚠️ No hay IMEIs registrados disponibles para este equipo.</p>';
+        listContainer.innerHTML = '<p class="text-xs text-red-500 font-bold">⚠️ No hay IMEIs registrados disponibles para este equipo.</p>';
         return;
       }
       listContainer.innerHTML = imeis.map(i => `
-        <div onclick="selectImeiForSale('${i.imei_code}')" class="p-2.5 bg-slate-50 hover:bg-indigo-50 rounded-xl border border-slate-200 hover:border-indigo-300 cursor-pointer flex justify-between items-center">
-          <span class="font-mono text-xs font-black text-slate-800">${i.imei_code}</span>
+        <div onclick="selectImeiForSale('${i.imei_code}')" class="p-2.5 bg-gray-50 hover:bg-indigo-50 rounded-xl border border-gray-200 hover:border-indigo-300 cursor-pointer flex justify-between items-center">
+          <span class="font-mono text-xs font-black text-gray-800">${i.imei_code}</span>
           <span class="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded">Asignar</span>
         </div>
       `).join('');
     } catch (e) {
-      listContainer.innerHTML = '<p class="text-xs text-rose-500">Error al cargar IMEIs</p>';
+      listContainer.innerHTML = '<p class="text-xs text-red-500">Error al cargar IMEIs</p>';
     }
   } else {
     addToCart(productId);
@@ -624,7 +624,6 @@ async function handleProductClick(productId) {
 function selectImeiForSale(imeiCode) {
   if (!pendingImeiProduct) return;
 
-  // Comprobar si ya fue agregado en el carrito
   const alreadyInCart = CART.find(i => i.imei === imeiCode);
   if (alreadyInCart) {
     alert('⚠️ Este IMEI ya está agregado en el carrito.');
@@ -690,7 +689,7 @@ function clearCart() {
 function renderCart() {
   const container = document.getElementById('cart-items');
   if (CART.length === 0) {
-    container.innerHTML = `<div class="text-center py-12 text-slate-400 font-bold text-xs">Carrito vacío</div>`;
+    container.innerHTML = `<div class="text-center py-12 text-gray-400 font-bold text-xs">Carrito vacío</div>`;
     document.getElementById('summary-subtotal').innerText = 'S/ 0.00';
     document.getElementById('summary-tax').innerText = 'S/ 0.00';
     document.getElementById('summary-total').innerText = 'S/ 0.00';
@@ -702,25 +701,25 @@ function renderCart() {
   container.innerHTML = CART.map(i => {
     const itemSub = i.product.price * i.quantity;
     total += itemSub;
-    const imeiTag = i.imei ? `<p class="text-[10px] font-mono font-bold text-amber-700 bg-amber-50 px-1 rounded inline-block">IMEI: ${i.imei}</p>` : '';
+    const imeiTag = i.imei ? `<p class="text-[10px] font-mono font-bold text-yellow-800 bg-yellow-50 px-1 rounded inline-block">IMEI: ${i.imei}</p>` : '';
 
     return `
       <div class="py-2.5 flex justify-between items-center gap-2">
         <div class="flex-1 min-w-0">
-          <p class="font-bold text-xs text-slate-800 truncate">${i.product.name}</p>
+          <p class="font-bold text-xs text-gray-800 truncate">${i.product.name}</p>
           ${imeiTag}
-          <p class="text-[10px] text-slate-400">S/ ${i.product.price.toFixed(2)} c/u</p>
+          <p class="text-[10px] text-gray-400">S/ ${i.product.price.toFixed(2)} c/u</p>
         </div>
         <div class="flex items-center gap-1.5">
           ${!i.imei ? `
-            <button onclick="updateCartQty(${i.product.id}, -1)" class="w-5 h-5 bg-slate-100 rounded text-xs font-bold">-</button>
+            <button onclick="updateCartQty(${i.product.id}, -1)" class="w-5 h-5 bg-gray-100 rounded text-xs font-bold">-</button>
             <span class="text-xs font-bold w-4 text-center">${i.quantity}</span>
-            <button onclick="updateCartQty(${i.product.id}, 1)" class="w-5 h-5 bg-slate-100 rounded text-xs font-bold">+</button>
+            <button onclick="updateCartQty(${i.product.id}, 1)" class="w-5 h-5 bg-gray-100 rounded text-xs font-bold">+</button>
           ` : `
-            <button onclick="updateCartQty(${i.product.id}, -1, '${i.imei}')" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-1.5"><i class="fa-solid fa-trash"></i></button>
+            <button onclick="updateCartQty(${i.product.id}, -1, '${i.imei}')" class="text-red-500 hover:text-red-700 text-xs font-bold px-1.5"><i class="fa-solid fa-trash"></i></button>
           `}
         </div>
-        <span class="font-black text-xs text-slate-900 w-14 text-right">S/ ${itemSub.toFixed(2)}</span>
+        <span class="font-black text-xs text-gray-900 w-14 text-right">S/ ${itemSub.toFixed(2)}</span>
       </div>
     `;
   }).join('');
@@ -759,7 +758,7 @@ function closePaymentModal() {
 function setPaymentMethod(method) {
   selectedPaymentMethod = method;
   document.querySelectorAll('.pay-btn').forEach(b => {
-    b.className = 'pay-btn bg-slate-100 text-slate-700 font-bold py-2.5 rounded-xl text-xs';
+    b.className = 'pay-btn bg-gray-100 text-gray-700 font-bold py-2.5 rounded-xl text-xs';
   });
   const activeBtn = document.getElementById('pay-' + method);
   if (activeBtn) activeBtn.className = 'pay-btn active bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-xs';
@@ -837,25 +836,25 @@ function renderThermalTicket(sale) {
 
   const dateStr = new Date(sale.created_at || Date.now()).toLocaleString();
   const itemsHtml = (sale.items || []).map(i => `
-    <div class="flex justify-between py-1 border-b border-dashed border-slate-300">
+    <div class="flex justify-between py-1 border-b border-dashed border-gray-300">
       <div class="flex-1 min-w-0 pr-2">
         <p class="font-bold text-[11px]">${i.quantity}x ${i.product_name}</p>
-        ${i.imei_code ? `<p class="text-[10px] font-black text-slate-900">IMEI: ${i.imei_code}</p>` : ''}
+        ${i.imei_code ? `<p class="text-[10px] font-black text-gray-900">IMEI: ${i.imei_code}</p>` : ''}
       </div>
       <span class="font-bold">S/ ${(i.quantity * i.unit_price).toFixed(2)}</span>
     </div>
   `).join('');
 
   container.innerHTML = `
-    <div class="text-center pb-2 border-b border-dashed border-slate-300">
+    <div class="text-center pb-2 border-b border-dashed border-gray-300">
       <h2 class="font-black text-sm tracking-wider">CELLVENTAS</h2>
       <p class="text-[10px] font-bold">VENTA DE CELULARES Y ACCESORIOS</p>
       <p class="text-[10px]">VT VALETEC</p>
       <p class="text-[10px] mt-1 font-bold">${sale.doc_type.toUpperCase()}: ${sale.receipt_code}</p>
-      <p class="text-[9px] text-slate-500">${dateStr}</p>
+      <p class="text-[9px] text-gray-500">${dateStr}</p>
     </div>
 
-    <div class="py-1.5 border-b border-dashed border-slate-300 text-[10px]">
+    <div class="py-1.5 border-b border-dashed border-gray-300 text-[10px]">
       <p><span class="font-bold">Cliente:</span> ${sale.customer_name}</p>
       <p><span class="font-bold">Pago:</span> ${sale.payment_method}</p>
     </div>
@@ -864,19 +863,19 @@ function renderThermalTicket(sale) {
       ${itemsHtml}
     </div>
 
-    <div class="pt-2 border-t border-dashed border-slate-300 space-y-1 text-right text-[11px]">
+    <div class="pt-2 border-t border-dashed border-gray-300 space-y-1 text-right text-[11px]">
       <div class="flex justify-between"><span>Subtotal:</span><span>S/ ${sale.subtotal.toFixed(2)}</span></div>
       <div class="flex justify-between"><span>IGV (18%):</span><span>S/ ${sale.tax.toFixed(2)}</span></div>
-      <div class="flex justify-between font-black text-sm pt-1 border-t border-slate-300">
+      <div class="flex justify-between font-black text-sm pt-1 border-t border-gray-300">
         <span>TOTAL:</span><span>S/ ${sale.total.toFixed(2)}</span>
       </div>
       ${sale.payment_method === 'Efectivo' ? `
-        <div class="flex justify-between text-[10px] text-slate-600"><span>Recibido:</span><span>S/ ${sale.paid_amount.toFixed(2)}</span></div>
-        <div class="flex justify-between text-[10px] text-slate-600"><span>Vuelto:</span><span>S/ ${sale.change_amount.toFixed(2)}</span></div>
+        <div class="flex justify-between text-[10px] text-gray-600"><span>Recibido:</span><span>S/ ${sale.paid_amount.toFixed(2)}</span></div>
+        <div class="flex justify-between text-[10px] text-gray-600"><span>Vuelto:</span><span>S/ ${sale.change_amount.toFixed(2)}</span></div>
       ` : ''}
     </div>
 
-    <div class="text-center pt-3 text-[9px] text-slate-500 border-t border-dashed border-slate-300">
+    <div class="text-center pt-3 text-[9px] text-gray-500 border-t border-dashed border-gray-300">
       <p>¡Gracias por su preferencia!</p>
       <p>Garantía de equipos con presentación de comprobante.</p>
     </div>
@@ -912,24 +911,24 @@ function renderSalesHistoryTable() {
   );
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-bold">No hay comprobantes de venta registrados.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-gray-400 font-bold">No hay comprobantes de venta registrados.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = filtered.map(s => {
     const isAnulada = s.status === 'anulada';
-    const itemsPreview = (s.items || []).map(i => `${i.quantity}x ${i.product_name} ${i.imei_code ? '<span class="font-mono text-[9px] bg-amber-50 text-amber-800 px-1 rounded">(IMEI: ' + i.imei_code + ')</span>' : ''}`).join('<br>');
+    const itemsPreview = (s.items || []).map(i => `${i.quantity}x ${i.product_name} ${i.imei_code ? '<span class="font-mono text-[9px] bg-yellow-50 text-yellow-800 px-1 rounded">(IMEI: ' + i.imei_code + ')</span>' : ''}`).join('<br>');
 
     return `
-      <tr class="hover:bg-slate-50 ${isAnulada ? 'opacity-50 line-through' : ''}">
-        <td class="p-4 font-mono font-bold text-slate-800 text-xs">${s.receipt_code}</td>
-        <td class="p-4 text-slate-500 text-[11px]">${new Date(s.created_at).toLocaleString()}</td>
-        <td class="p-4 font-bold text-slate-800 text-xs">${s.customer_name}</td>
-        <td class="p-4"><span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">${s.payment_method}</span></td>
-        <td class="p-4 text-[11px] text-slate-600">${itemsPreview}</td>
-        <td class="p-4 text-right font-black text-slate-900 text-xs">S/ ${parseFloat(s.total).toFixed(2)}</td>
+      <tr class="hover:bg-gray-50 ${isAnulada ? 'opacity-50 line-through' : ''}">
+        <td class="p-4 font-mono font-bold text-gray-800 text-xs">${s.receipt_code}</td>
+        <td class="p-4 text-gray-500 text-[11px]">${new Date(s.created_at).toLocaleString()}</td>
+        <td class="p-4 font-bold text-gray-800 text-xs">${s.customer_name}</td>
+        <td class="p-4"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-bold">${s.payment_method}</span></td>
+        <td class="p-4 text-[11px] text-gray-600">${itemsPreview}</td>
+        <td class="p-4 text-right font-black text-gray-900 text-xs">S/ ${parseFloat(s.total).toFixed(2)}</td>
         <td class="p-4 text-center">
-          <span class="px-2.5 py-1 rounded-full text-[10px] font-black ${isAnulada ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">
+          <span class="px-2.5 py-1 rounded-full text-[10px] font-black ${isAnulada ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
             ${s.status.toUpperCase()}
           </span>
         </td>
@@ -937,7 +936,7 @@ function renderSalesHistoryTable() {
           <div class="flex items-center justify-center gap-2">
             <button onclick="reprintTicket(${s.id})" class="text-indigo-600 hover:text-indigo-800 font-bold text-xs" title="Ver / Imprimir Ticket"><i class="fa-solid fa-print"></i></button>
             ${!isAnulada ? `
-              <button onclick="anularSale(${s.id}, '${s.receipt_code}')" class="text-rose-500 hover:text-rose-700 font-bold text-xs" title="Anular Venta"><i class="fa-solid fa-ban"></i></button>
+              <button onclick="anularSale(${s.id}, '${s.receipt_code}')" class="text-red-500 hover:text-red-700 font-bold text-xs" title="Anular Venta"><i class="fa-solid fa-ban"></i></button>
             ` : ''}
           </div>
         </td>
@@ -984,42 +983,42 @@ async function searchImeiTracker() {
   if (!container) return;
 
   if (!query) {
-    container.innerHTML = '<div class="text-center py-8 text-slate-400 font-medium text-xs">Escriba un código IMEI (ej. 8642...) para ver su trazabilidad.</div>';
+    container.innerHTML = '<div class="text-center py-8 text-gray-400 font-medium text-xs">Escriba un código IMEI (ej. 8642...) para ver su trazabilidad.</div>';
     return;
   }
 
-  container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Buscando IMEI...</div>';
+  container.innerHTML = '<div class="text-center py-6 text-gray-400 text-xs font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Buscando IMEI...</div>';
 
   try {
     const res = await fetch(`/api/imeis/search/${query}`);
     const results = await res.json();
 
     if (results.length === 0) {
-      container.innerHTML = '<div class="text-center py-8 text-rose-500 font-bold text-xs">⚠️ No se encontró ningún teléfono registrado con ese código IMEI.</div>';
+      container.innerHTML = '<div class="text-center py-8 text-red-500 font-bold text-xs">⚠️ No se encontró ningún teléfono registrado con ese código IMEI.</div>';
       return;
     }
 
     container.innerHTML = results.map(i => {
       const isVendido = i.status === 'vendido';
       return `
-        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
             <div class="flex items-center gap-2">
-              <span class="font-mono font-black text-sm text-slate-900">${i.imei_code}</span>
-              <span class="px-2 py-0.5 rounded text-[10px] font-black ${isVendido ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
+              <span class="font-mono font-black text-sm text-gray-900">${i.imei_code}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-black ${isVendido ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">
                 ${i.status.toUpperCase()}
               </span>
             </div>
-            <p class="text-xs font-bold text-slate-700 mt-1">${i.product_name} <span class="text-slate-400 font-mono">(#${i.product_code})</span></p>
+            <p class="text-xs font-bold text-gray-700 mt-1">${i.product_name} <span class="text-gray-400 font-mono">(#${i.product_code})</span></p>
           </div>
-          <div class="text-xs text-slate-500 space-y-0.5 md:text-right">
+          <div class="text-xs text-gray-500 space-y-0.5 md:text-right">
             ${isVendido ? `
-              <p><span class="font-bold text-slate-700">Comprobante:</span> ${i.receipt_code}</p>
-              <p><span class="font-bold text-slate-700">Cliente:</span> ${i.customer_name}</p>
-              <p><span class="font-bold text-slate-700">Fecha Venta:</span> ${new Date(i.sold_at || i.sale_date).toLocaleString()}</p>
+              <p><span class="font-bold text-gray-700">Comprobante:</span> ${i.receipt_code}</p>
+              <p><span class="font-bold text-gray-700">Cliente:</span> ${i.customer_name}</p>
+              <p><span class="font-bold text-gray-700">Fecha Venta:</span> ${new Date(i.sold_at || i.sale_date).toLocaleString()}</p>
             ` : `
-              <p class="text-emerald-700 font-bold"><i class="fa-solid fa-check mr-1"></i> Disponible en vitrina / stock</p>
-              <p class="text-[10px] text-slate-400">Ingresado: ${new Date(i.created_at).toLocaleDateString()}</p>
+              <p class="text-green-700 font-bold"><i class="fa-solid fa-check mr-1"></i> Disponible en vitrina / stock</p>
+              <p class="text-[10px] text-gray-400">Ingresado: ${new Date(i.created_at).toLocaleDateString()}</p>
             `}
           </div>
         </div>
@@ -1027,7 +1026,7 @@ async function searchImeiTracker() {
     }).join('');
 
   } catch (err) {
-    container.innerHTML = `<div class="p-4 bg-rose-50 text-rose-700 rounded-xl text-xs font-bold">Error: ${err.message}</div>`;
+    container.innerHTML = `<div class="p-4 bg-red-50 text-red-700 rounded-xl text-xs font-bold">Error: ${err.message}</div>`;
   }
 }
 
@@ -1089,16 +1088,16 @@ async function loadCashStatus() {
 
     if (!data.isOpen) {
       panel.innerHTML = `
-        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm max-w-md mx-auto text-center space-y-4">
+        <div class="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm max-w-md mx-auto text-center space-y-4">
           <div class="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl mx-auto">
             <i class="fa-solid fa-lock"></i>
           </div>
-          <h3 class="text-lg font-black text-slate-800">Caja de Turno Cerrada</h3>
-          <p class="text-xs text-slate-500">Para procesar ventas y registrar movimientos de mostrador, abra el turno de caja.</p>
+          <h3 class="text-lg font-black text-gray-800">Caja de Turno Cerrada</h3>
+          <p class="text-xs text-gray-500">Para procesar ventas y registrar movimientos de mostrador, abra el turno de caja.</p>
           <div class="space-y-3 pt-2 text-left">
             <div>
-              <label class="text-xs font-bold text-slate-600 block mb-1">Monto Inicial en Efectivo (S/):</label>
-              <input type="number" step="0.50" id="cash-open-amount" value="50.00" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-black outline-none focus:ring-2 focus:ring-indigo-500">
+              <label class="text-xs font-bold text-gray-600 block mb-1">Monto Inicial en Efectivo (S/):</label>
+              <input type="number" step="0.50" id="cash-open-amount" value="50.00" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-black outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
             <button onclick="openCashRegister()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl text-xs shadow-md uppercase">
               <i class="fa-solid fa-key mr-1"></i> Abrir Caja de Hoy
@@ -1112,71 +1111,71 @@ async function loadCashStatus() {
         <div class="space-y-6">
           <!-- TARJETAS DE ARQUEO EN VIVO -->
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-              <p class="text-[10px] uppercase font-bold text-slate-400">Saldo Inicial</p>
-              <p class="text-xl font-black text-slate-800">S/ ${data.initialAmount.toFixed(2)}</p>
-              <p class="text-[10px] text-slate-400 mt-1">Apertura: ${new Date(reg.opened_at).toLocaleTimeString()}</p>
+            <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm">
+              <p class="text-[10px] uppercase font-bold text-gray-400">Saldo Inicial</p>
+              <p class="text-xl font-black text-gray-800">S/ ${data.initialAmount.toFixed(2)}</p>
+              <p class="text-[10px] text-gray-400 mt-1">Apertura: ${new Date(reg.opened_at).toLocaleTimeString()}</p>
             </div>
-            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-              <p class="text-[10px] uppercase font-bold text-slate-400">Ventas en Efectivo</p>
-              <p class="text-xl font-black text-emerald-600">S/ ${data.efectivoSales.toFixed(2)}</p>
-              <p class="text-[10px] text-slate-400 mt-1">Yape/Plin: S/ ${data.yapeSales.toFixed(2)}</p>
+            <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm">
+              <p class="text-[10px] uppercase font-bold text-gray-400">Ventas en Efectivo</p>
+              <p class="text-xl font-black text-green-600">S/ ${data.efectivoSales.toFixed(2)}</p>
+              <p class="text-[10px] text-gray-400 mt-1">Yape/Plin: S/ ${data.yapeSales.toFixed(2)}</p>
             </div>
-            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-              <p class="text-[10px] uppercase font-bold text-slate-400">Ingresos / Retiros</p>
-              <p class="text-xs font-bold text-emerald-600">+ S/ ${data.ingresos.toFixed(2)} (Ingresos)</p>
-              <p class="text-xs font-bold text-rose-600">- S/ ${data.retiros.toFixed(2)} (Gastos)</p>
+            <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm">
+              <p class="text-[10px] uppercase font-bold text-gray-400">Ingresos / Retiros</p>
+              <p class="text-xs font-bold text-green-600">+ S/ ${data.ingresos.toFixed(2)} (Ingresos)</p>
+              <p class="text-xs font-bold text-red-600">- S/ ${data.retiros.toFixed(2)} (Gastos)</p>
             </div>
-            <div class="bg-gradient-to-tr from-slate-900 to-indigo-950 p-5 rounded-3xl text-white shadow-lg">
+            <div class="bg-gradient-to-tr from-gray-900 to-indigo-950 p-5 rounded-3xl text-white shadow-lg">
               <p class="text-[10px] uppercase font-bold text-indigo-300">Efectivo Esperado en Caja</p>
               <p class="text-2xl font-black text-white">S/ ${data.expectedCash.toFixed(2)}</p>
-              <p class="text-[10px] text-slate-400 mt-1">Total vendido: S/ ${data.totalSales.toFixed(2)}</p>
+              <p class="text-[10px] text-gray-400 mt-1">Total vendido: S/ ${data.totalSales.toFixed(2)}</p>
             </div>
           </div>
 
           <!-- BOTONES DE ACCIÓN: MOVIMIENTO Y CIERRE -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- REGISTRAR MOVIMIENTO -->
-            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-              <h4 class="font-black text-sm text-slate-800 flex items-center gap-2">
+            <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm space-y-3">
+              <h4 class="font-black text-sm text-gray-800 flex items-center gap-2">
                 <i class="fa-solid fa-money-bill-transfer text-indigo-600"></i> Registrar Movimiento Manual
               </h4>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="text-[10px] font-bold text-slate-500 uppercase">Tipo</label>
-                  <select id="mov-type" class="w-full p-2 border border-slate-200 rounded-xl text-xs font-bold outline-none">
+                  <label class="text-[10px] font-bold text-gray-500 uppercase">Tipo</label>
+                  <select id="mov-type" class="w-full p-2 border border-gray-200 rounded-xl text-xs font-bold outline-none">
                     <option value="RETIRO">Gasto / Retiro</option>
                     <option value="INGRESO">Ingreso Extra</option>
                   </select>
                 </div>
                 <div>
-                  <label class="text-[10px] font-bold text-slate-500 uppercase">Monto (S/)</label>
-                  <input type="number" step="0.50" id="mov-amount" placeholder="0.00" class="w-full p-2 border border-slate-200 rounded-xl text-xs font-bold outline-none">
+                  <label class="text-[10px] font-bold text-gray-500 uppercase">Monto (S/)</label>
+                  <input type="number" step="0.50" id="mov-amount" placeholder="0.00" class="w-full p-2 border border-gray-200 rounded-xl text-xs font-bold outline-none">
                 </div>
               </div>
               <div>
-                <label class="text-[10px] font-bold text-slate-500 uppercase">Motivo / Detalle</label>
-                <input type="text" id="mov-reason" placeholder="Ej. Pago de almuerzo, cambio sencillo..." class="w-full p-2 border border-slate-200 rounded-xl text-xs outline-none">
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Motivo / Detalle</label>
+                <input type="text" id="mov-reason" placeholder="Ej. Pago de almuerzo, cambio sencillo..." class="w-full p-2 border border-gray-200 rounded-xl text-xs outline-none">
               </div>
-              <button onclick="registerCashMovement()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm">
+              <button onclick="registerCashMovement()" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm">
                 Guardar Movimiento
               </button>
             </div>
 
             <!-- CIERRE DE CAJA / ARQUEO Z -->
-            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-              <h4 class="font-black text-sm text-slate-800 flex items-center gap-2">
-                <i class="fa-solid fa-file-invoice-dollar text-emerald-600"></i> Realizar Corte de Caja (Arqueo Z)
+            <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm space-y-3">
+              <h4 class="font-black text-sm text-gray-800 flex items-center gap-2">
+                <i class="fa-solid fa-file-invoice-dollar text-green-600"></i> Realizar Corte de Caja (Arqueo Z)
               </h4>
               <div>
-                <label class="text-[10px] font-bold text-slate-500 uppercase">Efectivo Real en Caja (S/) *</label>
-                <input type="number" step="0.50" id="close-final-amount" placeholder="Monto contado físicamente..." class="w-full p-2 border border-slate-200 rounded-xl text-xs font-black outline-none text-indigo-700 text-sm">
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Efectivo Real en Caja (S/) *</label>
+                <input type="number" step="0.50" id="close-final-amount" placeholder="Monto contado físicamente..." class="w-full p-2 border border-gray-200 rounded-xl text-xs font-black outline-none text-indigo-700 text-sm">
               </div>
               <div>
-                <label class="text-[10px] font-bold text-slate-500 uppercase">Observaciones</label>
-                <input type="text" id="close-notes" placeholder="Notas de cierre (opcional)..." class="w-full p-2 border border-slate-200 rounded-xl text-xs outline-none">
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Observaciones</label>
+                <input type="text" id="close-notes" placeholder="Notas de cierre (opcional)..." class="w-full p-2 border border-gray-200 rounded-xl text-xs outline-none">
               </div>
-              <button onclick="closeCashRegister()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-2.5 rounded-xl text-xs shadow-sm uppercase">
+              <button onclick="closeCashRegister()" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2.5 rounded-xl text-xs shadow-sm uppercase">
                 <i class="fa-solid fa-lock mr-1"></i> Cerrar Caja y Generar Arqueo Z
               </button>
             </div>
@@ -1337,20 +1336,20 @@ function renderInventoryTable() {
   tbody.innerHTML = filtered.map(p => {
     const modelsStr = (p.compatible_models || []).map(m => m.model_name).join(', ') || 'Universal';
     return `
-      <tr class="hover:bg-slate-50">
-        <td class="p-4 font-mono font-bold text-slate-500 text-xs">${p.code}</td>
-        <td class="p-4 font-bold text-slate-900 text-xs">${p.name}</td>
-        <td class="p-4"><span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">${p.category}</span></td>
+      <tr class="hover:bg-gray-50">
+        <td class="p-4 font-mono font-bold text-gray-500 text-xs">${p.code}</td>
+        <td class="p-4 font-bold text-gray-900 text-xs">${p.name}</td>
+        <td class="p-4"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-bold">${p.category}</span></td>
         <td class="p-4 text-xs text-indigo-700 font-medium truncate max-w-xs">${modelsStr}</td>
-        <td class="p-4 text-right font-bold text-slate-500 text-xs">S/ ${(p.purchase_price || 0).toFixed(2)}</td>
-        <td class="p-4 text-right font-black text-slate-900 text-xs">S/ ${p.price.toFixed(2)}</td>
+        <td class="p-4 text-right font-bold text-gray-500 text-xs">S/ ${(p.purchase_price || 0).toFixed(2)}</td>
+        <td class="p-4 text-right font-black text-gray-900 text-xs">S/ ${p.price.toFixed(2)}</td>
         <td class="p-4 text-center">
-          <span class="${p.stock < 5 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'} px-2.5 py-0.5 rounded font-black text-xs">
+          <span class="${p.stock < 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'} px-2.5 py-0.5 rounded font-black text-xs">
             ${p.stock} und.
           </span>
         </td>
         <td class="p-4 text-center">
-          <button onclick="deleteProduct(${p.id})" class="text-rose-500 hover:text-rose-700 font-bold text-xs"><i class="fa-solid fa-trash"></i></button>
+          <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-700 font-bold text-xs"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>
     `;
@@ -1368,12 +1367,12 @@ function renderFiadosTable() {
   const tbody = document.getElementById('fiados-table-body');
   if (!tbody) return;
   tbody.innerHTML = CLIENTS.map(c => `
-    <tr class="hover:bg-slate-50">
-      <td class="p-4 font-mono font-bold text-slate-500 text-xs">${c.doc}</td>
-      <td class="p-4 font-bold text-slate-800 text-xs">${c.name}</td>
-      <td class="p-4 text-slate-500 text-xs">${c.phone || '-'}</td>
-      <td class="p-4 text-right font-black ${c.debt > 0 ? 'text-amber-600' : 'text-slate-400'} text-xs">S/ ${(c.debt || 0).toFixed(2)}</td>
-      <td class="p-4 text-center"><button onclick="registerAbono(${c.id})" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1 rounded-xl text-xs shadow-sm">Abonar</button></td>
+    <tr class="hover:bg-gray-50">
+      <td class="p-4 font-mono font-bold text-gray-500 text-xs">${c.doc}</td>
+      <td class="p-4 font-bold text-gray-800 text-xs">${c.name}</td>
+      <td class="p-4 text-gray-500 text-xs">${c.phone || '-'}</td>
+      <td class="p-4 text-right font-black ${c.debt > 0 ? 'text-yellow-600' : 'text-gray-400'} text-xs">S/ ${(c.debt || 0).toFixed(2)}</td>
+      <td class="p-4 text-center"><button onclick="registerAbono(${c.id})" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-3 py-1 rounded-xl text-xs shadow-sm">Abonar</button></td>
     </tr>
   `).join('');
 }
