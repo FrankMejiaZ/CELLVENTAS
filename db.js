@@ -17,7 +17,7 @@ if (USE_POSTGRES) {
   });
 
   pool.on('error', (err) => {
-    console.error('❌ Error in en Pool de PostgreSQL:', err);
+    console.error('❌ Error en Pool de PostgreSQL:', err);
   });
 } else {
   const dataDir = path.join(__dirname, 'data');
@@ -31,7 +31,6 @@ if (USE_POSTGRES) {
 // Wrapper unificado para queries (PG o SQLite)
 async function query(text, params = []) {
   if (USE_POSTGRES) {
-    // Convertir sintaxis ? a $1, $2 para Postgres
     let paramIndex = 1;
     const pgText = text.replace(/\?/g, () => `$${paramIndex++}`);
     const res = await pool.query(pgText, params);
@@ -58,7 +57,7 @@ async function initDb() {
   try {
     console.log('⚡ Inicializando Tablas de CELLVENTAS (POS, Marcas, Modelos y Compatibilidades)...');
 
-    // 1. MARCAS DE CELULARES (Apple, Samsung, Xiaomi, etc.)
+    // 1. MARCAS DE CELULARES
     await query(`
       CREATE TABLE IF NOT EXISTS brands (
         id ${USE_POSTGRES ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
@@ -67,7 +66,7 @@ async function initDb() {
       )
     `);
 
-    // 2. MODELOS DE CELULARES (iPhone 15 Pro Max, Galaxy S24 Ultra, etc.)
+    // 2. MODELOS DE CELULARES
     await query(`
       CREATE TABLE IF NOT EXISTS phone_models (
         id ${USE_POSTGRES ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
@@ -79,7 +78,7 @@ async function initDb() {
       )
     `);
 
-    // 3. PRODUCTOS (Fundas/Cases, Micas de Vidrio, Cargadores, Celulares, Repuestos)
+    // 3. PRODUCTOS
     await query(`
       CREATE TABLE IF NOT EXISTS products (
         id ${USE_POSTGRES ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
@@ -90,12 +89,12 @@ async function initDb() {
         price REAL NOT NULL,
         stock INTEGER NOT NULL DEFAULT 0,
         min_stock INTEGER DEFAULT 5,
-        is_serialized INTEGER DEFAULT 0, -- 1 si requiere IMEI (Celulares)
+        is_serialized INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    // 4. MATRIZ DE COMPATIBILIDAD (Asocia un producto con 1 o varios modelos de celular)
+    // 4. MATRIZ DE COMPATIBILIDAD
     await query(`
       CREATE TABLE IF NOT EXISTS product_compatibilities (
         id ${USE_POSTGRES ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
@@ -112,7 +111,7 @@ async function initDb() {
         id ${USE_POSTGRES ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
         product_id INTEGER NOT NULL,
         imei_code TEXT UNIQUE NOT NULL,
-        status TEXT DEFAULT 'disponible', -- disponible, vendido, defectuoso
+        status TEXT DEFAULT 'disponible',
         sale_id INTEGER,
         sold_at TIMESTAMP,
         notes TEXT DEFAULT '',
@@ -130,7 +129,7 @@ async function initDb() {
         final_amount REAL DEFAULT 0,
         expected_amount REAL DEFAULT 0,
         difference REAL DEFAULT 0,
-        status TEXT NOT NULL DEFAULT 'abierta', -- abierta, cerrada
+        status TEXT NOT NULL DEFAULT 'abierta',
         notes TEXT DEFAULT '',
         opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         closed_at TIMESTAMP
@@ -141,9 +140,10 @@ async function initDb() {
       CREATE TABLE IF NOT EXISTS cash_movements (
         id ${USE_POSTGRES ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
         cash_register_id INTEGER NOT NULL,
-        type TEXT NOT NULL, -- INGRESO, RETIRO
+        type TEXT NOT NULL, -- INGRESO, RETIRO, ABONO
         amount REAL NOT NULL,
         reason TEXT NOT NULL,
+        payment_method TEXT DEFAULT 'Efectivo',
         user_name TEXT DEFAULT 'Administrador',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (cash_register_id) REFERENCES cash_registers(id) ON DELETE CASCADE
@@ -172,6 +172,7 @@ async function initDb() {
         customer_id INTEGER,
         customer_name TEXT DEFAULT 'Público General',
         payment_method TEXT NOT NULL,
+        payment_details TEXT DEFAULT '',
         subtotal REAL NOT NULL,
         tax REAL NOT NULL,
         total REAL NOT NULL,
@@ -182,6 +183,18 @@ async function initDb() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Si la columna payment_details no existe en tablas creadas previamente
+    try {
+      if (USE_POSTGRES) {
+        await query(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS payment_details TEXT DEFAULT ''`);
+        await query(`ALTER TABLE cash_movements ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'Efectivo'`);
+      } else {
+        await query(`ALTER TABLE sales ADD COLUMN payment_details TEXT DEFAULT ''`);
+      }
+    } catch (e) {
+      // ya existe
+    }
 
     // 8. DETALLE DE VENTAS
     await query(`
@@ -198,7 +211,7 @@ async function initDb() {
       )
     `);
 
-    // 9. FIADOS Y ABONOS
+    // 9. FIADOS / CRÉDITOS Y ABONOS
     await query(`
       CREATE TABLE IF NOT EXISTS fiado_records (
         id ${USE_POSTGRES ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
@@ -207,6 +220,8 @@ async function initDb() {
         amount REAL NOT NULL,
         details TEXT DEFAULT '',
         balance_after REAL NOT NULL,
+        receipt_code TEXT DEFAULT '',
+        payment_method TEXT DEFAULT 'Efectivo',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -231,17 +246,15 @@ async function initDb() {
       )
     `);
 
-    // SEED INICIAL DE MARCAS Y MODELOS DE CELULARES
+    // SEED INICIAL DE MARCAS Y MODELOS
     const brandCheck = await query(`SELECT COUNT(*) as count FROM brands`);
     const count = parseInt(brandCheck.rows[0].count);
 
     if (count === 0) {
       console.log('🌱 Sembrando datos iniciales de Marcas, Modelos y Accesorios...');
 
-      // Insertar Marcas
       await query(`INSERT INTO brands (name) VALUES ('Apple'), ('Samsung'), ('Xiaomi'), ('Motorola')`);
 
-      // Insertar Modelos
       await query(`
         INSERT INTO phone_models (brand_id, model_name, release_year) VALUES 
         (1, 'iPhone 15 Pro Max', 2023),
@@ -255,7 +268,6 @@ async function initDb() {
         (4, 'Motorola Moto G84 5G', 2023)
       `);
 
-      // Insertar Productos Iniciales (Fundas, Micas, Cargadores, Celulares)
       await query(`
         INSERT INTO products (code, name, category, purchase_price, price, stock, min_stock, is_serialized) VALUES
         ('ACC-001', 'Case Silicona Magsafe Transparente', 'Cases / Fundas', 12.00, 25.00, 30, 5, 0),
@@ -265,7 +277,6 @@ async function initDb() {
         ('CEL-001', 'Smartphone Xiaomi Redmi Note 13 256GB', 'Equipos Celulares', 650.00, 799.00, 5, 2, 1)
       `);
 
-      // Asociar Compatibilidades (Case ACC-001 -> iPhone 15 Pro Max & iPhone 15 Pro)
       await query(`
         INSERT INTO product_compatibilities (product_id, phone_model_id) VALUES
         (1, 1), (1, 2), (1, 3),
@@ -273,29 +284,25 @@ async function initDb() {
         (3, 1), (3, 5)
       `);
 
-      // Insertar IMEI de prueba para Xiaomi Redmi Note 13
       await query(`
         INSERT INTO device_imeis (product_id, imei_code, status) VALUES
         (5, '864201061234567', 'disponible'),
         (5, '864201061234568', 'disponible')
       `);
 
-      // Seed Clientes
       await query(`
         INSERT INTO customers (doc, name, phone, debt) VALUES
         ('45891234', 'Juan Pérez (Taller Móvil)', '987654321', 0.00),
         ('10748392011', 'Importadora Tech SAC', '912345678', 0.00)
       `);
 
-      // Seed Usuario Admin (pass: admin123)
-      const defaultPassHash = '$2a$10$vN91xYk2oKqS0sE1nKxGxeX.oOq0k9yG1L/J5V5N0S7a3K5n5S7a3'; // bcrypt hash
+      const defaultPassHash = '$2a$10$vN91xYk2oKqS0sE1nKxGxeX.oOq0k9yG1L/J5V5N0S7a3K5n5S7a3';
       await query(`
         INSERT INTO users (username, name, role, password_hash) VALUES
         ('admin', 'Administrador Tech', 'Administrador', '${defaultPassHash}')
       `);
 
-      // Seed Contadores
-      await query(`INSERT INTO counters (doc_type, last_number) VALUES ('Ticket', 0), ('Boleta', 0), ('Factura', 0)`);
+      await query(`INSERT INTO counters (doc_type, last_number) VALUES ('Ticket', 0), ('Boleta', 0), ('Factura', 0), ('ReciboAbono', 0)`);
 
       console.log('✅ CELLVENTAS: Marcas, Modelos, Compatibilidades e IMEIs inicializados con éxito.');
     }

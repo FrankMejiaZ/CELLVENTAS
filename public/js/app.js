@@ -7,6 +7,7 @@ let CLIENTS = [];
 let SALES = [];
 let COVERAGE = [];
 let CART = [];
+let isCashRegisterOpen = false;
 let selectedPaymentMethod = 'Efectivo';
 let pendingImeiProduct = null;
 let currentCoverageFilter = 'all';
@@ -19,17 +20,47 @@ if (socket) {
   socket.on('product_updated', () => { loadProducts(); loadBrandsAndModels(); });
   socket.on('compatibility_updated', () => { loadBrandsAndModels(); loadCoverageData(); });
   socket.on('cash_updated', () => { loadCashStatus(); });
+  socket.on('abono_registered', () => { loadCustomers(); loadCashStatus(); loadDashboard(); });
 }
 
 // Inicialización
 async function init() {
+  await loadCashStatus();
   await loadBrandsAndModels();
   await loadProducts();
   await loadCustomers();
   await loadDashboard();
   await loadCoverageData();
-  await loadCashStatus();
   await loadSalesHistory();
+}
+
+// Toast Flotante
+function showToast(title, msg, type = 'success') {
+  const toast = document.getElementById('toast-notification');
+  const tTitle = document.getElementById('toast-title');
+  const tMsg = document.getElementById('toast-msg');
+  const tIcon = document.getElementById('toast-icon');
+
+  if (!toast) return;
+
+  tTitle.innerText = title;
+  tMsg.innerText = msg;
+
+  if (type === 'error') {
+    tIcon.className = 'w-7 h-7 rounded-xl bg-red-500 text-white flex items-center justify-center text-xs font-bold';
+    tIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+  } else if (type === 'warning') {
+    tIcon.className = 'w-7 h-7 rounded-xl bg-yellow-500 text-white flex items-center justify-center text-xs font-bold';
+    tIcon.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i>';
+  } else {
+    tIcon.className = 'w-7 h-7 rounded-xl bg-green-500 text-white flex items-center justify-center text-xs font-bold';
+    tIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
+  }
+
+  toast.classList.remove('translate-y-[-100px]', 'opacity-0', 'pointer-events-none');
+  setTimeout(() => {
+    toast.classList.add('translate-y-[-100px]', 'opacity-0', 'pointer-events-none');
+  }, 3200);
 }
 
 function switchTab(tabId) {
@@ -45,8 +76,8 @@ function switchTab(tabId) {
     activeBtn.className = 'nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-black transition-all shadow-md';
   }
 
-  if (tabId === 'assistant') populateAssistantBrandDropdown();
-  if (tabId === 'pos') { populateBrandFilters(); renderProducts(); }
+  if (tabId === 'assistant') { populateAssistantBrandDropdown(); updateAssistantCartBar(); }
+  if (tabId === 'pos') { populateBrandFilters(); renderProducts(); renderCart(); }
   if (tabId === 'compatibility') { loadCoverageData(); renderCompatibilityMatrix(); }
   if (tabId === 'inventory') renderInventoryTable();
   if (tabId === 'imeis') searchImeiTracker();
@@ -57,7 +88,7 @@ function switchTab(tabId) {
 }
 
 // ==============================================================
-// 1. CARGADORES DE DATOS BASE (API)
+// 1. CARGADORES DE DATOS BASE
 // ==============================================================
 async function loadBrandsAndModels() {
   try {
@@ -106,7 +137,7 @@ async function loadDashboard() {
 }
 
 // ==============================================================
-// 2. ASISTENTE DE MOSTRADOR: FICHA 360° DE COMPATIBILIDAD
+// 2. ASISTENTE DE MOSTRADOR (MULTISELECCIÓN FLUIDA)
 // ==============================================================
 function populateAssistantBrandDropdown() {
   const brandSelect = document.getElementById('assistant-brand-select');
@@ -145,7 +176,6 @@ async function loadAssistantModelData(customModelId = null) {
 
     const { model, products } = data;
 
-    // Agrupar por categorías clave
     const cases = products.filter(p => (p.category || '').toLowerCase().includes('case') || (p.category || '').toLowerCase().includes('funda'));
     const micas = products.filter(p => (p.category || '').toLowerCase().includes('mica') || (p.category || '').toLowerCase().includes('protector'));
     const cargadores = products.filter(p => (p.category || '').toLowerCase().includes('cargador') || (p.category || '').toLowerCase().includes('cable'));
@@ -156,7 +186,7 @@ async function loadAssistantModelData(customModelId = null) {
       const sharedBadges = (p.shared_with && p.shared_with.length > 0) ? `
         <div class="mt-2 p-2 bg-indigo-50 rounded-xl border border-indigo-100">
           <p class="text-[10px] font-black text-indigo-900 leading-tight">
-            <i class="fa-solid fa-share-nodes text-indigo-600 mr-1"></i> También le hace a:
+            <i class="fa-solid fa-share-nodes text-indigo-600 mr-1"></i> También compatible con:
           </p>
           <p class="text-[10px] font-medium text-indigo-700 mt-0.5 line-clamp-2">${p.shared_with.join(', ')}</p>
         </div>
@@ -179,8 +209,8 @@ async function loadAssistantModelData(customModelId = null) {
               </span>
               <p class="text-base font-black text-indigo-600">S/ ${p.price.toFixed(2)}</p>
             </div>
-            <button onclick="addToCartFromAssistant(${p.id})" ${isLow ? 'disabled' : ''} class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5">
-              <i class="fa-solid fa-cart-plus"></i> Vender
+            <button onclick="addToCartFromAssistant(${p.id})" ${isLow ? 'disabled' : ''} class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all">
+              <i class="fa-solid fa-cart-plus"></i> + Añadir
             </button>
           </div>
         </div>
@@ -188,7 +218,6 @@ async function loadAssistantModelData(customModelId = null) {
     };
 
     container.innerHTML = `
-      <!-- BANNER DE RESUMEN DEL MODELO -->
       <div class="bg-white p-6 rounded-3xl border border-indigo-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <span class="text-xs font-black uppercase tracking-wider text-indigo-600">${model.brand_name}</span>
@@ -209,7 +238,6 @@ async function loadAssistantModelData(customModelId = null) {
         </div>
       </div>
 
-      <!-- SECCIÓN 1: FUNDAS Y CASES -->
       <div class="space-y-3">
         <div class="flex items-center gap-2">
           <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-shield-cat"></i></div>
@@ -217,12 +245,11 @@ async function loadAssistantModelData(customModelId = null) {
         </div>
         ${cases.length === 0 ? `
           <div class="p-6 bg-red-50 border border-red-100 text-red-800 rounded-2xl text-xs font-bold flex items-center gap-2">
-            <i class="fa-solid fa-triangle-exclamation text-red-600 text-base"></i> No hay fundas ni cases registrados o en stock para este modelo.
+            <i class="fa-solid fa-triangle-exclamation text-red-600 text-base"></i> No hay fundas ni cases registrados en stock para este modelo.
           </div>
         ` : `<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">${cases.map(renderCard).join('')}</div>`}
       </div>
 
-      <!-- SECCIÓN 2: MICAS Y VIDRIOS TEMPLADOS -->
       <div class="space-y-3">
         <div class="flex items-center gap-2">
           <div class="w-7 h-7 rounded-lg bg-green-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-square"></i></div>
@@ -235,7 +262,6 @@ async function loadAssistantModelData(customModelId = null) {
         ` : `<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">${micas.map(renderCard).join('')}</div>`}
       </div>
 
-      <!-- SECCIÓN 3: OTROS COMPATIBLES / REPUESTOS -->
       ${(cargadores.length > 0 || otros.length > 0) ? `
         <div class="space-y-3">
           <div class="flex items-center gap-2">
@@ -249,14 +275,45 @@ async function loadAssistantModelData(customModelId = null) {
       ` : ''}
     `;
 
+    updateAssistantCartBar();
+
   } catch (err) {
     container.innerHTML = `<div class="p-6 bg-red-50 border border-red-100 text-red-800 rounded-2xl text-xs font-bold">Error: ${err.message}</div>`;
   }
 }
 
+// Agregar producto desde el asistente SIN cambiar de pantalla
 function addToCartFromAssistant(productId) {
+  const prod = PRODUCTS.find(p => p.id === productId);
+  if (!prod) return;
+
+  if (prod.is_serialized === 1) {
+    handleProductClick(productId);
+    return;
+  }
+
   addToCart(productId);
-  switchTab('pos');
+  showToast('Añadido a la Orden', `${prod.name} (S/ ${prod.price.toFixed(2)})`);
+  updateAssistantCartBar();
+}
+
+function updateAssistantCartBar() {
+  const bar = document.getElementById('assistant-cart-bar');
+  const summary = document.getElementById('assistant-cart-summary');
+  const totalDisplay = document.getElementById('assistant-cart-total');
+
+  if (!bar) return;
+
+  const count = CART.reduce((sum, i) => sum + i.quantity, 0);
+  const total = CART.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+
+  if (count > 0) {
+    bar.classList.remove('hidden');
+    summary.innerText = `Orden: ${count} producto${count > 1 ? 's' : ''} en carrito`;
+    totalDisplay.innerText = `S/ ${total.toFixed(2)}`;
+  } else {
+    bar.classList.add('hidden');
+  }
 }
 
 // ==============================================================
@@ -442,7 +499,7 @@ async function saveBulkCompatibilities() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al guardar');
 
-    alert(`✅ ${data.message}`);
+    showToast('Vínculos Guardados', data.message);
     closeBulkCompatModal();
     await loadProducts();
     await loadCoverageData();
@@ -451,7 +508,7 @@ async function saveBulkCompatibilities() {
   }
 }
 
-// GESTIÓN DE MARCAS Y MODELOS
+// MARCAS Y MODELOS
 function openBrandModal() { document.getElementById('modal-brand').classList.remove('hidden'); }
 function closeBrandModal() { document.getElementById('modal-brand').classList.add('hidden'); }
 async function saveBrand(e) {
@@ -588,11 +645,11 @@ function renderProducts() {
 async function handleProductClick(productId) {
   const prod = PRODUCTS.find(p => p.id === productId);
   if (!prod || prod.stock <= 0) {
-    alert('⚠️ Producto sin stock disponible.');
+    showToast('Sin Stock', 'Este producto no cuenta con existencias disponibles.', 'warning');
     return;
   }
 
-  // Si requiere IMEI, abrir selector de IMEI
+  // Si requiere IMEI
   if (prod.is_serialized === 1) {
     pendingImeiProduct = prod;
     document.getElementById('modal-imei-prod-name').innerText = `${prod.name} (#${prod.code})`;
@@ -604,7 +661,7 @@ async function handleProductClick(productId) {
       const res = await fetch(`/api/imeis/available/${productId}`);
       const imeis = await res.json();
       if (imeis.length === 0) {
-        listContainer.innerHTML = '<p class="text-xs text-red-500 font-bold">⚠️ No hay IMEIs registrados disponibles para este equipo.</p>';
+        listContainer.innerHTML = '<p class="text-xs text-red-500 font-bold">⚠️ No hay códigos IMEI disponibles para este equipo.</p>';
         return;
       }
       listContainer.innerHTML = imeis.map(i => `
@@ -618,6 +675,7 @@ async function handleProductClick(productId) {
     }
   } else {
     addToCart(productId);
+    showToast('Añadido', `${prod.name}`);
   }
 }
 
@@ -626,7 +684,7 @@ function selectImeiForSale(imeiCode) {
 
   const alreadyInCart = CART.find(i => i.imei === imeiCode);
   if (alreadyInCart) {
-    alert('⚠️ Este IMEI ya está agregado en el carrito.');
+    alert('⚠️ Este IMEI ya está agregado en la orden actual.');
     return;
   }
 
@@ -638,6 +696,8 @@ function selectImeiForSale(imeiCode) {
 
   closeImeiSelectModal();
   renderCart();
+  updateAssistantCartBar();
+  showToast('Equipo Añadido', `IMEI: ${imeiCode}`);
 }
 
 function closeImeiSelectModal() {
@@ -648,14 +708,14 @@ function closeImeiSelectModal() {
 function addToCart(productId) {
   const prod = PRODUCTS.find(p => p.id === productId);
   if (!prod || prod.stock <= 0) {
-    alert('⚠️ Producto sin stock.');
+    showToast('Sin Stock', 'No hay stock disponible.', 'warning');
     return;
   }
 
   const existing = CART.find(i => i.product.id === productId && !i.imei);
   if (existing) {
     if (existing.quantity >= prod.stock) {
-      alert(`⚠️ Stock máximo alcanzado (${prod.stock} und).`);
+      showToast('Stock Máximo', `Solo hay ${prod.stock} unidades en almacén.`, 'warning');
       return;
     }
     existing.quantity += 1;
@@ -664,6 +724,7 @@ function addToCart(productId) {
   }
 
   renderCart();
+  updateAssistantCartBar();
 }
 
 function updateCartQty(productId, delta, imei = '') {
@@ -679,11 +740,13 @@ function updateCartQty(productId, delta, imei = '') {
     }
   }
   renderCart();
+  updateAssistantCartBar();
 }
 
 function clearCart() {
   CART = [];
   renderCart();
+  updateAssistantCartBar();
 }
 
 function renderCart() {
@@ -733,7 +796,7 @@ function renderCart() {
 }
 
 // ==============================================================
-// 5. MODAL DE PAGO, CÁLCULO DE VUELTO & EMISIÓN DE TICKET
+// 5. MODAL DE PAGO, PAGOS MIXTOS & EMISIÓN DE TICKET
 // ==============================================================
 function populateCustomerDropdown() {
   const select = document.getElementById('modal-select-customer');
@@ -744,9 +807,16 @@ function populateCustomerDropdown() {
 }
 
 function openPaymentModal() {
+  if (!isCashRegisterOpen) {
+    openRequireCashModal();
+    return;
+  }
+
   const total = CART.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
   document.getElementById('modal-pay-total').innerText = `S/ ${total.toFixed(2)}`;
   document.getElementById('tendered-amount').value = total.toFixed(2);
+  
+  setPaymentMethod('Efectivo');
   calculateChange();
   document.getElementById('modal-payment').classList.remove('hidden');
 }
@@ -758,14 +828,31 @@ function closePaymentModal() {
 function setPaymentMethod(method) {
   selectedPaymentMethod = method;
   document.querySelectorAll('.pay-btn').forEach(b => {
-    b.className = 'pay-btn bg-gray-100 text-gray-700 font-bold py-2.5 rounded-xl text-xs';
+    b.className = 'pay-btn bg-gray-100 text-gray-700 font-bold py-2 rounded-xl text-xs';
   });
   const activeBtn = document.getElementById('pay-' + method);
-  if (activeBtn) activeBtn.className = 'pay-btn active bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-xs';
+  if (activeBtn) activeBtn.className = 'pay-btn active bg-indigo-600 text-white font-bold py-2 rounded-xl text-xs';
 
   const cashBox = document.getElementById('cash-calculator-box');
-  if (method === 'Efectivo') cashBox.classList.remove('hidden');
-  else cashBox.classList.add('hidden');
+  const mixedBox = document.getElementById('mixed-payment-box');
+
+  if (method === 'Efectivo') {
+    cashBox.classList.remove('hidden');
+    mixedBox.classList.add('hidden');
+  } else if (method === 'Mixto') {
+    cashBox.classList.add('hidden');
+    mixedBox.classList.remove('hidden');
+    
+    // Inicializar desglose mixto con el total en efectivo por defecto
+    const total = CART.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+    document.getElementById('mix-efectivo').value = (total / 2).toFixed(2);
+    document.getElementById('mix-yape').value = (total / 2).toFixed(2);
+    document.getElementById('mix-tarjeta').value = '0.00';
+    calculateMixedPayment();
+  } else {
+    cashBox.classList.add('hidden');
+    mixedBox.classList.add('hidden');
+  }
 }
 
 function calculateChange() {
@@ -775,26 +862,71 @@ function calculateChange() {
   document.getElementById('change-amount-display').innerText = `S/ ${change.toFixed(2)}`;
 }
 
+function calculateMixedPayment() {
+  const total = CART.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+  const ef = parseFloat(document.getElementById('mix-efectivo').value) || 0;
+  const yp = parseFloat(document.getElementById('mix-yape').value) || 0;
+  const tj = parseFloat(document.getElementById('mix-tarjeta').value) || 0;
+
+  const covered = ef + yp + tj;
+  const pending = total - covered;
+
+  document.getElementById('mixed-covered-label').innerText = `Cubierto: S/ ${covered.toFixed(2)}`;
+  if (pending <= 0.01) {
+    document.getElementById('mixed-pending-label').className = 'text-green-700 font-black';
+    document.getElementById('mixed-pending-label').innerText = '✅ Monto Cubierto Total';
+  } else {
+    document.getElementById('mixed-pending-label').className = 'text-red-600 font-black';
+    document.getElementById('mixed-pending-label').innerText = `Falta: S/ ${pending.toFixed(2)}`;
+  }
+}
+
 async function processFinalSale() {
+  if (!isCashRegisterOpen) {
+    openRequireCashModal();
+    return;
+  }
+
   const customerId = document.getElementById('modal-select-customer').value;
   const customerObj = CLIENTS.find(c => String(c.id) === String(customerId));
   const customerName = customerObj ? customerObj.name : 'Público General';
   const docType = document.getElementById('modal-doc-type').value;
 
-  if (selectedPaymentMethod === 'Fiado' && !customerId) {
-    alert('⚠️ Debe seleccionar un cliente registrado para la opción de FIADO.');
+  if (selectedPaymentMethod === 'Crédito' && !customerId) {
+    alert('⚠️ Para registrar una venta al CRÉDITO, debe seleccionar un cliente registrado.');
     return;
   }
 
   const total = CART.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
-  const tendered = parseFloat(document.getElementById('tendered-amount').value) || total;
-  const change = Math.max(0, tendered - total);
+  let paymentDetails = null;
+  let tendered = total;
+  let change = 0;
+
+  if (selectedPaymentMethod === 'Efectivo') {
+    tendered = parseFloat(document.getElementById('tendered-amount').value) || total;
+    change = Math.max(0, tendered - total);
+  } else if (selectedPaymentMethod === 'Mixto') {
+    const ef = parseFloat(document.getElementById('mix-efectivo').value) || 0;
+    const yp = parseFloat(document.getElementById('mix-yape').value) || 0;
+    const tj = parseFloat(document.getElementById('mix-tarjeta').value) || 0;
+    const covered = ef + yp + tj;
+
+    if (Math.abs(covered - total) > 0.05 && covered < total) {
+      alert(`⚠️ En pago mixto, la suma de los montos (S/ ${covered.toFixed(2)}) debe cubrir el total de la venta (S/ ${total.toFixed(2)}).`);
+      return;
+    }
+
+    paymentDetails = { efectivo: ef, yape: yp, tarjeta: tj };
+    tendered = covered;
+    change = 0;
+  }
 
   const payload = {
     doc_type: docType,
     customer_id: customerId ? parseInt(customerId) : null,
     customer_name: customerName,
     payment_method: selectedPaymentMethod,
+    payment_details: paymentDetails,
     paid_amount: tendered,
     change_amount: change,
     items: CART.map(i => ({
@@ -813,15 +945,24 @@ async function processFinalSale() {
       body: JSON.stringify(payload)
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error al emitir venta');
+    if (!res.ok) {
+      if (data.cash_closed) {
+        openRequireCashModal();
+        return;
+      }
+      throw new Error(data.error || 'Error al emitir venta');
+    }
 
     closePaymentModal();
     clearCart();
     await loadProducts();
     await loadCustomers();
     await loadDashboard();
+    await loadCashStatus();
 
-    // Mostrar Ticket Térmico
+    showToast('Venta Exitosa', `Comprobante ${data.sale.receipt_code} generado.`);
+
+    // Renderizar Ticket Térmico Unificado
     renderThermalTicket(data.sale);
     document.getElementById('modal-ticket').classList.remove('hidden');
 
@@ -830,54 +971,78 @@ async function processFinalSale() {
   }
 }
 
+// Renderizado de Ticket Térmico (Tipografía y grosor unificado para ticketeras)
 function renderThermalTicket(sale) {
   const container = document.getElementById('thermal-ticket-container');
   if (!container) return;
 
   const dateStr = new Date(sale.created_at || Date.now()).toLocaleString();
   const itemsHtml = (sale.items || []).map(i => `
-    <div class="flex justify-between py-1 border-b border-dashed border-gray-300">
-      <div class="flex-1 min-w-0 pr-2">
-        <p class="font-bold text-[11px]">${i.quantity}x ${i.product_name}</p>
-        ${i.imei_code ? `<p class="text-[10px] font-black text-gray-900">IMEI: ${i.imei_code}</p>` : ''}
+    <div style="border-bottom: 1px dashed #666; padding: 4px 0;">
+      <div style="display: flex; justify-content: space-between;">
+        <span>${i.quantity}x ${i.product_name}</span>
+        <span>S/ ${(i.quantity * i.unit_price).toFixed(2)}</span>
       </div>
-      <span class="font-bold">S/ ${(i.quantity * i.unit_price).toFixed(2)}</span>
+      ${i.imei_code ? `<div style="font-weight: bold; margin-top: 2px;">IMEI: ${i.imei_code}</div>` : ''}
     </div>
   `).join('');
 
+  let paymentText = sale.payment_method;
+  if (sale.payment_method === 'Mixto' && sale.payment_details) {
+    const d = sale.payment_details;
+    const parts = [];
+    if (d.efectivo > 0) parts.push(`Efec: S/ ${d.efectivo.toFixed(2)}`);
+    if (d.yape > 0) parts.push(`Yape: S/ ${d.yape.toFixed(2)}`);
+    if (d.tarjeta > 0) parts.push(`Tarj: S/ ${d.tarjeta.toFixed(2)}`);
+    paymentText = `Mixto (${parts.join(', ')})`;
+  }
+
   container.innerHTML = `
-    <div class="text-center pb-2 border-b border-dashed border-gray-300">
-      <h2 class="font-black text-sm tracking-wider">CELLVENTAS</h2>
-      <p class="text-[10px] font-bold">VENTA DE CELULARES Y ACCESORIOS</p>
-      <p class="text-[10px]">VT VALETEC</p>
-      <p class="text-[10px] mt-1 font-bold">${sale.doc_type.toUpperCase()}: ${sale.receipt_code}</p>
-      <p class="text-[9px] text-gray-500">${dateStr}</p>
+    <div style="text-align: center; border-bottom: 1px dashed #666; padding-bottom: 6px; margin-bottom: 6px;">
+      <div style="font-size: 14px; font-weight: bold;">CELLVENTAS</div>
+      <div>ACCESORIOS Y CELULARES</div>
+      <div>VT VALETEC</div>
+      <div style="margin-top: 4px; font-weight: bold;">${(sale.doc_type || 'TICKET').toUpperCase()}: ${sale.receipt_code}</div>
+      <div style="font-size: 11px;">${dateStr}</div>
     </div>
 
-    <div class="py-1.5 border-b border-dashed border-gray-300 text-[10px]">
-      <p><span class="font-bold">Cliente:</span> ${sale.customer_name}</p>
-      <p><span class="font-bold">Pago:</span> ${sale.payment_method}</p>
+    <div style="border-bottom: 1px dashed #666; padding-bottom: 4px; margin-bottom: 4px;">
+      <div>CLIENTE: ${sale.customer_name}</div>
+      <div>PAGO: ${paymentText}</div>
     </div>
 
-    <div class="py-1">
+    <div>
       ${itemsHtml}
     </div>
 
-    <div class="pt-2 border-t border-dashed border-gray-300 space-y-1 text-right text-[11px]">
-      <div class="flex justify-between"><span>Subtotal:</span><span>S/ ${sale.subtotal.toFixed(2)}</span></div>
-      <div class="flex justify-between"><span>IGV (18%):</span><span>S/ ${sale.tax.toFixed(2)}</span></div>
-      <div class="flex justify-between font-black text-sm pt-1 border-t border-gray-300">
-        <span>TOTAL:</span><span>S/ ${sale.total.toFixed(2)}</span>
+    <div style="border-top: 1px dashed #666; padding-top: 6px; margin-top: 6px;">
+      <div style="display: flex; justify-content: space-between;">
+        <span>Subtotal:</span>
+        <span>S/ ${parseFloat(sale.subtotal).toFixed(2)}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span>IGV (18%):</span>
+        <span>S/ ${parseFloat(sale.tax).toFixed(2)}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px;">
+        <span>TOTAL:</span>
+        <span>S/ ${parseFloat(sale.total).toFixed(2)}</span>
       </div>
       ${sale.payment_method === 'Efectivo' ? `
-        <div class="flex justify-between text-[10px] text-gray-600"><span>Recibido:</span><span>S/ ${sale.paid_amount.toFixed(2)}</span></div>
-        <div class="flex justify-between text-[10px] text-gray-600"><span>Vuelto:</span><span>S/ ${sale.change_amount.toFixed(2)}</span></div>
+        <div style="display: flex; justify-content: space-between; margin-top: 2px;">
+          <span>Recibido:</span>
+          <span>S/ ${parseFloat(sale.paid_amount || sale.total).toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span>Vuelto:</span>
+          <span>S/ ${parseFloat(sale.change_amount || 0).toFixed(2)}</span>
+        </div>
       ` : ''}
     </div>
 
-    <div class="text-center pt-3 text-[9px] text-gray-500 border-t border-dashed border-gray-300">
-      <p>¡Gracias por su preferencia!</p>
-      <p>Garantía de equipos con presentación de comprobante.</p>
+    <div style="text-align: center; margin-top: 10px; border-top: 1px dashed #666; padding-top: 6px; font-size: 11px;">
+      <div>¡Gracias por su compra!</div>
+      <div>Conserve este comprobante para su garantía.</div>
     </div>
   `;
 }
@@ -887,7 +1052,7 @@ function closeTicketModal() {
 }
 
 // ==============================================================
-// 6. HISTORIAL DE VENTAS & ANULACIONES
+// 6. HISTORIAL DE VENTAS & ANULACIONES (CON REVERSIÓN EN CAJA)
 // ==============================================================
 async function loadSalesHistory() {
   try {
@@ -919,12 +1084,17 @@ function renderSalesHistoryTable() {
     const isAnulada = s.status === 'anulada';
     const itemsPreview = (s.items || []).map(i => `${i.quantity}x ${i.product_name} ${i.imei_code ? '<span class="font-mono text-[9px] bg-yellow-50 text-yellow-800 px-1 rounded">(IMEI: ' + i.imei_code + ')</span>' : ''}`).join('<br>');
 
+    let payLabel = s.payment_method;
+    if (s.payment_method === 'Mixto' && s.payment_details) {
+      payLabel = `Mixto (Ef: S/ ${s.payment_details.efectivo || 0}, Dig: S/ ${(s.payment_details.yape || 0) + (s.payment_details.tarjeta || 0)})`;
+    }
+
     return `
-      <tr class="hover:bg-gray-50 ${isAnulada ? 'opacity-50 line-through' : ''}">
+      <tr class="hover:bg-gray-50 ${isAnulada ? 'opacity-40 line-through' : ''}">
         <td class="p-4 font-mono font-bold text-gray-800 text-xs">${s.receipt_code}</td>
         <td class="p-4 text-gray-500 text-[11px]">${new Date(s.created_at).toLocaleString()}</td>
         <td class="p-4 font-bold text-gray-800 text-xs">${s.customer_name}</td>
-        <td class="p-4"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-bold">${s.payment_method}</span></td>
+        <td class="p-4"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-bold">${payLabel}</span></td>
         <td class="p-4 text-[11px] text-gray-600">${itemsPreview}</td>
         <td class="p-4 text-right font-black text-gray-900 text-xs">S/ ${parseFloat(s.total).toFixed(2)}</td>
         <td class="p-4 text-center">
@@ -957,25 +1127,26 @@ async function reprintTicket(saleId) {
 }
 
 async function anularSale(saleId, code) {
-  if (!confirm(`¿Está seguro de ANULAR la venta #${code}?\n\n- Se restituirá el stock al almacén.\n- Se liberarán los códigos IMEI correspondientes.\n- Si fue al crédito/fiado, se descontará la deuda.`)) return;
+  if (!confirm(`¿Está seguro de ANULAR la venta #${code}?\n\n- Se restituirá el stock al almacén.\n- Se liberarán los códigos IMEI correspondientes.\n- El monto se descontará del arqueo de caja actual.\n- Si fue al crédito, se descontará la deuda.`)) return;
 
   try {
     const res = await fetch(`/api/sales/${saleId}/anular`, { method: 'PUT' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al anular venta');
 
-    alert(`✅ ${data.message}`);
+    showToast('Venta Anulada', `Venta #${code} anulada. Stock y caja actualizados.`);
     await loadSalesHistory();
     await loadProducts();
     await loadCustomers();
     await loadDashboard();
+    await loadCashStatus();
   } catch (err) {
     alert('❌ Error: ' + err.message);
   }
 }
 
 // ==============================================================
-// 7. RASTREADOR Y GESTIÓN DE IMEIS
+// 7. RASTREADOR DE IMEIS
 // ==============================================================
 async function searchImeiTracker() {
   const query = (document.getElementById('imei-tracker-input')?.value || '').trim();
@@ -1065,7 +1236,7 @@ async function saveImeiBatch(e) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al guardar IMEIs');
 
-    alert(`✅ ${data.message}`);
+    showToast('IMEIs Registrados', `${data.insertedCount} códigos IMEI agregados.`);
     closeImeiEntryModal();
     document.getElementById('imei-entry-codes').value = '';
     await loadProducts();
@@ -1076,27 +1247,68 @@ async function saveImeiBatch(e) {
 }
 
 // ==============================================================
-// 8. CONTROL DE CAJA Y ARQUEO Z
+// 8. CONTROL DE CAJA, ARQUEO Z & TABLA DE MOVIMIENTOS
 // ==============================================================
+function openRequireCashModal() {
+  document.getElementById('modal-require-cash').classList.remove('hidden');
+}
+
+function closeRequireCashModal() {
+  document.getElementById('modal-require-cash').classList.add('hidden');
+}
+
+async function submitFastOpenCash() {
+  const amount = parseFloat(document.getElementById('modal-fast-cash-amount').value) || 0;
+  try {
+    const res = await fetch('/api/cash/open', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initial_amount: amount })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al abrir caja');
+
+    closeRequireCashModal();
+    showToast('Caja Abierta', `Turno iniciado con S/ ${amount.toFixed(2)}`);
+    await loadCashStatus();
+  } catch (err) {
+    alert('❌ ' + err.message);
+  }
+}
+
 async function loadCashStatus() {
   const panel = document.getElementById('cash-status-panel');
-  if (!panel) return;
+  const indicator = document.getElementById('sidebar-cash-indicator');
 
   try {
     const res = await fetch('/api/cash/status');
     const data = await res.json();
 
+    isCashRegisterOpen = data.isOpen;
+
+    if (indicator) {
+      if (data.isOpen) {
+        indicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 inline-block animate-pulse"></span> Caja Abierta (Turno Activo)';
+        indicator.className = 'text-[10px] text-green-400 font-bold flex items-center gap-1';
+      } else {
+        indicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Caja Cerrada';
+        indicator.className = 'text-[10px] text-red-400 font-bold flex items-center gap-1';
+      }
+    }
+
+    if (!panel) return;
+
     if (!data.isOpen) {
       panel.innerHTML = `
         <div class="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm max-w-md mx-auto text-center space-y-4">
-          <div class="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl mx-auto">
+          <div class="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl mx-auto shadow-inner">
             <i class="fa-solid fa-lock"></i>
           </div>
           <h3 class="text-lg font-black text-gray-800">Caja de Turno Cerrada</h3>
           <p class="text-xs text-gray-500">Para procesar ventas y registrar movimientos de mostrador, abra el turno de caja.</p>
-          <div class="space-y-3 pt-2 text-left">
+          <div class="space-y-3 pt-2 text-left bg-gray-50 p-4 rounded-2xl border border-gray-100">
             <div>
-              <label class="text-xs font-bold text-gray-600 block mb-1">Monto Inicial en Efectivo (S/):</label>
+              <label class="text-xs font-bold text-gray-700 block mb-1">Monto Inicial en Efectivo (S/):</label>
               <input type="number" step="0.50" id="cash-open-amount" value="50.00" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-black outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
             <button onclick="openCashRegister()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl text-xs shadow-md uppercase">
@@ -1107,40 +1319,87 @@ async function loadCashStatus() {
       `;
     } else {
       const reg = data.register;
+      const movs = data.movements || [];
+
+      const movsTableRows = movs.length === 0 ? `
+        <tr><td colspan="5" class="p-6 text-center text-gray-400 font-bold">No se registran movimientos manuales o abonos en este turno.</td></tr>
+      ` : movs.map(m => `
+        <tr class="hover:bg-gray-50 text-xs">
+          <td class="p-3 text-gray-500">${new Date(m.created_at).toLocaleTimeString()}</td>
+          <td class="p-3 font-bold">
+            <span class="px-2 py-0.5 rounded text-[10px] font-black ${m.type === 'INGRESO' ? 'bg-green-100 text-green-700' : (m.type === 'ABONO' ? 'bg-indigo-100 text-indigo-700' : 'bg-red-100 text-red-700')}">
+              ${m.type}
+            </span>
+          </td>
+          <td class="p-3 font-medium text-gray-800">${m.reason}</td>
+          <td class="p-3 text-gray-600 font-bold text-[11px]">${m.payment_method || 'Efectivo'}</td>
+          <td class="p-3 text-right font-black ${m.type === 'RETIRO' ? 'text-red-600' : 'text-green-700'}">
+            ${m.type === 'RETIRO' ? '-' : '+'} S/ ${parseFloat(m.amount).toFixed(2)}
+          </td>
+        </tr>
+      `).join('');
+
       panel.innerHTML = `
         <div class="space-y-6">
-          <!-- TARJETAS DE ARQUEO EN VIVO -->
+          <!-- TARJETAS DE ARQUEO MULTICANAL EN VIVO -->
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm">
-              <p class="text-[10px] uppercase font-bold text-gray-400">Saldo Inicial</p>
+              <p class="text-[10px] uppercase font-bold text-gray-400">1. Saldo Inicial</p>
               <p class="text-xl font-black text-gray-800">S/ ${data.initialAmount.toFixed(2)}</p>
               <p class="text-[10px] text-gray-400 mt-1">Apertura: ${new Date(reg.opened_at).toLocaleTimeString()}</p>
             </div>
+            
             <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm">
-              <p class="text-[10px] uppercase font-bold text-gray-400">Ventas en Efectivo</p>
+              <p class="text-[10px] uppercase font-bold text-gray-400">2. Ventas Efectivo</p>
               <p class="text-xl font-black text-green-600">S/ ${data.efectivoSales.toFixed(2)}</p>
-              <p class="text-[10px] text-gray-400 mt-1">Yape/Plin: S/ ${data.yapeSales.toFixed(2)}</p>
+              <p class="text-[10px] text-gray-400 mt-1">+ S/ ${(data.abonosEfectivo || 0).toFixed(2)} de abonos</p>
             </div>
+
             <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm">
-              <p class="text-[10px] uppercase font-bold text-gray-400">Ingresos / Retiros</p>
-              <p class="text-xs font-bold text-green-600">+ S/ ${data.ingresos.toFixed(2)} (Ingresos)</p>
-              <p class="text-xs font-bold text-red-600">- S/ ${data.retiros.toFixed(2)} (Gastos)</p>
+              <p class="text-[10px] uppercase font-bold text-gray-400">3. Ventas Digitales</p>
+              <p class="text-xl font-black text-indigo-600">S/ ${(data.yapeSales + data.tarjetaSales).toFixed(2)}</p>
+              <p class="text-[10px] text-gray-400 mt-1">Yape/Plin: S/ ${data.yapeSales.toFixed(2)} | Tarj: S/ ${data.tarjetaSales.toFixed(2)}</p>
             </div>
+
             <div class="bg-gradient-to-tr from-gray-900 to-indigo-950 p-5 rounded-3xl text-white shadow-lg">
-              <p class="text-[10px] uppercase font-bold text-indigo-300">Efectivo Esperado en Caja</p>
+              <p class="text-[10px] uppercase font-bold text-indigo-300">4. Efectivo Físico Esperado</p>
               <p class="text-2xl font-black text-white">S/ ${data.expectedCash.toFixed(2)}</p>
-              <p class="text-[10px] text-gray-400 mt-1">Total vendido: S/ ${data.totalSales.toFixed(2)}</p>
+              <p class="text-[10px] text-gray-400 mt-1">Total vendido turno: S/ ${data.totalSales.toFixed(2)}</p>
+            </div>
+          </div>
+
+          <!-- TABLA DE MOVIMIENTOS Y GASTOS VISIBLES EN VIVO -->
+          <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden space-y-2">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h4 class="font-black text-xs text-gray-800 flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-indigo-600"></i> Movimientos, Gastos y Abonos del Turno
+              </h4>
+              <span class="text-xs font-bold text-gray-500">${movs.length} registros</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left">
+                <thead class="bg-gray-50 text-gray-400 font-bold uppercase text-[9px] tracking-wider">
+                  <tr>
+                    <th class="p-3">Hora</th>
+                    <th class="p-3">Tipo</th>
+                    <th class="p-3">Motivo / Detalle</th>
+                    <th class="p-3">Método</th>
+                    <th class="p-3 text-right">Monto</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">${movsTableRows}</tbody>
+              </table>
             </div>
           </div>
 
           <!-- BOTONES DE ACCIÓN: MOVIMIENTO Y CIERRE -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- REGISTRAR MOVIMIENTO -->
+            <!-- REGISTRAR MOVIMIENTO MANUAL -->
             <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm space-y-3">
               <h4 class="font-black text-sm text-gray-800 flex items-center gap-2">
-                <i class="fa-solid fa-money-bill-transfer text-indigo-600"></i> Registrar Movimiento Manual
+                <i class="fa-solid fa-money-bill-transfer text-indigo-600"></i> Registrar Gasto / Ingreso Manual
               </h4>
-              <div class="grid grid-cols-2 gap-3">
+              <div class="grid grid-cols-3 gap-3">
                 <div>
                   <label class="text-[10px] font-bold text-gray-500 uppercase">Tipo</label>
                   <select id="mov-type" class="w-full p-2 border border-gray-200 rounded-xl text-xs font-bold outline-none">
@@ -1152,10 +1411,17 @@ async function loadCashStatus() {
                   <label class="text-[10px] font-bold text-gray-500 uppercase">Monto (S/)</label>
                   <input type="number" step="0.50" id="mov-amount" placeholder="0.00" class="w-full p-2 border border-gray-200 rounded-xl text-xs font-bold outline-none">
                 </div>
+                <div>
+                  <label class="text-[10px] font-bold text-gray-500 uppercase">Medio</label>
+                  <select id="mov-method" class="w-full p-2 border border-gray-200 rounded-xl text-xs font-bold outline-none">
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Yape/Plin">Yape/Plin</option>
+                  </select>
+                </div>
               </div>
               <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Motivo / Detalle</label>
-                <input type="text" id="mov-reason" placeholder="Ej. Pago de almuerzo, cambio sencillo..." class="w-full p-2 border border-gray-200 rounded-xl text-xs outline-none">
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Motivo / Detalle *</label>
+                <input type="text" id="mov-reason" placeholder="Ej. Pago de almuerzo, compra de cinta térmica, cambio sencillo..." class="w-full p-2 border border-gray-200 rounded-xl text-xs outline-none">
               </div>
               <button onclick="registerCashMovement()" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm">
                 Guardar Movimiento
@@ -1168,15 +1434,15 @@ async function loadCashStatus() {
                 <i class="fa-solid fa-file-invoice-dollar text-green-600"></i> Realizar Corte de Caja (Arqueo Z)
               </h4>
               <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Efectivo Real en Caja (S/) *</label>
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Efectivo Real Contado en Gaveta (S/) *</label>
                 <input type="number" step="0.50" id="close-final-amount" placeholder="Monto contado físicamente..." class="w-full p-2 border border-gray-200 rounded-xl text-xs font-black outline-none text-indigo-700 text-sm">
               </div>
               <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Observaciones</label>
-                <input type="text" id="close-notes" placeholder="Notas de cierre (opcional)..." class="w-full p-2 border border-gray-200 rounded-xl text-xs outline-none">
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Observaciones de Cierre</label>
+                <input type="text" id="close-notes" placeholder="Notas de cuadre (opcional)..." class="w-full p-2 border border-gray-200 rounded-xl text-xs outline-none">
               </div>
               <button onclick="closeCashRegister()" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2.5 rounded-xl text-xs shadow-sm uppercase">
-                <i class="fa-solid fa-lock mr-1"></i> Cerrar Caja y Generar Arqueo Z
+                <i class="fa-solid fa-lock mr-1"></i> Cerrar Turno y Generar Arqueo Z
               </button>
             </div>
           </div>
@@ -1198,6 +1464,7 @@ async function openCashRegister() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error');
+    showToast('Caja Abierta', `Turno iniciado con S/ ${amount.toFixed(2)}`);
     await loadCashStatus();
   } catch (err) { alert('❌ Error: ' + err.message); }
 }
@@ -1206,9 +1473,10 @@ async function registerCashMovement() {
   const type = document.getElementById('mov-type').value;
   const amount = parseFloat(document.getElementById('mov-amount').value);
   const reason = document.getElementById('mov-reason').value.trim();
+  const payment_method = document.getElementById('mov-method')?.value || 'Efectivo';
 
   if (!amount || amount <= 0 || !reason) {
-    alert('⚠️ Ingrese un monto válido y el motivo.');
+    alert('⚠️ Ingrese un monto válido y el motivo o detalle del gasto/ingreso.');
     return;
   }
 
@@ -1216,10 +1484,12 @@ async function registerCashMovement() {
     const res = await fetch('/api/cash/movement', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, amount, reason })
+      body: JSON.stringify({ type, amount, reason, payment_method })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error');
+
+    showToast('Movimiento Guardado', `${type}: S/ ${amount.toFixed(2)}`);
     await loadCashStatus();
   } catch (err) { alert('❌ Error: ' + err.message); }
 }
@@ -1245,13 +1515,13 @@ async function closeCashRegister() {
     if (!res.ok) throw new Error(data.error || 'Error');
 
     const s = data.summary;
-    alert(`📊 Arqueo Z Generado:\n\n- Esperado: S/ ${s.expectedAmount.toFixed(2)}\n- Contado: S/ ${s.finalAmount.toFixed(2)}\n- Diferencia: S/ ${s.difference.toFixed(2)}`);
+    alert(`📊 Arqueo Z Generado Exitosamente:\n\n- Efectivo Esperado: S/ ${s.expectedAmount.toFixed(2)}\n- Efectivo Contado: S/ ${s.finalAmount.toFixed(2)}\n- Diferencia: S/ ${s.difference.toFixed(2)} (${s.difference === 0 ? 'CUADRE EXACTO' : (s.difference > 0 ? 'SOBRANTE' : 'FALTANTE')})`);
     await loadCashStatus();
   } catch (err) { alert('❌ Error: ' + err.message); }
 }
 
 // ==============================================================
-// 9. INVENTARIO, CRM & FIADOS
+// 9. INVENTARIO, CRM & CRÉDITOS (CON RECIBO TÉRMICO DE ABONO)
 // ==============================================================
 function populateModelCheckboxes() {
   const container = document.getElementById('product-model-checkboxes');
@@ -1318,7 +1588,7 @@ async function saveProduct(e) {
     closeProductModal();
     await loadProducts();
     await loadCoverageData();
-    alert('✅ Producto guardado con su matriz de compatibilidad.');
+    showToast('Producto Guardado', 'Producto y matriz de compatibilidad registrados.');
   } catch (err) { alert('❌ Error: ' + err.message); }
 }
 
@@ -1366,33 +1636,133 @@ async function deleteProduct(id) {
 function renderFiadosTable() {
   const tbody = document.getElementById('fiados-table-body');
   if (!tbody) return;
-  tbody.innerHTML = CLIENTS.map(c => `
-    <tr class="hover:bg-gray-50">
-      <td class="p-4 font-mono font-bold text-gray-500 text-xs">${c.doc}</td>
-      <td class="p-4 font-bold text-gray-800 text-xs">${c.name}</td>
-      <td class="p-4 text-gray-500 text-xs">${c.phone || '-'}</td>
-      <td class="p-4 text-right font-black ${c.debt > 0 ? 'text-yellow-600' : 'text-gray-400'} text-xs">S/ ${(c.debt || 0).toFixed(2)}</td>
-      <td class="p-4 text-center"><button onclick="registerAbono(${c.id})" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-3 py-1 rounded-xl text-xs shadow-sm">Abonar</button></td>
-    </tr>
-  `).join('');
+
+  if (CLIENTS.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-400 font-bold">No hay clientes registrados.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = CLIENTS.map(c => {
+    const debt = parseFloat(c.debt || 0);
+    return `
+      <tr class="hover:bg-gray-50">
+        <td class="p-4 font-mono font-bold text-gray-500 text-xs">${c.doc}</td>
+        <td class="p-4 font-bold text-gray-800 text-xs">${c.name}</td>
+        <td class="p-4 text-gray-500 text-xs">${c.phone || '-'}</td>
+        <td class="p-4 text-right font-black ${debt > 0 ? 'text-red-600' : 'text-gray-400'} text-xs">
+          S/ ${debt.toFixed(2)}
+        </td>
+        <td class="p-4 text-center">
+          <button onclick="handleAbonoClick(${c.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1 rounded-xl text-xs shadow-sm">
+            <i class="fa-solid fa-hand-holding-dollar mr-1"></i> Abonar
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
-async function registerAbono(customerId) {
-  const amountStr = prompt('Monto a abonar (S/):');
-  if (!amountStr) return;
-  const amount = parseFloat(amountStr);
-  if (!amount || amount <= 0) return;
+function handleAbonoClick(customerId) {
+  const customer = CLIENTS.find(c => c.id === customerId);
+  if (!customer) return;
+
+  const debt = parseFloat(customer.debt || 0);
+  if (debt <= 0) {
+    alert(`ℹ️ El cliente "${customer.name}" no registra ninguna deuda pendiente (S/ 0.00).`);
+    return;
+  }
+
+  document.getElementById('abono-customer-id').value = customer.id;
+  document.getElementById('abono-customer-name').innerText = `${customer.name} (${customer.doc})`;
+  document.getElementById('abono-current-debt').innerText = `S/ ${debt.toFixed(2)}`;
+  document.getElementById('abono-amount').value = debt.toFixed(2);
+  document.getElementById('abono-amount').max = debt;
+  document.getElementById('modal-abono').classList.remove('hidden');
+}
+
+function closeAbonoModal() {
+  document.getElementById('modal-abono').classList.add('hidden');
+}
+
+async function submitAbono(e) {
+  e.preventDefault();
+  const customer_id = parseInt(document.getElementById('abono-customer-id').value);
+  const amount = parseFloat(document.getElementById('abono-amount').value);
+  const payment_method = document.getElementById('abono-payment-method').value;
+
+  if (isNaN(amount) || amount <= 0) {
+    alert('⚠️ Ingrese un monto válido.');
+    return;
+  }
 
   try {
-    const res = await fetch('/api/fiados/abono', {
+    const res = await fetch('/api/credits/abono', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customer_id: customerId, amount })
+      body: JSON.stringify({ customer_id, amount, payment_method })
     });
-    if (!res.ok) throw new Error('Error al registrar abono');
-    alert('✅ Abono registrado correctamente.');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al procesar abono');
+
+    closeAbonoModal();
+    showToast('Abono Registrado', `S/ ${amount.toFixed(2)} ingresados.`);
     await loadCustomers();
-  } catch (err) { alert('❌ Error: ' + err.message); }
+    await loadCashStatus();
+    await loadDashboard();
+
+    // Mostrar Recibo Térmico de Abono
+    renderAbonoReceipt(data.abonoReceipt);
+    document.getElementById('modal-ticket').classList.remove('hidden');
+
+  } catch (err) {
+    alert('❌ Error: ' + err.message);
+  }
+}
+
+// Renderizado del Recibo Térmico de Abono
+function renderAbonoReceipt(r) {
+  const container = document.getElementById('thermal-ticket-container');
+  if (!container) return;
+
+  const dateStr = new Date(r.created_at || Date.now()).toLocaleString();
+
+  container.innerHTML = `
+    <div style="text-align: center; border-bottom: 1px dashed #666; padding-bottom: 6px; margin-bottom: 6px;">
+      <div style="font-size: 14px; font-weight: bold;">CELLVENTAS</div>
+      <div>RECIBO DE ABONO A CRÉDITO</div>
+      <div>VT VALETEC</div>
+      <div style="margin-top: 4px; font-weight: bold;">RECIBO: ${r.receipt_code}</div>
+      <div style="font-size: 11px;">${dateStr}</div>
+    </div>
+
+    <div style="border-bottom: 1px dashed #666; padding-bottom: 4px; margin-bottom: 4px;">
+      <div>CLIENTE: ${r.customer_name}</div>
+      <div>DOC: ${r.customer_doc}</div>
+      <div>MÉTODO DE PAGO: ${r.payment_method}</div>
+    </div>
+
+    <div style="padding: 6px 0; border-bottom: 1px dashed #666;">
+      <div style="display: flex; justify-content: space-between;">
+        <span>Deuda Anterior:</span>
+        <span>S/ ${parseFloat(r.previous_debt).toFixed(2)}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin: 4px 0;">
+        <span>MONTO ABONADO:</span>
+        <span>S/ ${parseFloat(r.amount).toFixed(2)}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; color: #b91c1c; font-weight: bold;">
+        <span>SALDO RESTANTE:</span>
+        <span>S/ ${parseFloat(r.new_debt).toFixed(2)}</span>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 10px; font-size: 11px;">
+      <div>¡Gracias por su abono puntual!</div>
+      <div style="margin-top: 25px; border-top: 1px solid #000; width: 80%; margin-left: auto; margin-right: auto; padding-top: 4px;">
+        Firma / Sello de Recepción
+      </div>
+    </div>
+  `;
 }
 
 function openCustomerModal() {
@@ -1406,7 +1776,10 @@ function openCustomerModal() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ doc, name, phone })
-  }).then(() => loadCustomers());
+  }).then(() => {
+    loadCustomers();
+    showToast('Cliente Registrado', name);
+  });
 }
 
 window.onload = init;
