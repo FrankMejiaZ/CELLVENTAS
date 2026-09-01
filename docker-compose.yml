@@ -1,58 +1,58 @@
-# ==========================================
-# Docker Compose para VALEVENTAS by VT VALETEC
-# Orquestación: PostgreSQL 16 + Backend Node.js + Frontend Nginx
-# ==========================================
+# =========================================================================
+# Docker Compose para CELLVENTAS - Sistema POS & Matriz de Compatibilidades
+# Orquestación: PostgreSQL 16 + Backend Node.js API + Frontend Nginx
+# =========================================================================
 
 services:
   # Base de Datos Relacional PostgreSQL 16
-  valeventas-db:
+  cellventas-db:
     image: postgres:16-alpine
-    container_name: valeventas-db
+    container_name: cellventas-db
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-valetec}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-valetec_secure_pass}
-      POSTGRES_DB: ${POSTGRES_DB:-valeventas_db}
+      POSTGRES_USER: ${POSTGRES_USER:-cellventas_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cellventas_secure_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-cellventas_db}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_HOST_PORT:-5434}:5432"
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-valetec} -d ${POSTGRES_DB:-valeventas_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cellventas_user} -d ${POSTGRES_DB:-cellventas_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # Servicio de Backend (API Node.js + Express)
-  valeventas-backend:
+  # Servicio de Backend (Node.js API + WebSockets)
+  cellventas-backend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: valeventas-backend
+    container_name: cellventas-backend
     restart: always
     ports:
-      - "${BACKEND_PORT:-8090}:8090"
+      - "${BACKEND_PORT:-8092}:8092"
     environment:
-      - PORT=8090
+      - PORT=8092
       - NODE_ENV=${NODE_ENV:-production}
-      - POSTGRES_HOST=valeventas-db
+      - POSTGRES_HOST=cellventas-db
       - POSTGRES_PORT=5432
-      - POSTGRES_USER=${POSTGRES_USER:-valetec}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-valetec_secure_pass}
-      - POSTGRES_DB=${POSTGRES_DB:-valeventas_db}
-      - JWT_SECRET=${JWT_SECRET:-valetec_jwt_super_secret_key_2026}
+      - POSTGRES_USER=${POSTGRES_USER:-cellventas_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cellventas_secure_pass}
+      - POSTGRES_DB=${POSTGRES_DB:-cellventas_db}
+      - JWT_SECRET=${JWT_SECRET:-cellventas_jwt_super_secret_key_2026}
     depends_on:
-      valeventas-db:
+      cellventas-db:
         condition: service_healthy
 
-  # Servicio de Frontend (Nginx Reverse Proxy & Static UI)
-  valeventas-frontend:
+  # Servicio de Frontend (Nginx Reverse Proxy & UI)
+  cellventas-frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-    container_name: valeventas-frontend
+    container_name: cellventas-frontend
     restart: always
     ports:
-      - "${FRONTEND_PORT:-3005}:80"
+      - "${FRONTEND_PORT:-3006}:80"
     depends_on:
-      - valeventas-backend
+      - cellventas-backend
