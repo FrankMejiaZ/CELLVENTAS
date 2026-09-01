@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CELLVENTAS | POS, Celulares & Matriz de Compatibilidad de Fundas</title>
+  <link rel="stylesheet" href="/css/tailwind.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .custom-scrollbar::-webkit-scrollbar { height: 4px; }
+  </style>
+</head>
+<body class="bg-slate-50 font-sans h-screen flex overflow-hidden text-slate-800">
+
+  <!-- SIDEBAR NAVEGACIÓN -->
+  <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 shadow-2xl z-20 h-screen">
+    <!-- LOGO -->
+    <div class="p-5 border-b border-slate-800 flex items-center gap-3 bg-slate-950 shrink-0">
+      <div class="bg-indigo-600 text-white p-2.5 rounded-xl font-black text-xl flex items-center justify-center shadow-lg shadow-indigo-900/50">
+        <i class="fa-solid fa-mobile-screen-button"></i>
+      </div>
+      <div>
+        <h1 class="text-white font-black text-lg tracking-wider">CELLVENTAS</h1>
+        <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">by VT VALETEC</p>
+      </div>
+    </div>
+
+    <!-- MENÚ PRINCIPAL -->
+    <nav class="p-4 space-y-1.5 flex-1 overflow-y-auto custom-scrollbar" id="main-nav">
+      <button onclick="switchTab('pos')" id="btn-tab-pos" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-indigo-600 text-white font-bold transition-all shadow-md">
+        <i class="fa-solid fa-cash-register w-5"></i> Punto de Venta (POS)
+      </button>
+      <button onclick="switchTab('compatibility')" id="btn-tab-compatibility" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-semibold transition-all">
+        <i class="fa-solid fa-shield-cat w-5"></i> Matriz Compatibilidad
+      </button>
+      <button onclick="switchTab('inventory')" id="btn-tab-inventory" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-semibold transition-all">
+        <i class="fa-solid fa-boxes-stacked w-5"></i> Inventario & Stock
+      </button>
+      <button onclick="switchTab('crm')" id="btn-tab-crm" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-semibold transition-all">
+        <i class="fa-solid fa-users w-5"></i> CRM Clientes
+      </button>
+      <button onclick="switchTab('fiados')" id="btn-tab-fiados" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-semibold transition-all">
+        <i class="fa-solid fa-hand-holding-dollar w-5"></i> Módulo Fiados
+      </button>
+      <button onclick="switchTab('dashboard')" id="btn-tab-dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-semibold transition-all">
+        <i class="fa-solid fa-chart-pie w-5"></i> Dashboard
+      </button>
+    </nav>
+
+    <!-- PIE USUARIO -->
+    <div class="p-4 border-t border-slate-800 bg-slate-950/50 shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
+          CELL
+        </div>
+        <div>
+          <p class="text-xs font-bold text-white">Vendedor Celulares</p>
+          <p class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> En Línea Local
+          </p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 flex flex-col overflow-hidden relative bg-slate-50">
+
+    <!-- 1. PUNTO DE VENTA (POS) CON FILTRO DE COMPATIBILIDAD POR MODELO DE CELULAR -->
+    <section id="view-pos" class="view-section flex flex-1 w-full h-full">
+      <div class="flex-1 flex flex-col border-r border-slate-200 bg-white min-w-0">
+        
+        <!-- BARRA SUPERIOR DE COMPATIBILIDAD Y BÚSQUEDA -->
+        <div class="p-4 border-b border-slate-200 flex flex-col gap-3 shadow-sm z-10 relative shrink-0 bg-indigo-50/40">
+          
+          <!-- SELECCIÓN DE MARCA Y MODELO DE CELULAR -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-white p-3 rounded-2xl border border-indigo-100 shadow-sm">
+            <div>
+              <label class="text-[11px] font-extrabold text-indigo-900 uppercase tracking-wider block mb-1">
+                <i class="fa-solid fa-filter text-indigo-600 mr-1"></i> 1. Marca de Celular
+              </label>
+              <select id="pos-brand-filter" onchange="onBrandFilterChange()" class="w-full p-2 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50">
+                <option value="">-- Todas las Marcas --</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] font-extrabold text-indigo-900 uppercase tracking-wider block mb-1">
+                <i class="fa-solid fa-mobile-retro text-indigo-600 mr-1"></i> 2. Modelo Específico del Cliente
+              </label>
+              <select id="pos-model-filter" onchange="renderProducts()" class="w-full p-2 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50">
+                <option value="">-- Todos los Modelos --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- BÚSQUEDA TEXTUAL Y CATEGORÍAS -->
+          <div class="flex gap-2 items-center">
+            <div class="relative flex-1">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+              <input type="text" id="search-input" oninput="renderProducts()" placeholder="Buscar accesorios, funda, mica o celular..." 
+                class="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold bg-white shadow-sm">
+            </div>
+            <button onclick="clearModelFilters()" class="px-3 py-2 bg-slate-200 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-300">
+              <i class="fa-solid fa-rotate-left mr-1"></i> Limpiar Filtros
+            </button>
+          </div>
+        </div>
+
+        <!-- GRID DE PRODUCTOS DE CELULARES Y ACCESORIOS -->
+        <div class="p-4 overflow-y-auto flex-1 bg-slate-50/50 custom-scrollbar">
+          <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        </div>
+      </div>
+
+      <!-- PANEL DERECHA: CARRITO Y VENTA -->
+      <div class="w-full md:w-[380px] lg:w-[420px] bg-white flex flex-col shrink-0 shadow-[-10px_0_15px_-5px_rgba(0,0,0,0.05)] z-20">
+        <div class="p-4 border-b border-slate-200 flex justify-between items-center shrink-0">
+          <h2 class="font-black text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-cart-shopping text-indigo-600"></i> Orden de Venta
+          </h2>
+          <button onclick="clearCart()" class="text-xs text-rose-500 font-bold hover:underline bg-rose-50 px-2.5 py-1.5 rounded-md">Limpiar</button>
+        </div>
+        <div id="cart-items" class="flex-1 overflow-y-auto custom-scrollbar p-4 divide-y divide-slate-100"></div>
+        <div class="p-5 border-t border-slate-200 bg-slate-50 flex flex-col gap-3 shrink-0">
+          <div class="space-y-2 text-sm font-semibold text-slate-500">
+            <div class="flex justify-between"><span>Subtotal:</span><span id="summary-subtotal" class="text-slate-800">S/ 0.00</span></div>
+            <div class="flex justify-between"><span>IGV (18%):</span><span id="summary-tax" class="text-slate-800">S/ 0.00</span></div>
+            <div class="flex justify-between text-lg font-black text-slate-900 pt-3 border-t border-slate-200">
+              <span>TOTAL:</span><span id="summary-total" class="text-indigo-600">S/ 0.00</span>
+            </div>
+          </div>
+          <button onclick="openPaymentModal()" id="btn-pay" disabled 
+            class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-black py-4 rounded-xl text-sm shadow-lg shadow-indigo-600/30 transition-all uppercase tracking-wider mt-2">
+            <i class="fa-solid fa-money-bill-wave mr-1"></i> Cobrar Venta
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. MATRIZ DE COMPATIBILIDAD (ADMINISTRACIÓN MARCAS Y MODELOS) -->
+    <section id="view-compatibility" class="view-section hidden p-6 overflow-y-auto w-full h-full">
+      <div class="max-w-6xl mx-auto space-y-6 w-full">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-2xl font-black text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-mobile text-indigo-600"></i> Matriz de Compatibilidades de Celulares
+            </h2>
+            <p class="text-xs text-slate-500 font-medium">Gestione las Marcas y Modelos para vincular fundas, micas y repuestos.</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="openBrandModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center gap-2">
+              <i class="fa-solid fa-plus"></i> Nueva Marca
+            </button>
+            <button onclick="openModelModal()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center gap-2">
+              <i class="fa-solid fa-mobile-retro"></i> Nuevo Modelo
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="compatibility-matrix-container"></div>
+      </div>
+    </section>
+
+    <!-- 3. INVENTARIO & PRODUCTOS -->
+    <section id="view-inventory" class="view-section hidden p-6 overflow-y-auto w-full h-full">
+      <div class="max-w-6xl mx-auto space-y-4 w-full">
+        <div class="flex justify-between items-center mb-2">
+          <h2 class="text-2xl font-black text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-boxes-stacked text-indigo-600"></i> Almacén de Celulares y Accesorios
+          </h2>
+          <button onclick="openProductModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-md flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i> Registrar Nuevo Producto
+          </button>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+              <thead class="bg-slate-100 text-slate-500 font-bold uppercase text-xs">
+                <tr>
+                  <th class="p-4">Código</th>
+                  <th class="p-4">Producto / Accesorio</th>
+                  <th class="p-4">Categoría</th>
+                  <th class="p-4">Modelos Compatibles</th>
+                  <th class="p-4">P. Venta</th>
+                  <th class="p-4">Stock</th>
+                  <th class="p-4 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-table-body" class="divide-y divide-slate-100 font-medium"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. CRM CLIENTES -->
+    <section id="view-crm" class="view-section hidden p-6 overflow-y-auto w-full h-full">
+      <div class="max-w-6xl mx-auto space-y-4 w-full">
+        <div class="flex justify-between items-center mb-2">
+          <h2 class="text-2xl font-black text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-users text-indigo-600"></i> CRM Clientes
+          </h2>
+          <button onclick="openCustomerModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-md flex items-center gap-2">
+            <i class="fa-solid fa-user-plus"></i> Registrar Cliente
+          </button>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-100 text-slate-500 font-bold uppercase text-xs">
+              <tr>
+                <th class="p-4">DNI / RUC</th>
+                <th class="p-4">Nombre / Razón Social</th>
+                <th class="p-4">Teléfono</th>
+                <th class="p-4">Estado Deuda</th>
+              </tr>
+            </thead>
+            <tbody id="crm-table-body" class="divide-y divide-slate-100 font-medium"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. MÓDULO FIADOS -->
+    <section id="view-fiados" class="view-section hidden p-6 overflow-y-auto w-full h-full">
+      <div class="max-w-6xl mx-auto space-y-4 w-full">
+        <h2 class="text-2xl font-black text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-hand-holding-dollar text-amber-600"></i> Cuentas por Cobrar (Fiados)
+        </h2>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-100 text-slate-500 font-bold uppercase text-xs">
+              <tr>
+                <th class="p-4">DNI / RUC</th>
+                <th class="p-4">Cliente</th>
+                <th class="p-4 text-right">Deuda Pendiente</th>
+                <th class="p-4 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="fiados-table-body" class="divide-y divide-slate-100 font-medium"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. DASHBOARD -->
+    <section id="view-dashboard" class="view-section hidden p-6 overflow-y-auto w-full h-full">
+      <div class="max-w-6xl mx-auto space-y-6 w-full">
+        <h2 class="text-2xl font-black text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-chart-pie text-indigo-600"></i> Dashboard de Ventas CELLVENTAS
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl"><i class="fa-solid fa-sack-dollar"></i></div>
+            <div>
+              <p class="text-xs font-bold text-slate-500 uppercase">Ventas de Hoy</p>
+              <p class="text-xl font-black text-slate-900" id="dash-sales">S/ 0.00</p>
+            </div>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl"><i class="fa-solid fa-receipt"></i></div>
+            <div>
+              <p class="text-xs font-bold text-slate-500 uppercase">Tickets Emitidos</p>
+              <p class="text-xl font-black text-slate-900" id="dash-tickets">0 Tickets</p>
+            </div>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+            <div>
+              <p class="text-xs font-bold text-slate-500 uppercase">Fiados Pendientes</p>
+              <p class="text-xl font-black text-amber-600" id="dash-total-fiado">S/ 0.00</p>
+            </div>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xl"><i class="fa-solid fa-star"></i></div>
+            <div>
+              <p class="text-xs font-bold text-slate-500 uppercase">Accesorio Top</p>
+              <p class="text-sm font-black text-slate-900 truncate w-32" id="dash-top-product">--</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL NUEVO PRODUCTO CON ASIGNACIÓN DE COMPATIBILIDADES -->
+  <div id="modal-product" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl p-6 space-y-4 max-h-[90vh] flex flex-col">
+      <h3 class="font-black text-lg text-slate-800 flex items-center gap-2">
+        <i class="fa-solid fa-box text-indigo-600"></i> Registrar Producto o Accesorio
+      </h3>
+      <form id="form-product" onsubmit="saveProduct(event)" class="space-y-3 overflow-y-auto custom-scrollbar p-1">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-600">Código / SKU *</label>
+            <input type="text" id="prod-code" required class="w-full p-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-600">Categoría *</label>
+            <select id="prod-category" class="w-full p-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="Cases / Fundas">Cases / Fundas</option>
+              <option value="Micas / Protectores">Micas / Protectores</option>
+              <option value="Cargadores">Cargadores & Cables</option>
+              <option value="Audífonos">Audífonos & Bluetooth</option>
+              <option value="Equipos Celulares">Equipos Celulares</option>
+              <option value="Repuestos">Repuestos & Pantallas</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-600">Nombre del Producto *</label>
+          <input type="text" id="prod-name" required placeholder="Ej. Case Transparente MagSafe 3D" class="w-full p-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-600">Precio Compra (S/)</label>
+            <input type="number" step="0.50" id="prod-purchase" value="0.00" class="w-full p-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-600">Precio Venta (S/) *</label>
+            <input type="number" step="0.50" id="prod-price" required class="w-full p-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-600">Stock Inicial *</label>
+            <input type="number" id="prod-stock" value="10" required class="w-full p-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <!-- SELECCIÓN DE MODELOS COMPATIBLES -->
+        <div class="border border-indigo-100 bg-indigo-50/50 p-3 rounded-2xl space-y-2">
+          <label class="text-xs font-extrabold text-indigo-900 block">
+            <i class="fa-solid fa-mobile-retro mr-1"></i> Celulares Compatibles (Seleccione uno o varios)
+          </label>
+          <div id="product-model-checkboxes" class="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto custom-scrollbar p-2 bg-white rounded-xl border border-slate-200 text-xs"></div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3">
+          <button type="button" onclick="closeProductModal()" class="px-4 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-md">Guardar Producto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL NUEVA MARCA -->
+  <div id="modal-brand" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 space-y-4">
+      <h3 class="font-black text-lg text-slate-800 flex items-center gap-2"><i class="fa-solid fa-plus text-indigo-600"></i> Nueva Marca de Celular</h3>
+      <form onsubmit="saveBrand(event)" class="space-y-3">
+        <div>
+          <label class="text-xs font-bold text-slate-600">Nombre de la Marca *</label>
+          <input type="text" id="brand-name" required placeholder="Ej. Realme, Honor, Infinix" class="w-full p-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeBrandModal()" class="px-4 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md">Guardar Marca</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL NUEVO MODELO DE CELULAR -->
+  <div id="modal-model" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 space-y-4">
+      <h3 class="font-black text-lg text-slate-800 flex items-center gap-2"><i class="fa-solid fa-mobile-retro text-indigo-600"></i> Nuevo Modelo de Celular</h3>
+      <form onsubmit="saveModel(event)" class="space-y-3">
+        <div>
+          <label class="text-xs font-bold text-slate-600">Marca *</label>
+          <select id="model-brand-id" required class="w-full p-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500"></select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-600">Nombre del Modelo *</label>
+          <input type="text" id="model-name" required placeholder="Ej. iPhone 16 Pro Max, Galaxy A35" class="w-full p-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModelModal()" class="px-4 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md">Guardar Modelo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL COBRAR POS -->
+  <div id="modal-payment" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4">
+      <h3 class="font-black text-lg text-slate-800 flex items-center gap-2"><i class="fa-solid fa-cash-register text-indigo-600"></i> Finalizar Venta</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-bold text-slate-600 block mb-1">Cliente</label>
+          <select id="modal-select-customer" class="w-full p-2 border border-slate-300 rounded-xl text-xs outline-none bg-slate-50 font-bold"></select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-600 block mb-1">Método de Pago</label>
+          <div class="grid grid-cols-4 gap-2">
+            <button onclick="setPaymentMethod('Efectivo')" id="pay-Efectivo" class="pay-btn active bg-indigo-600 text-white font-bold py-2 rounded-xl text-xs">Efectivo</button>
+            <button onclick="setPaymentMethod('Tarjeta')" id="pay-Tarjeta" class="pay-btn bg-slate-100 text-slate-700 font-bold py-2 rounded-xl text-xs">Tarjeta</button>
+            <button onclick="setPaymentMethod('Yape/Plin')" id="pay-Yape/Plin" class="pay-btn bg-slate-100 text-slate-700 font-bold py-2 rounded-xl text-xs">Yape/Plin</button>
+            <button onclick="setPaymentMethod('Fiado')" id="pay-Fiado" class="pay-btn bg-amber-100 text-amber-800 font-bold py-2 rounded-xl text-xs">Fiado</button>
+          </div>
+        </div>
+        <div class="bg-indigo-50 p-3 rounded-xl flex justify-between font-black text-sm">
+          <span>Total:</span><span id="modal-pay-total" class="text-indigo-600">S/ 0.00</span>
+        </div>
+        <button onclick="processFinalSale()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl text-sm shadow-md uppercase">Confirmar Venta</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
