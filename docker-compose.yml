@@ -3,6 +3,8 @@
 # Orquestación: PostgreSQL 16 + Backend Node.js API + Frontend Nginx
 # =========================================================================
 
+name: cellventas
+
 services:
   # Base de Datos Relacional PostgreSQL 16
   cellventas-db:
@@ -28,6 +30,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: cellventas-backend:latest
     container_name: cellventas-backend
     restart: always
     ports:
@@ -50,6 +53,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+    image: cellventas-frontend:latest
     container_name: cellventas-frontend
     restart: always
     ports:
