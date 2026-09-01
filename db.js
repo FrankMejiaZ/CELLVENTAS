@@ -112,9 +112,41 @@ async function initDb() {
         id ${USE_POSTGRES ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
         product_id INTEGER NOT NULL,
         imei_code TEXT UNIQUE NOT NULL,
-        status TEXT DEFAULT 'disponible', -- disponible, vendido
+        status TEXT DEFAULT 'disponible', -- disponible, vendido, defectuoso
+        sale_id INTEGER,
+        sold_at TIMESTAMP,
+        notes TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 5.1 CONTROL DE CAJA Y ARQUEO
+    await query(`
+      CREATE TABLE IF NOT EXISTS cash_registers (
+        id ${USE_POSTGRES ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
+        user_name TEXT DEFAULT 'Administrador',
+        initial_amount REAL NOT NULL DEFAULT 0,
+        final_amount REAL DEFAULT 0,
+        expected_amount REAL DEFAULT 0,
+        difference REAL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'abierta', -- abierta, cerrada
+        notes TEXT DEFAULT '',
+        opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        closed_at TIMESTAMP
+      )
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS cash_movements (
+        id ${USE_POSTGRES ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
+        cash_register_id INTEGER NOT NULL,
+        type TEXT NOT NULL, -- INGRESO, RETIRO
+        amount REAL NOT NULL,
+        reason TEXT NOT NULL,
+        user_name TEXT DEFAULT 'Administrador',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (cash_register_id) REFERENCES cash_registers(id) ON DELETE CASCADE
       )
     `);
 

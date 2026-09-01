@@ -1,3 +1,5 @@
+name: cellventas
+
 services:
   # Base de Datos Relacional PostgreSQL 16
   cellventas-db:
