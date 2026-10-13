@@ -453,6 +453,9 @@ async function initDb() {
       console.log('✅ CELLVENTAS: Marcas, Modelos, Compatibilidades e IMEIs inicializados con éxito.');
     }
 
+    // Inyectar catálogo comercial real del mercado peruano de forma idempotente (sin duplicar ni borrar)
+    await seedRealMarketData();
+
     // Asegurar usuarios base con hashes bcrypt reales (admin / admin123 y vendedor / vendedor123)
     const adminHash = bcrypt.hashSync(process.env.ADMIN_INITIAL_PASSWORD || 'admin123', 10);
     const sellerHash = bcrypt.hashSync(process.env.SELLER_INITIAL_PASSWORD || 'vendedor123', 10);
@@ -481,6 +484,288 @@ async function initDb() {
 
   } catch (err) {
     console.error('❌ Error inicializando DB de CELLVENTAS:', err);
+  }
+}
+
+async function seedRealMarketData() {
+  try {
+    // 1. Marcas reales
+    const brandNames = ['Apple', 'Samsung', 'Xiaomi', 'Motorola', 'Honor'];
+    const brandMap = {};
+    for (const name of brandNames) {
+      const existing = await query(`SELECT id FROM brands WHERE name = ?`, [name]);
+      if (existing.rows.length > 0) {
+        brandMap[name] = existing.rows[0].id;
+      } else {
+        const ins = await query(`INSERT INTO brands (name) VALUES (?) RETURNING id`, [name]);
+        brandMap[name] = ins.rows[0]?.id || ins.lastID;
+      }
+    }
+
+    // 2. Modelos reales por marca
+    const modelsToSeed = [
+      ['Apple', 'iPhone 16 Pro Max', 2024],
+      ['Apple', 'iPhone 16 Pro', 2024],
+      ['Apple', 'iPhone 15 Pro Max', 2023],
+      ['Apple', 'iPhone 15 Pro', 2023],
+      ['Apple', 'iPhone 15', 2023],
+      ['Apple', 'iPhone 14', 2022],
+      ['Apple', 'iPhone 13', 2021],
+      ['Samsung', 'Samsung Galaxy S24 Ultra', 2024],
+      ['Samsung', 'Samsung Galaxy A55 5G', 2024],
+      ['Samsung', 'Samsung Galaxy A35 5G', 2024],
+      ['Samsung', 'Samsung Galaxy A15 4G', 2024],
+      ['Samsung', 'Samsung Galaxy A54 5G', 2023],
+      ['Xiaomi', 'Xiaomi Redmi Note 13 Pro+ 5G', 2024],
+      ['Xiaomi', 'Xiaomi Redmi Note 13 4G', 2024],
+      ['Xiaomi', 'Xiaomi Poco X6 Pro', 2024],
+      ['Xiaomi', 'Xiaomi Redmi 13C', 2023],
+      ['Motorola', 'Motorola Edge 50 Fusion', 2024],
+      ['Motorola', 'Motorola Moto G84 5G', 2023],
+      ['Motorola', 'Motorola Moto G54 5G', 2023],
+      ['Honor', 'Honor Magic6 Lite 5G', 2024],
+      ['Honor', 'Honor X8b', 2024],
+      ['Honor', 'Honor X7b', 2024]
+    ];
+
+    const modelMap = {};
+    for (const [bName, mName, year] of modelsToSeed) {
+      const bId = brandMap[bName];
+      if (!bId) continue;
+      const existing = await query(`SELECT id FROM phone_models WHERE model_name = ?`, [mName]);
+      if (existing.rows.length > 0) {
+        modelMap[mName] = existing.rows[0].id;
+      } else {
+        const ins = await query(
+          `INSERT INTO phone_models (brand_id, model_name, release_year) VALUES (?, ?, ?) RETURNING id`,
+          [bId, mName, year]
+        );
+        modelMap[mName] = ins.rows[0]?.id || ins.lastID;
+      }
+    }
+
+    // 3. Productos reales con SKUs, costos y precios en Soles (S/)
+    const productsToSeed = [
+      { code: 'CAS-101', name: 'Case MagSafe Silicona Líquida c/ Gamuza Interna (iPhone 15 Pro Max)', category: 'Cases / Fundas', purchase_price: 14.00, price: 35.00, stock: 18, min_stock: 5, is_serialized: 0, models: ['iPhone 15 Pro Max'] },
+      { code: 'CAS-102', name: 'Case Antigolpe Armadura c/ Anillo Imantado (Galaxy A55 / A35 5G)', category: 'Cases / Fundas', purchase_price: 11.50, price: 28.00, stock: 22, min_stock: 5, is_serialized: 0, models: ['Samsung Galaxy A55 5G', 'Samsung Galaxy A35 5G'] },
+      { code: 'CAS-103', name: 'Case Space Transparente Esquinas Reforzadas (Redmi Note 13 4G)', category: 'Cases / Fundas', purchase_price: 6.50, price: 18.00, stock: 35, min_stock: 8, is_serialized: 0, models: ['Xiaomi Redmi Note 13 4G'] },
+      { code: 'CAS-104', name: 'Case Acrílico Mate MagSafe Bisel Metálico (iPhone 16 Pro Max)', category: 'Cases / Fundas', purchase_price: 16.00, price: 40.00, stock: 3, min_stock: 6, is_serialized: 0, models: ['iPhone 16 Pro Max'] },
+      { code: 'CAS-105', name: 'Case Silicona Mate Diseño Fibra Carbono (Honor Magic6 Lite / X8b)', category: 'Cases / Fundas', purchase_price: 9.00, price: 22.00, stock: 14, min_stock: 5, is_serialized: 0, models: ['Honor Magic6 Lite 5G', 'Honor X8b'] },
+      { code: 'MIC-201', name: 'Mica Vidrio Templado 9D Bordes Negros 6.67" (Multimodelo)', category: 'Micas / Protectores', purchase_price: 3.20, price: 15.00, stock: 65, min_stock: 15, is_serialized: 0, models: ['Xiaomi Redmi Note 13 4G', 'Xiaomi Poco X6 Pro', 'Samsung Galaxy A55 5G', 'Samsung Galaxy A35 5G'] },
+      { code: 'MIC-202', name: 'Mica Privacidad Antiespía 28° Templado Mate (iPhone 13 / 14 / 15 / 15 Pro)', category: 'Micas / Protectores', purchase_price: 5.50, price: 25.00, stock: 28, min_stock: 10, is_serialized: 0, models: ['iPhone 13', 'iPhone 14', 'iPhone 15', 'iPhone 15 Pro'] },
+      { code: 'MIC-203', name: 'Mica Hidrogel UV Curvo Autorreparable (Magic6 Lite / Edge 50 Fusion / Note 13 Pro+)', category: 'Micas / Protectores', purchase_price: 7.00, price: 30.00, stock: 4, min_stock: 10, is_serialized: 0, models: ['Honor Magic6 Lite 5G', 'Motorola Edge 50 Fusion', 'Xiaomi Redmi Note 13 Pro+ 5G'] },
+      { code: 'MIC-204', name: 'Protector Lente de Cámara Zafiro Individual (iPhone 15 Pro / 15 Pro Max / 16 Pro Max)', category: 'Micas / Protectores', purchase_price: 4.50, price: 18.00, stock: 32, min_stock: 8, is_serialized: 0, models: ['iPhone 15 Pro', 'iPhone 15 Pro Max', 'iPhone 16 Pro Max', 'iPhone 16 Pro'] },
+      { code: 'CAR-301', name: 'Cargador Original Samsung Super Fast Charging 25W USB-C (Sin Cable)', category: 'Cargadores', purchase_price: 42.00, price: 75.00, stock: 12, min_stock: 4, is_serialized: 0, models: ['Samsung Galaxy S24 Ultra', 'Samsung Galaxy A55 5G', 'Samsung Galaxy A35 5G', 'Samsung Galaxy A54 5G', 'Samsung Galaxy A15 4G'] },
+      { code: 'CAR-302', name: 'Cubo Cargador Apple 20W USB-C Power Adapter Original', category: 'Cargadores', purchase_price: 55.00, price: 95.00, stock: 2, min_stock: 5, is_serialized: 0, models: ['iPhone 16 Pro Max', 'iPhone 16 Pro', 'iPhone 15 Pro Max', 'iPhone 15 Pro', 'iPhone 15', 'iPhone 14', 'iPhone 13'] },
+      { code: 'CAR-303', name: 'Kit Cargador Xiaomi HyperCharge 67W Turbo + Cable USB-C 6A', category: 'Cargadores', purchase_price: 38.00, price: 69.00, stock: 10, min_stock: 4, is_serialized: 0, models: ['Xiaomi Redmi Note 13 Pro+ 5G', 'Xiaomi Redmi Note 13 4G', 'Xiaomi Poco X6 Pro', 'Xiaomi Redmi 13C'] },
+      { code: 'CAB-304', name: 'Cable Trenzado Baseus Tipo C a Tipo C 60W 1m Carga Rápida', category: 'Cables / Datos', purchase_price: 9.50, price: 25.00, stock: 40, min_stock: 10, is_serialized: 0, models: ['iPhone 16 Pro Max', 'iPhone 15 Pro Max', 'Samsung Galaxy S24 Ultra', 'Samsung Galaxy A55 5G', 'Xiaomi Redmi Note 13 Pro+ 5G', 'Motorola Edge 50 Fusion', 'Honor Magic6 Lite 5G'] },
+      { code: 'AUD-401', name: 'Audífonos Inalámbricos Xiaomi Redmi Buds 6 Play Bluetooth 5.4', category: 'Audio', purchase_price: 36.00, price: 65.00, stock: 14, min_stock: 4, is_serialized: 0, models: ['Xiaomi Redmi Note 13 Pro+ 5G', 'Samsung Galaxy A55 5G', 'iPhone 15', 'Honor Magic6 Lite 5G'] },
+      { code: 'REP-501', name: 'Pantalla Completa OLED Incell p/ Samsung Galaxy A54 / A55 5G', category: 'Repuestos', purchase_price: 115.00, price: 190.00, stock: 3, min_stock: 3, is_serialized: 0, models: ['Samsung Galaxy A54 5G', 'Samsung Galaxy A55 5G'] },
+      { code: 'CEL-002', name: 'Samsung Galaxy A55 5G 256GB / 8GB RAM - Azul Hielo (Liberado)', category: 'Equipos Celulares', purchase_price: 1180.00, price: 1449.00, stock: 3, min_stock: 2, is_serialized: 1, models: ['Samsung Galaxy A55 5G'] },
+      { code: 'CEL-003', name: 'iPhone 15 Pro Max 256GB - Titanio Natural (Sellado Apple)', category: 'Equipos Celulares', purchase_price: 4150.00, price: 4699.00, stock: 2, min_stock: 1, is_serialized: 1, models: ['iPhone 15 Pro Max'] },
+      { code: 'CEL-004', name: 'Honor Magic6 Lite 5G 256GB / 8GB RAM - Verde Esmeralda', category: 'Equipos Celulares', purchase_price: 890.00, price: 1129.00, stock: 2, min_stock: 2, is_serialized: 1, models: ['Honor Magic6 Lite 5G'] }
+    ];
+
+    const productMap = {};
+    for (const p of productsToSeed) {
+      const existing = await query(`SELECT id FROM products WHERE code = ?`, [p.code]);
+      let prodId;
+      if (existing.rows.length > 0) {
+        prodId = existing.rows[0].id;
+      } else {
+        const ins = await query(
+          `INSERT INTO products (code, name, category, purchase_price, price, stock, min_stock, is_serialized) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+          [p.code, p.name, p.category, p.purchase_price, p.price, p.stock, p.min_stock, p.is_serialized]
+        );
+        prodId = ins.rows[0]?.id || ins.lastID;
+      }
+      productMap[p.code] = prodId;
+
+      // Vincular compatibilidades multimodelo
+      for (const mName of p.models) {
+        const mId = modelMap[mName];
+        if (!prodId || !mId) continue;
+        const checkCompat = await query(
+          `SELECT id FROM product_compatibilities WHERE product_id = ? AND phone_model_id = ?`,
+          [prodId, mId]
+        );
+        if (checkCompat.rows.length === 0) {
+          await query(
+            `INSERT INTO product_compatibilities (product_id, phone_model_id) VALUES (?, ?)`,
+            [prodId, mId]
+          );
+        }
+      }
+    }
+
+    // 4. Series / IMEIs reales de 15 dígitos para los equipos celulares
+    const imeisToSeed = [
+      ['CEL-002', '354891124509811'],
+      ['CEL-002', '354891124509812'],
+      ['CEL-002', '354891124509813'],
+      ['CEL-003', '359104821930411'],
+      ['CEL-003', '359104821930412'],
+      ['CEL-004', '860923067812301'],
+      ['CEL-004', '860923067812302']
+    ];
+    for (const [prodCode, imei] of imeisToSeed) {
+      const prodId = productMap[prodCode];
+      if (!prodId) continue;
+      const existingImei = await query(`SELECT id FROM device_imeis WHERE imei_code = ?`, [imei]);
+      if (existingImei.rows.length === 0) {
+        await query(
+          `INSERT INTO device_imeis (product_id, imei_code, status) VALUES (?, ?, 'disponible')`,
+          [prodId, imei]
+        );
+      }
+    }
+
+    // 5. Clientes reales con DNI / RUC y Cuentas por Cobrar
+    const customersToSeed = [
+      {
+        doc: '72849103',
+        name: 'Carlos Alberto Mendoza Quispe',
+        phone: '987412365',
+        address: 'Av. Arenales 1420 Tda. 214, Jesús María',
+        debt: 120.00,
+        records: [
+          { type: 'CARGO', amount: 120.00, details: 'Venta al Crédito (Lote de Cases MagSafe y Micas 9D)', balance_after: 120.00, receipt_code: 'B001-000010', payment_method: 'Crédito' }
+        ]
+      },
+      {
+        doc: '20608491237',
+        name: 'Inversiones Móviles del Norte S.A.C.',
+        phone: '945102938',
+        address: 'Jr. Leticia 642 Stand 108, Cercado de Lima',
+        debt: 350.00,
+        records: [
+          { type: 'CARGO', amount: 500.00, details: 'Factura Mayorista de Cargadores 25W y Cables Baseus', balance_after: 500.00, receipt_code: 'F001-000004', payment_method: 'Crédito' },
+          { type: 'ABONO', amount: 150.00, details: 'Abono parcial de cuenta corriente', balance_after: 350.00, receipt_code: 'ABN-000001', payment_method: 'Yape/Plin' }
+        ]
+      },
+      {
+        doc: '46192837',
+        name: 'María Fernanda Paredes Rojas',
+        phone: '991827364',
+        address: 'Av. Los Próceres 820, Surco',
+        debt: 0.00,
+        records: []
+      },
+      {
+        doc: '74910284',
+        name: 'Luis Miguel Huamán Chávez (Técnico Aliado)',
+        phone: '963852741',
+        address: 'C.C. Polvos Azules Pasaje 14 Tda. 9',
+        debt: 65.00,
+        records: [
+          { type: 'CARGO', amount: 190.00, details: 'Retiro de Pantalla OLED Samsung A54/A55 p/ taller', balance_after: 190.00, receipt_code: 'T001-000018', payment_method: 'Crédito' },
+          { type: 'ABONO', amount: 125.00, details: 'Adelanto en efectivo en mostrador', balance_after: 65.00, receipt_code: 'ABN-000002', payment_method: 'Efectivo' }
+        ]
+      }
+    ];
+
+    for (const c of customersToSeed) {
+      const existingCust = await query(`SELECT id FROM customers WHERE doc = ?`, [c.doc]);
+      let custId;
+      if (existingCust.rows.length > 0) {
+        custId = existingCust.rows[0].id;
+      } else {
+        const ins = await query(
+          `INSERT INTO customers (doc, name, phone, address, debt) VALUES (?, ?, ?, ?, ?) RETURNING id`,
+          [c.doc, c.name, c.phone, c.address, c.debt]
+        );
+        custId = ins.rows[0]?.id || ins.lastID;
+
+        for (const rec of c.records) {
+          await query(
+            `INSERT INTO fiado_records (customer_id, type, amount, details, balance_after, receipt_code, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [custId, rec.type, rec.amount, rec.details, rec.balance_after, rec.receipt_code, rec.payment_method]
+          );
+        }
+      }
+    }
+
+    // 6. Órdenes de Servicio Técnico / Taller
+    const repairsToSeed = [
+      {
+        order_code: 'ORD-0001',
+        customer_name: 'María Fernanda Paredes Rojas',
+        customer_phone: '991827364',
+        device_brand: 'Samsung',
+        device_model: 'Galaxy A54 5G',
+        imei_or_serial: '356789110293847',
+        unlock_pattern: 'Patrón: L de arriba a derecha',
+        issue_description: 'Pantalla rota por caída, no da imagen pero vibra al recibir llamadas.',
+        diagnosis: 'Cambio de módulo OLED original y limpieza ultrasónica de marco.',
+        estimated_cost: 240.00,
+        advance_payment: 100.00,
+        payment_method: 'Yape/Plin',
+        status: 'En Reparación'
+      },
+      {
+        order_code: 'ORD-0002',
+        customer_name: 'Jorge Luis Villanueva Castro',
+        customer_phone: '978123456',
+        device_brand: 'Apple',
+        device_model: 'iPhone 13 128GB',
+        imei_or_serial: '353091827364519',
+        unlock_pattern: 'PIN: 258069',
+        issue_description: 'No carga con ningún cable, conector Lightning flojo o dañado.',
+        diagnosis: 'Reemplazo de flex de carga Lightning original y mantenimiento preventivo.',
+        estimated_cost: 130.00,
+        advance_payment: 50.00,
+        payment_method: 'Efectivo',
+        status: 'Listo'
+      },
+      {
+        order_code: 'ORD-0003',
+        customer_name: 'Andrea Sofía Gómez Vargas',
+        customer_phone: '954789632',
+        device_brand: 'Xiaomi',
+        device_model: 'Redmi Note 13 Pro+ 5G',
+        imei_or_serial: '867451069283741',
+        unlock_pattern: 'PIN: 147896',
+        issue_description: 'Tapa trasera trizada y batería calienta al conectar cargador rápido.',
+        diagnosis: 'Pendiente de revisión de consumo en fuente regulada.',
+        estimated_cost: 110.00,
+        advance_payment: 30.00,
+        payment_method: 'Efectivo',
+        status: 'Recibido'
+      },
+      {
+        order_code: 'ORD-0004',
+        customer_name: 'Carlos Alberto Mendoza Quispe',
+        customer_phone: '987412365',
+        device_brand: 'Motorola',
+        device_model: 'Moto G84 5G',
+        imei_or_serial: '358910293847561',
+        unlock_pattern: 'Sin clave',
+        issue_description: 'Cambio de cristal visor (glass) conservando pantalla OLED original.',
+        diagnosis: 'Laminado OCA completado con éxito. Touch al 100%.',
+        estimated_cost: 120.00,
+        advance_payment: 120.00,
+        payment_method: 'Yape/Plin',
+        status: 'Entregado'
+      }
+    ];
+
+    for (const r of repairsToSeed) {
+      const existingOrd = await query(`SELECT id FROM repair_orders WHERE order_code = ?`, [r.order_code]);
+      if (existingOrd.rows.length === 0) {
+        await query(
+          `INSERT INTO repair_orders (order_code, customer_name, customer_phone, device_brand, device_model, imei_or_serial, unlock_pattern, issue_description, diagnosis, estimated_cost, advance_payment, payment_method, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [r.order_code, r.customer_name, r.customer_phone, r.device_brand, r.device_model, r.imei_or_serial, r.unlock_pattern, r.issue_description, r.diagnosis, r.estimated_cost, r.advance_payment, r.payment_method, r.status]
+        );
+      }
+    }
+
+    // Asegurar que el correlativo de OrdenServicio y ReciboAbono no colisione con los datos sembrados
+    await query(`UPDATE counters SET last_number = 4 WHERE doc_type = 'OrdenServicio' AND last_number < 4`);
+    await query(`UPDATE counters SET last_number = 2 WHERE doc_type = 'ReciboAbono' AND last_number < 2`);
+
+  } catch (err) {
+    console.warn('⚠️ Aviso al sembrar datos comerciales reales:', err.message);
   }
 }
 
