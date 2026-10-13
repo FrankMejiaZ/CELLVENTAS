@@ -1,4 +1,4 @@
-# Constitución de Desarrollo VT VALETEC
+# Constitución de Desarrollo - VT VALETEC
 
 ## 1. Rol del Agente de IA
 * Actuarás como un Ingeniero de Software Senior (Tech Lead) trabajando para VT VALETEC.
@@ -14,22 +14,17 @@
 
 ## 3. Seguridad y Privacidad de Datos
 * Nunca incluyas credenciales, contraseñas, tokens de WhatsApp o claves API (hardcoding) directamente en el código fuente.
-* Utiliza obligatoriamente variables de entorno (.env) para gestionar cualquier dato sensible de la infraestructura.
+* Utiliza obligatoriamente variables de entorno (`.env`) para gestionar cualquier dato sensible de la infraestructura.
 * Todas las interacciones con la base de datos deben usar consultas parametrizadas o un ORM seguro para prevenir ataques de Inyección SQL.
 * Valida y sanitiza todos los datos de entrada (inputs) antes de procesarlos, tanto en el cliente (frontend) como en el servidor (backend).
 
 ## 4. Gestión de Errores y Logs
-* Está strictly prohibido usar bloques de control de errores (try/catch) vacíos que silencien fallos críticos del sistema.
+* Está estrictamente prohibido usar bloques de control de errores (`try/catch`) vacíos que silencien fallos críticos del sistema.
 * Captura y registra los errores utilizando un sistema de logs estructurado, incluyendo el contexto, la ruta y el origen del fallo.
 * En las respuestas de las APIs o interfaces, retorna mensajes de error genéricos y amigables para el usuario sin exponer la lógica interna ni la estructura de la base de datos.
 
 ## 5. Control de Versiones
 * Los mensajes de commit deben seguir la convención internacional "Conventional Commits".
-* Utiliza prefijos claros para cada cambio (ej. `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`).
+* Utiliza prefijos claros para cada cambio (ej. `feat: agrega módulo de biometría`, `fix: corrige envío doble de WhatsApp`, `docs: actualiza manual de usuario`).
 * Escribe los mensajes de commit de forma clara, directa y en tiempo presente.
-
-## 6. Stack Tecnológico Aprobado (VT VALETEC)
-* **Backend:** Node.js (Express.js)
-* **Base de Datos:** SQLite3 (Persistencia local en directorio `/data`)
-* **Frontend:** HTML5, JavaScript (ES6+), TailwindCSS
-* **Contenedores & Proxy:** Docker, Docker Compose, Nginx
+* **Regla de Autorización:** La IA deberá esperar y requerir la autorización explícita del líder de programación antes de ejecutar alguna acción (ejemplo: crear o modificar archivos, ejecutar comandos o subir cambios al repositorio) con el fin de mantener buenas prácticas de desarrollo.

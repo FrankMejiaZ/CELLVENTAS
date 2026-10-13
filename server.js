@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
 const PORT = process.env.PORT || 8092;
-const JWT_SECRET = process.env.JWT_SECRET || 'cellventas_jwt_secret_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'cellventas_dev_local_secret_2026';
 
 app.use(cors());
 app.use(express.json());
@@ -21,22 +21,116 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Inicializar DB al arrancar
 db.initDb();
 
+// Sistema de logs estructurado conforme a la Constitución de VT VALETEC
+function logSystemError(context, req, err) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    level: 'ERROR',
+    context,
+    route: req ? `${req.method} ${req.originalUrl}` : 'INTERNAL',
+    user: req?.user?.username || 'mostrador',
+    message: err?.message || String(err)
+  };
+  console.error('[CELLVENTAS_LOG]', JSON.stringify(logEntry));
+}
+
+// Respuesta de error estandarizada sin exponer estructura interna de la base de datos
+function sendSafeError(res, req, context, err, userMessage = 'Ocurrió un error al procesar la solicitud en el servidor.') {
+  logSystemError(context, req, err);
+  const isUniqueViolation = String(err?.message || '').toLowerCase().includes('unique') || String(err?.message || '').toLowerCase().includes('duplicate');
+  if (isUniqueViolation) {
+    return res.status(400).json({ error: '⚠️ Ya existe un registro con ese código, documento o nombre único.' });
+  }
+  return res.status(500).json({ error: userMessage });
+}
+
+// Parsea JSON de detalles de pago de forma segura sin bloques catch vacíos
+function parsePaymentDetails(rawDetails, contextLabel = 'parsePaymentDetails') {
+  if (!rawDetails) return null;
+  if (typeof rawDetails === 'object') return rawDetails;
+  try {
+    return JSON.parse(rawDetails);
+  } catch (err) {
+    console.warn(`⚠️ Aviso en ${contextLabel}: formato JSON inválido en payment_details:`, err.message);
+    return null;
+  }
+}
+
 // WebSockets para sincronización en tiempo real
 io.on('connection', (socket) => {
   console.log('⚡ Cliente Socket.io conectado a CELLVENTAS:', socket.id);
 });
 
-// Middleware JWT opcional
+// Middleware JWT para identificar sesión activa
 function verifyToken(req, res, next) {
-  const token = req.headers['authorization']?.split(' ')[1];
+  const authHeader = req.headers['authorization'];
+  const token = authHeader ? authHeader.split(' ')[1] : null;
   if (!token) return next();
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
-  } catch (e) {}
+  } catch (err) {
+    console.warn('⚠️ Token JWT inválido o expirado en solicitud:', req.originalUrl, err.message);
+  }
   next();
 }
 app.use(verifyToken);
+
+// ==========================================
+// 0. AUTENTICACIÓN Y GESTIÓN DE USUARIOS
+// ==========================================
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Usuario y contraseña requeridos.' });
+    }
+
+    const cleanUser = String(username).trim();
+    const userRes = await db.query(`SELECT * FROM users WHERE username = ?`, [cleanUser]);
+    const user = userRes.rows[0];
+
+    if (!user || !bcrypt.compareSync(String(password), user.password_hash)) {
+      return res.status(401).json({ error: 'Credenciales incorrectas. Verifique su usuario y contraseña.' });
+    }
+
+    const payload = {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      role: user.role
+    };
+
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
+    res.json({
+      success: true,
+      token,
+      user: payload
+    });
+  } catch (err) {
+    sendSafeError(res, req, 'AUTH_LOGIN', err, 'No se pudo procesar el inicio de sesión.');
+  }
+});
+
+app.get('/api/auth/me', (req, res) => {
+  if (req.user) {
+    return res.json({ authenticated: true, user: req.user });
+  }
+  return res.json({
+    authenticated: false,
+    user: { id: 1, username: 'admin', name: 'Mostrador Tech', role: 'Administrador' }
+  });
+});
+
+app.get('/api/users', async (req, res) => {
+  try {
+    const result = await db.query(`SELECT id, username, name, role, created_at FROM users ORDER BY id ASC`);
+    res.json(result.rows);
+  } catch (err) {
+    sendSafeError(res, req, 'GET_USERS', err, 'Error al consultar usuarios.');
+  }
+});
 
 // ==========================================
 // 1. MARCAS, MODELOS Y ASISTENTE 360°
@@ -54,33 +148,37 @@ app.get('/api/brands', async (req, res) => {
 
     res.json(brandsMap);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'GET_BRANDS', err, 'Error al cargar el catálogo de marcas y modelos.');
   }
 });
 
 app.post('/api/brands', async (req, res) => {
   try {
-    const { name } = req.body;
+    const name = String(req.body.name || '').trim();
     if (!name) return res.status(400).json({ error: 'Nombre de marca es requerido.' });
     await db.query(`INSERT INTO brands (name) VALUES (?)`, [name]);
     io.emit('compatibility_updated');
     res.json({ success: true, message: 'Marca registrada exitosamente' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'CREATE_BRAND', err, 'No se pudo registrar la marca.');
   }
 });
 
 app.post('/api/models', async (req, res) => {
   try {
     const { brand_id, model_name, release_year } = req.body;
-    if (!brand_id || !model_name) {
+    const cleanModelName = String(model_name || '').trim();
+    if (!brand_id || !cleanModelName) {
       return res.status(400).json({ error: 'Marca y Nombre de Modelo son requeridos.' });
     }
-    await db.query(`INSERT INTO phone_models (brand_id, model_name, release_year) VALUES (?, ?, ?)`, [brand_id, model_name, release_year || 2024]);
+    await db.query(
+      `INSERT INTO phone_models (brand_id, model_name, release_year) VALUES (?, ?, ?)`,
+      [parseInt(brand_id, 10), cleanModelName, parseInt(release_year, 10) || 2024]
+    );
     io.emit('compatibility_updated');
     res.json({ success: true, message: 'Modelo de celular registrado.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'CREATE_MODEL', err, 'No se pudo registrar el modelo de celular.');
   }
 });
 
@@ -91,7 +189,7 @@ app.delete('/api/models/:id', async (req, res) => {
     io.emit('compatibility_updated');
     res.json({ success: true, message: 'Modelo eliminado.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'DELETE_MODEL', err, 'No se pudo eliminar el modelo.');
   }
 });
 
@@ -144,7 +242,7 @@ app.get('/api/compatibilities/assistant/:modelId', async (req, res) => {
       products: products
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'ASSISTANT_360', err, 'Error al consultar la ficha de compatibilidades.');
   }
 });
 
@@ -188,7 +286,7 @@ app.get('/api/compatibilities/coverage', async (req, res) => {
 
     res.json(coverage);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'COMPATIBILITY_COVERAGE', err, 'Error al obtener la auditoría de cobertura.');
   }
 });
 
@@ -200,16 +298,17 @@ app.post('/api/compatibilities/bulk', async (req, res) => {
       return res.status(400).json({ error: 'Producto y lista de modelos requeridos.' });
     }
 
-    await db.query(`DELETE FROM product_compatibilities WHERE product_id = ?`, [product_id]);
-
-    for (const mId of model_ids) {
-      await db.query(`INSERT INTO product_compatibilities (product_id, phone_model_id) VALUES (?, ?)`, [product_id, mId]);
-    }
+    await db.withTransaction(async (tx) => {
+      await tx(`DELETE FROM product_compatibilities WHERE product_id = ?`, [product_id]);
+      for (const mId of model_ids) {
+        await tx(`INSERT INTO product_compatibilities (product_id, phone_model_id) VALUES (?, ?)`, [product_id, mId]);
+      }
+    });
 
     io.emit('compatibility_updated');
     res.json({ success: true, message: `Compatibilidad actualizada (${model_ids.length} modelos asignados).` });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'BULK_COMPATIBILITY', err, 'No se pudo actualizar la matriz de compatibilidad.');
   }
 });
 
@@ -234,36 +333,54 @@ app.get('/api/products', async (req, res) => {
 
     res.json(productsWithModels);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'GET_PRODUCTS', err, 'Error al consultar el inventario de productos.');
   }
 });
 
 app.post('/api/products', async (req, res) => {
   try {
     const { code, name, category, purchase_price, price, stock, min_stock, is_serialized, model_ids } = req.body;
+    const cleanCode = String(code || '').trim();
+    const cleanName = String(name || '').trim();
 
-    if (!code || !name || !price) {
+    if (!cleanCode || !cleanName || price === undefined || price === null) {
       return res.status(400).json({ error: 'Código, Nombre y Precio son requeridos.' });
     }
 
-    const insertRes = await db.query(`
-      INSERT INTO products (code, name, category, purchase_price, price, stock, min_stock, is_serialized)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      RETURNING id
-    `, [code, name, category || 'Accesorios', purchase_price || 0, price, stock || 0, min_stock || 5, is_serialized ? 1 : 0]);
+    const serializedFlag = is_serialized ? 1 : 0;
+    // Si el equipo requiere IMEI, su stock inicial es 0 hasta que se registren sus IMEIs
+    const initialStock = serializedFlag === 1 ? 0 : (parseInt(stock, 10) || 0);
 
-    const productId = insertRes.lastID || (insertRes.rows && insertRes.rows[0] ? insertRes.rows[0].id : null);
+    const productId = await db.withTransaction(async (tx) => {
+      const insertRes = await tx(`
+        INSERT INTO products (code, name, category, purchase_price, price, stock, min_stock, is_serialized)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        RETURNING id
+      `, [
+        cleanCode,
+        cleanName,
+        category || 'Accesorios',
+        parseFloat(purchase_price) || 0,
+        parseFloat(price) || 0,
+        initialStock,
+        parseInt(min_stock, 10) || 5,
+        serializedFlag
+      ]);
 
-    if (productId && model_ids && Array.isArray(model_ids)) {
-      for (const mId of model_ids) {
-        await db.query(`INSERT INTO product_compatibilities (product_id, phone_model_id) VALUES (?, ?)`, [productId, mId]);
+      const newId = insertRes.lastID || (insertRes.rows && insertRes.rows[0] ? insertRes.rows[0].id : null);
+
+      if (newId && model_ids && Array.isArray(model_ids)) {
+        for (const mId of model_ids) {
+          await tx(`INSERT INTO product_compatibilities (product_id, phone_model_id) VALUES (?, ?)`, [newId, mId]);
+        }
       }
-    }
+      return newId;
+    });
 
     io.emit('product_updated', { action: 'created', productId });
     res.json({ success: true, productId, message: 'Producto guardado con éxito con su matriz de compatibilidad.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'CREATE_PRODUCT', err, 'No se pudo registrar el producto.');
   }
 });
 
@@ -271,24 +388,41 @@ app.put('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { code, name, category, purchase_price, price, stock, min_stock, is_serialized, model_ids } = req.body;
+    const serializedFlag = is_serialized ? 1 : 0;
 
-    await db.query(`
-      UPDATE products 
-      SET code = ?, name = ?, category = ?, purchase_price = ?, price = ?, stock = ?, min_stock = ?, is_serialized = ?
-      WHERE id = ?
-    `, [code, name, category, purchase_price, price, stock, min_stock, is_serialized ? 1 : 0, id]);
+    await db.withTransaction(async (tx) => {
+      await tx(`
+        UPDATE products 
+        SET code = ?, name = ?, category = ?, purchase_price = ?, price = ?, stock = ?, min_stock = ?, is_serialized = ?
+        WHERE id = ?
+      `, [
+        String(code || '').trim(),
+        String(name || '').trim(),
+        category || 'Accesorios',
+        parseFloat(purchase_price) || 0,
+        parseFloat(price) || 0,
+        parseInt(stock, 10) || 0,
+        parseInt(min_stock, 10) || 5,
+        serializedFlag,
+        id
+      ]);
 
-    if (model_ids && Array.isArray(model_ids)) {
-      await db.query(`DELETE FROM product_compatibilities WHERE product_id = ?`, [id]);
-      for (const mId of model_ids) {
-        await db.query(`INSERT INTO product_compatibilities (product_id, phone_model_id) VALUES (?, ?)`, [id, mId]);
+      if (model_ids && Array.isArray(model_ids)) {
+        await tx(`DELETE FROM product_compatibilities WHERE product_id = ?`, [id]);
+        for (const mId of model_ids) {
+          await tx(`INSERT INTO product_compatibilities (product_id, phone_model_id) VALUES (?, ?)`, [id, mId]);
+        }
       }
-    }
+
+      if (serializedFlag === 1) {
+        await db.syncSerializedProductStock(id, tx);
+      }
+    });
 
     io.emit('product_updated', { action: 'updated', productId: id });
-    res.json({ success: true, message: 'Producto actualizado.' });
+    res.json({ success: true, message: 'Producto actualizado correctamente.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'UPDATE_PRODUCT', err, 'No se pudo actualizar el producto.');
   }
 });
 
@@ -299,7 +433,7 @@ app.delete('/api/products/:id', async (req, res) => {
     io.emit('product_updated', { action: 'deleted', productId: id });
     res.json({ success: true, message: 'Producto eliminado.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'DELETE_PRODUCT', err, 'No se pudo eliminar el producto.');
   }
 });
 
@@ -317,7 +451,7 @@ app.get('/api/imeis/available/:productId', async (req, res) => {
     `, [productId]);
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'GET_AVAILABLE_IMEIS', err, 'Error al consultar los IMEIs disponibles.');
   }
 });
 
@@ -338,18 +472,19 @@ app.post('/api/imeis', async (req, res) => {
             VALUES (?, ?, 'disponible', ?)
           `, [product_id, cleanImei, notes || '']);
           insertedCount++;
-        } catch (e) {
-          console.warn(`IMEI ${cleanImei} ya registrado o inválido`);
+        } catch (dupErr) {
+          console.warn(`⚠️ IMEI ${cleanImei} omitido (duplicado o inválido):`, dupErr.message);
         }
       }
     }
 
-    await db.query(`UPDATE products SET stock = stock + ? WHERE id = ?`, [insertedCount, product_id]);
+    // Sincronizar stock con la cantidad real de IMEIs disponibles
+    await db.syncSerializedProductStock(product_id);
 
     io.emit('product_updated', { action: 'imei_added', productId: product_id });
     res.json({ success: true, message: `${insertedCount} IMEIs registrados exitosamente.`, insertedCount });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'CREATE_IMEIS', err, 'Error al registrar el lote de IMEIs.');
   }
 });
 
@@ -363,10 +498,10 @@ app.get('/api/imeis/search/:query', async (req, res) => {
       LEFT JOIN sales s ON di.sale_id = s.id
       WHERE di.imei_code LIKE ?
       ORDER BY di.id DESC
-    `, [`%${query}%`]);
+    `, [`%${String(query).trim()}%`]);
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'SEARCH_IMEIS', err, 'Error al buscar trazabilidad del IMEI.');
   }
 });
 
@@ -379,22 +514,15 @@ app.get('/api/sales', async (req, res) => {
     const salesRes = await db.query(`SELECT * FROM sales ORDER BY id DESC LIMIT 150`);
     const itemsRes = await db.query(`SELECT * FROM sale_items ORDER BY id ASC`);
 
-    const salesWithItems = salesRes.rows.map(s => {
-      let details = null;
-      try {
-        if (s.payment_details) details = JSON.parse(s.payment_details);
-      } catch (e) {}
-
-      return {
-        ...s,
-        payment_details: details,
-        items: itemsRes.rows.filter(i => i.sale_id === s.id)
-      };
-    });
+    const salesWithItems = salesRes.rows.map(s => ({
+      ...s,
+      payment_details: parsePaymentDetails(s.payment_details, `sale_${s.id}`),
+      items: itemsRes.rows.filter(i => i.sale_id === s.id)
+    }));
 
     res.json(salesWithItems);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'GET_SALES', err, 'Error al consultar el historial de ventas.');
   }
 });
 
@@ -405,27 +533,24 @@ app.get('/api/sales/:id', async (req, res) => {
     if (saleRes.rows.length === 0) return res.status(404).json({ error: 'Venta no encontrada' });
 
     const itemsRes = await db.query(`SELECT * FROM sale_items WHERE sale_id = ?`, [id]);
-    let details = null;
-    try {
-      if (saleRes.rows[0].payment_details) details = JSON.parse(saleRes.rows[0].payment_details);
-    } catch (e) {}
+    const saleRow = saleRes.rows[0];
 
     res.json({
-      ...saleRes.rows[0],
-      payment_details: details,
+      ...saleRow,
+      payment_details: parsePaymentDetails(saleRow.payment_details, `sale_${id}`),
       items: itemsRes.rows
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'GET_SALE_BY_ID', err, 'Error al obtener el comprobante de venta.');
   }
 });
 
-// Procesar Venta con validación de caja abierta y pagos mixtos
+// Procesar Venta con transacción atómica, validación de caja abierta, descuentos y pagos mixtos
 app.post('/api/sales', async (req, res) => {
   try {
-    const { doc_type, customer_id, customer_name, payment_method, payment_details, items, paid_amount, change_amount } = req.body;
+    const { doc_type, customer_id, customer_name, payment_method, payment_details, items, paid_amount, change_amount, discount } = req.body;
 
-    if (!items || items.length === 0) {
+    if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'El carrito no puede estar vacío.' });
     }
 
@@ -437,13 +562,16 @@ app.post('/api/sales', async (req, res) => {
         cash_closed: true 
       });
     }
+    const activeCashId = checkCash.rows[0].id;
 
-    let total = 0;
-    items.forEach(i => { total += i.quantity * i.unit_price; });
+    let grossTotal = 0;
+    items.forEach(i => { grossTotal += Number(i.quantity) * Number(i.unit_price); });
+    const discountAmount = Math.max(0, Math.min(grossTotal, parseFloat(discount) || 0));
+    const total = Math.max(0, grossTotal - discountAmount);
     const subtotal = total / 1.18;
     const tax = total - subtotal;
 
-    // Validar Stock
+    // Validar Stock antes de iniciar escritura
     for (const item of items) {
       if (item.product_id) {
         const prodCheck = await db.query(`SELECT name, stock FROM products WHERE id = ?`, [item.product_id]);
@@ -454,88 +582,114 @@ app.post('/api/sales', async (req, res) => {
       }
     }
 
-    // Correlativo
-    const prefijo = doc_type === 'Factura' ? 'F' : (doc_type === 'Boleta' ? 'B' : 'T');
-    const counterRes = await db.query(`SELECT last_number FROM counters WHERE doc_type = ?`, [doc_type || 'Ticket']);
-    const lastNum = counterRes.rows[0] ? parseInt(counterRes.rows[0].last_number) : 0;
-    const nextNum = lastNum + 1;
-    const receipt_code = `${prefijo}001-${String(nextNum).padStart(6, '0')}`;
+    const result = await db.withTransaction(async (tx) => {
+      // Correlativo
+      const cleanDocType = doc_type || 'Ticket';
+      const prefijo = cleanDocType === 'Factura' ? 'F' : (cleanDocType === 'Boleta' ? 'B' : 'T');
+      const counterRes = await tx(`SELECT last_number FROM counters WHERE doc_type = ?`, [cleanDocType]);
+      const lastNum = counterRes.rows[0] ? parseInt(counterRes.rows[0].last_number, 10) : 0;
+      const nextNum = lastNum + 1;
+      const receipt_code = `${prefijo}001-${String(nextNum).padStart(6, '0')}`;
 
-    await db.query(`UPDATE counters SET last_number = ? WHERE doc_type = ?`, [nextNum, doc_type || 'Ticket']);
+      await tx(`UPDATE counters SET last_number = ? WHERE doc_type = ?`, [nextNum, cleanDocType]);
 
-    const paymentDetailsStr = payment_details ? JSON.stringify(payment_details) : '';
+      const paymentDetailsStr = payment_details ? JSON.stringify(payment_details) : '';
 
-    // Registrar Venta
-    const saleInsert = await db.query(`
-      INSERT INTO sales (receipt_code, doc_type, customer_id, customer_name, payment_method, payment_details, subtotal, tax, total, paid_amount, change_amount)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      RETURNING id
-    `, [receipt_code, doc_type || 'Ticket', customer_id || null, customer_name || 'Público General', payment_method, paymentDetailsStr, subtotal, tax, total, paid_amount || total, change_amount || 0]);
+      // Registrar Cabecera de Venta con vínculo al turno de caja y descuento
+      const saleInsert = await tx(`
+        INSERT INTO sales (receipt_code, doc_type, customer_id, customer_name, payment_method, payment_details, subtotal, tax, discount, total, paid_amount, change_amount, cash_register_id, user_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        RETURNING id
+      `, [
+        receipt_code,
+        cleanDocType,
+        customer_id || null,
+        customer_name || 'Público General',
+        payment_method,
+        paymentDetailsStr,
+        subtotal,
+        tax,
+        discountAmount,
+        total,
+        paid_amount !== undefined ? parseFloat(paid_amount) : total,
+        parseFloat(change_amount) || 0,
+        activeCashId,
+        req.user?.name || 'Administrador'
+      ]);
 
-    const saleId = saleInsert.lastID || (saleInsert.rows && saleInsert.rows[0] ? saleInsert.rows[0].id : null);
+      const saleId = saleInsert.lastID || (saleInsert.rows && saleInsert.rows[0] ? saleInsert.rows[0].id : null);
 
-    // Items, Stock e IMEIs
-    for (const item of items) {
-      const itemSubtotal = item.quantity * item.unit_price;
-      const imeiCode = item.imei || '';
+      // Registrar Items, actualizar Stock e IMEIs
+      for (const item of items) {
+        const itemSubtotal = Number(item.quantity) * Number(item.unit_price);
+        const imeiCode = item.imei || '';
 
-      await db.query(`
-        INSERT INTO sale_items (sale_id, product_id, product_name, quantity, unit_price, subtotal, imei_code)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [saleId, item.product_id, item.product_name, item.quantity, item.unit_price, itemSubtotal, imeiCode]);
+        await tx(`
+          INSERT INTO sale_items (sale_id, product_id, product_name, quantity, unit_price, subtotal, imei_code)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [saleId, item.product_id, item.product_name, item.quantity, item.unit_price, itemSubtotal, imeiCode]);
 
-      if (item.product_id) {
-        await db.query(`UPDATE products SET stock = stock - ? WHERE id = ?`, [item.quantity, item.product_id]);
+        if (imeiCode) {
+          await tx(`
+            UPDATE device_imeis 
+            SET status = 'vendido', sale_id = ?, sold_at = CURRENT_TIMESTAMP 
+            WHERE imei_code = ?
+          `, [saleId, imeiCode]);
+        }
+
+        if (item.product_id) {
+          if (imeiCode) {
+            await db.syncSerializedProductStock(item.product_id, tx);
+          } else {
+            await tx(`UPDATE products SET stock = stock - ? WHERE id = ?`, [item.quantity, item.product_id]);
+          }
+        }
       }
 
-      if (imeiCode) {
-        await db.query(`
-          UPDATE device_imeis 
-          SET status = 'vendido', sale_id = ?, sold_at = CURRENT_TIMESTAMP 
-          WHERE imei_code = ?
-        `, [saleId, imeiCode]);
+      // Registrar Crédito si aplica
+      if ((payment_method === 'Crédito' || payment_method === 'Fiado') && customer_id) {
+        const custRes = await tx(`SELECT debt FROM customers WHERE id = ?`, [customer_id]);
+        const currentDebt = parseFloat(custRes.rows[0]?.debt || 0);
+        const newDebt = currentDebt + total;
+        const details = items.map(i => `${i.quantity}x ${i.product_name} ${i.imei ? '(IMEI: ' + i.imei + ')' : ''}`).join(', ');
+
+        await tx(`UPDATE customers SET debt = ? WHERE id = ?`, [newDebt, customer_id]);
+        await tx(`
+          INSERT INTO fiado_records (customer_id, type, amount, details, balance_after, receipt_code, payment_method)
+          VALUES (?, 'COMPRA_CREDITO', ?, ?, ?, ?, 'Crédito')
+        `, [customer_id, total, details, newDebt, receipt_code]);
       }
-    }
 
-    // Registrar Crédito si aplica
-    if ((payment_method === 'Crédito' || payment_method === 'Fiado') && customer_id) {
-      const custRes = await db.query(`SELECT debt FROM customers WHERE id = ?`, [customer_id]);
-      const currentDebt = parseFloat(custRes.rows[0]?.debt || 0);
-      const newDebt = currentDebt + total;
-      const details = items.map(i => `${i.quantity}x ${i.product_name} ${i.imei ? '(IMEI: ' + i.imei + ')' : ''}`).join(', ');
-
-      await db.query(`UPDATE customers SET debt = ? WHERE id = ?`, [newDebt, customer_id]);
-      await db.query(`
-        INSERT INTO fiado_records (customer_id, type, amount, details, balance_after, receipt_code, payment_method)
-        VALUES (?, 'COMPRA_CREDITO', ?, ?, ?, ?, 'Crédito')
-      `, [customer_id, total, details, newDebt, receipt_code]);
-    }
+      return { saleId, receipt_code, cleanDocType };
+    });
 
     const completedSale = {
-      id: saleId,
-      receipt_code,
-      doc_type: doc_type || 'Ticket',
+      id: result.saleId,
+      receipt_code: result.receipt_code,
+      doc_type: result.cleanDocType,
       customer_name: customer_name || 'Público General',
       payment_method,
       payment_details: payment_details || null,
       subtotal,
       tax,
+      discount: discountAmount,
       total,
-      paid_amount: paid_amount || total,
-      change_amount: change_amount || 0,
+      paid_amount: paid_amount !== undefined ? parseFloat(paid_amount) : total,
+      change_amount: parseFloat(change_amount) || 0,
+      cash_register_id: activeCashId,
       created_at: new Date().toISOString(),
       items: items.map(i => ({ ...i, imei_code: i.imei || '' }))
     };
 
     io.emit('sale_completed', completedSale);
     io.emit('cash_updated');
-    res.json({ success: true, sale: completedSale, receipt_code, saleId, total });
+    res.json({ success: true, sale: completedSale, receipt_code: result.receipt_code, saleId: result.saleId, total });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'CREATE_SALE', err, 'No se pudo procesar la venta.');
   }
 });
 
-// Anular Venta y restituir Stock + IMEIs + Deuda
+// Anular Venta y restituir Stock + IMEIs + Deuda de forma transaccional
 app.put('/api/sales/:id/anular', async (req, res) => {
   try {
     const { id } = req.params;
@@ -545,45 +699,130 @@ app.put('/api/sales/:id/anular', async (req, res) => {
     if (!sale) return res.status(404).json({ error: 'Venta no encontrada.' });
     if (sale.status === 'anulada') return res.status(400).json({ error: 'La venta ya está anulada.' });
 
-    await db.query(`UPDATE sales SET status = 'anulada' WHERE id = ?`, [id]);
+    await db.withTransaction(async (tx) => {
+      await tx(`UPDATE sales SET status = 'anulada' WHERE id = ?`, [id]);
 
-    const itemsRes = await db.query(`SELECT product_id, quantity, product_name, imei_code FROM sale_items WHERE sale_id = ?`, [id]);
-    for (const item of itemsRes.rows) {
-      if (item.product_id) {
-        await db.query(`UPDATE products SET stock = stock + ? WHERE id = ?`, [item.quantity, item.product_id]);
+      const itemsRes = await tx(`SELECT product_id, quantity, product_name, imei_code FROM sale_items WHERE sale_id = ?`, [id]);
+      for (const item of itemsRes.rows) {
+        if (item.imei_code) {
+          await tx(`
+            UPDATE device_imeis 
+            SET status = 'disponible', sale_id = NULL, sold_at = NULL 
+            WHERE imei_code = ?
+          `, [item.imei_code]);
+        }
+        if (item.product_id) {
+          if (item.imei_code) {
+            await db.syncSerializedProductStock(item.product_id, tx);
+          } else {
+            await tx(`UPDATE products SET stock = stock + ? WHERE id = ?`, [item.quantity, item.product_id]);
+          }
+        }
       }
-      if (item.imei_code) {
-        await db.query(`
-          UPDATE device_imeis 
-          SET status = 'disponible', sale_id = NULL, sold_at = NULL 
-          WHERE imei_code = ?
-        `, [item.imei_code]);
+
+      if ((sale.payment_method === 'Crédito' || sale.payment_method === 'Fiado') && sale.customer_id) {
+        const custRes = await tx(`SELECT debt FROM customers WHERE id = ?`, [sale.customer_id]);
+        const currentDebt = parseFloat(custRes.rows[0]?.debt || 0);
+        const newDebt = Math.max(0, currentDebt - parseFloat(sale.total));
+
+        await tx(`UPDATE customers SET debt = ? WHERE id = ?`, [newDebt, sale.customer_id]);
+        await tx(`
+          INSERT INTO fiado_records (customer_id, type, amount, details, balance_after, receipt_code)
+          VALUES (?, 'ANULACION', ?, ?, ?, ?)
+        `, [sale.customer_id, parseFloat(sale.total), `Anulación venta #${sale.receipt_code}`, newDebt, sale.receipt_code]);
       }
-    }
-
-    if ((sale.payment_method === 'Crédito' || sale.payment_method === 'Fiado') && sale.customer_id) {
-      const custRes = await db.query(`SELECT debt FROM customers WHERE id = ?`, [sale.customer_id]);
-      const currentDebt = parseFloat(custRes.rows[0]?.debt || 0);
-      const newDebt = Math.max(0, currentDebt - parseFloat(sale.total));
-
-      await db.query(`UPDATE customers SET debt = ? WHERE id = ?`, [newDebt, sale.customer_id]);
-      await db.query(`
-        INSERT INTO fiado_records (customer_id, type, amount, details, balance_after, receipt_code)
-        VALUES (?, 'ANULACION', ?, ?, ?, ?)
-      `, [sale.customer_id, parseFloat(sale.total), `Anulación venta #${sale.receipt_code}`, newDebt, sale.receipt_code]);
-    }
+    });
 
     io.emit('sale_annulled', { saleId: id });
     io.emit('cash_updated');
     res.json({ success: true, message: `Venta #${sale.receipt_code} anulada. Stock e IMEIs restituidos con éxito.` });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'ANNUL_SALE', err, 'No se pudo anular la venta.');
   }
 });
 
 // ==========================================
-// 5. CONTROL DE CAJA Y ARQUEO Z (CON PAGOS MIXTOS Y ABONOS)
+// 5. CONTROL DE CAJA Y ARQUEO Z (CON PAGOS MIXTOS, ABONOS E HISTORIAL)
 // ==========================================
+
+// Función auxiliar para calcular totales de un turno de caja
+function calculateRegisterTotals(register, salesRows, movementsRows) {
+  let efectivoSales = 0;
+  let tarjetaSales = 0;
+  let yapeSales = 0;
+  let plinSales = 0;
+  let creditoSales = 0;
+
+  salesRows.forEach(r => {
+    const tot = parseFloat(r.total || 0);
+    if (r.payment_method === 'Mixto' && r.payment_details) {
+      const det = parsePaymentDetails(r.payment_details, 'cash_register_calc');
+      if (det) {
+        efectivoSales += parseFloat(det.efectivo || 0);
+        yapeSales += parseFloat(det.yape || 0);
+        plinSales += parseFloat(det.plin || 0);
+        tarjetaSales += parseFloat(det.tarjeta || 0);
+      } else {
+        efectivoSales += tot;
+      }
+    } else if (r.payment_method === 'Efectivo') {
+      efectivoSales += tot;
+    } else if (r.payment_method === 'Tarjeta') {
+      tarjetaSales += tot;
+    } else if (r.payment_method === 'Yape') {
+      yapeSales += tot;
+    } else if (r.payment_method === 'Plin') {
+      plinSales += tot;
+    } else if (r.payment_method === 'Yape/Plin') {
+      yapeSales += tot;
+    } else if (r.payment_method === 'Crédito' || r.payment_method === 'Fiado') {
+      creditoSales += tot;
+    }
+  });
+
+  let ingresos = 0;
+  let retiros = 0;
+  let abonosEfectivo = 0;
+  let abonosDigital = 0;
+
+  movementsRows.forEach(m => {
+    const a = parseFloat(m.amount || 0);
+    if (m.type === 'INGRESO') {
+      if (!m.payment_method || m.payment_method === 'Efectivo') {
+        ingresos += a;
+      } else {
+        abonosDigital += a;
+      }
+    } else if (m.type === 'RETIRO') {
+      retiros += a;
+    } else if (m.type === 'ABONO') {
+      if (m.payment_method === 'Efectivo') {
+        abonosEfectivo += a;
+      } else {
+        abonosDigital += a;
+      }
+    }
+  });
+
+  const initial = parseFloat(register.initial_amount || 0);
+  const expectedCash = initial + efectivoSales + abonosEfectivo + ingresos - retiros;
+  const expectedDigital = yapeSales + plinSales + tarjetaSales + abonosDigital;
+
+  return {
+    initialAmount: initial,
+    efectivoSales,
+    tarjetaSales,
+    yapeSales: yapeSales + plinSales,
+    creditoSales,
+    abonosEfectivo,
+    abonosDigital,
+    totalSales: efectivoSales + tarjetaSales + yapeSales + plinSales + creditoSales,
+    ingresos,
+    retiros,
+    expectedCash,
+    expectedDigital
+  };
+}
 
 app.get('/api/cash/status', async (req, res) => {
   try {
@@ -594,12 +833,12 @@ app.get('/api/cash/status', async (req, res) => {
       return res.json({ isOpen: false, register: null });
     }
 
-    // Obtener ventas completadas del turno actual
+    // Obtener ventas completadas del turno actual por cash_register_id (o por fecha de apertura como respaldo)
     const salesRes = await db.query(`
       SELECT payment_method, payment_details, total 
       FROM sales 
-      WHERE status = 'completada' AND created_at >= ?
-    `, [activeRegister.opened_at]);
+      WHERE status = 'completada' AND (cash_register_id = ? OR (cash_register_id IS NULL AND created_at >= ?))
+    `, [activeRegister.id, activeRegister.opened_at]);
 
     // Movimientos manuales y abonos del turno
     const movsRes = await db.query(`
@@ -608,82 +847,29 @@ app.get('/api/cash/status', async (req, res) => {
       ORDER BY id DESC
     `, [activeRegister.id]);
 
-    let efectivoSales = 0;
-    let tarjetaSales = 0;
-    let yapeSales = 0;
-    let plinSales = 0;
-    let creditoSales = 0;
-
-    salesRes.rows.forEach(r => {
-      const tot = parseFloat(r.total || 0);
-      if (r.payment_method === 'Mixto' && r.payment_details) {
-        try {
-          const det = JSON.parse(r.payment_details);
-          efectivoSales += parseFloat(det.efectivo || 0);
-          yapeSales += parseFloat(det.yape || 0);
-          plinSales += parseFloat(det.plin || 0);
-          tarjetaSales += parseFloat(det.tarjeta || 0);
-        } catch (e) {
-          efectivoSales += tot;
-        }
-      } else if (r.payment_method === 'Efectivo') {
-        efectivoSales += tot;
-      } else if (r.payment_method === 'Tarjeta') {
-        tarjetaSales += tot;
-      } else if (r.payment_method === 'Yape') {
-        yapeSales += tot;
-      } else if (r.payment_method === 'Plin') {
-        plinSales += tot;
-      } else if (r.payment_method === 'Yape/Plin') {
-        yapeSales += tot;
-      } else if (r.payment_method === 'Crédito' || r.payment_method === 'Fiado') {
-        creditoSales += tot;
-      }
-    });
-
-    let ingresos = 0;
-    let retiros = 0;
-    let abonosEfectivo = 0;
-    let abonosDigital = 0;
-
-    movsRes.rows.forEach(m => {
-      const a = parseFloat(m.amount || 0);
-      if (m.type === 'INGRESO') {
-        ingresos += a;
-      } else if (m.type === 'RETIRO') {
-        retiros += a;
-      } else if (m.type === 'ABONO') {
-        if (m.payment_method === 'Efectivo') {
-          abonosEfectivo += a;
-        } else {
-          abonosDigital += a;
-        }
-      }
-    });
-
-    const initial = parseFloat(activeRegister.initial_amount || 0);
-    const expectedCash = initial + efectivoSales + abonosEfectivo + ingresos - retiros;
-    const expectedDigital = yapeSales + plinSales + tarjetaSales + abonosDigital;
+    const totals = calculateRegisterTotals(activeRegister, salesRes.rows, movsRes.rows);
 
     res.json({
       isOpen: true,
       register: activeRegister,
-      initialAmount: initial,
-      efectivoSales,
-      tarjetaSales,
-      yapeSales: yapeSales + plinSales,
-      creditoSales,
-      abonosEfectivo,
-      abonosDigital,
-      totalSales: efectivoSales + tarjetaSales + yapeSales + plinSales + creditoSales,
-      ingresos,
-      retiros,
-      expectedCash,
-      expectedDigital,
+      ...totals,
       movements: movsRes.rows
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'GET_CASH_STATUS', err, 'Error al consultar el estado de caja.');
+  }
+});
+
+app.get('/api/cash/history', async (req, res) => {
+  try {
+    const historyRes = await db.query(`
+      SELECT * FROM cash_registers 
+      WHERE status = 'cerrada' 
+      ORDER BY id DESC LIMIT 50
+    `);
+    res.json(historyRes.rows);
+  } catch (err) {
+    sendSafeError(res, req, 'GET_CASH_HISTORY', err, 'Error al consultar el historial de cierres de caja.');
   }
 });
 
@@ -698,12 +884,12 @@ app.post('/api/cash/open', async (req, res) => {
     await db.query(`
       INSERT INTO cash_registers (user_name, initial_amount, status)
       VALUES (?, ?, 'abierta')
-    `, [user_name || 'Administrador', parseFloat(initial_amount) || 0]);
+    `, [user_name || req.user?.name || 'Administrador', parseFloat(initial_amount) || 0]);
 
     io.emit('cash_updated');
     res.json({ success: true, message: 'Caja abierta exitosamente.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'OPEN_CASH', err, 'No se pudo abrir la caja.');
   }
 });
 
@@ -717,14 +903,14 @@ app.post('/api/cash/movement', async (req, res) => {
 
     const regId = checkOpen.rows[0].id;
     await db.query(`
-      INSERT INTO cash_movements (cash_register_id, type, amount, reason, payment_method)
-      VALUES (?, ?, ?, ?, ?)
-    `, [regId, type, parseFloat(amount), reason, payment_method || 'Efectivo']);
+      INSERT INTO cash_movements (cash_register_id, type, amount, reason, payment_method, user_name)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [regId, type, parseFloat(amount), String(reason || '').trim(), payment_method || 'Efectivo', req.user?.name || 'Administrador']);
 
     io.emit('cash_updated');
     res.json({ success: true, message: `Movimiento de ${type} registrado con éxito.` });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'CASH_MOVEMENT', err, 'No se pudo registrar el movimiento de caja.');
   }
 });
 
@@ -741,38 +927,16 @@ app.post('/api/cash/close', async (req, res) => {
     const salesRes = await db.query(`
       SELECT payment_method, payment_details, total 
       FROM sales 
-      WHERE status = 'completada' AND created_at >= ?
-    `, [reg.opened_at]);
+      WHERE status = 'completada' AND (cash_register_id = ? OR (cash_register_id IS NULL AND created_at >= ?))
+    `, [reg.id, reg.opened_at]);
 
     const movsRes = await db.query(`SELECT type, amount, payment_method FROM cash_movements WHERE cash_register_id = ?`, [reg.id]);
 
-    let efectivoSales = 0;
-    salesRes.rows.forEach(r => {
-      const tot = parseFloat(r.total || 0);
-      if (r.payment_method === 'Mixto' && r.payment_details) {
-        try {
-          const det = JSON.parse(r.payment_details);
-          efectivoSales += parseFloat(det.efectivo || 0);
-        } catch (e) { efectivoSales += tot; }
-      } else if (r.payment_method === 'Efectivo') {
-        efectivoSales += tot;
-      }
-    });
-
-    let ingresos = 0;
-    let retiros = 0;
-    let abonosEfectivo = 0;
-    movsRes.rows.forEach(m => {
-      const a = parseFloat(m.amount || 0);
-      if (m.type === 'INGRESO') ingresos += a;
-      else if (m.type === 'RETIRO') retiros += a;
-      else if (m.type === 'ABONO' && m.payment_method === 'Efectivo') abonosEfectivo += a;
-    });
-
-    const initial = parseFloat(reg.initial_amount || 0);
-    const expected = initial + efectivoSales + abonosEfectivo + ingresos - retiros;
+    const totals = calculateRegisterTotals(reg, salesRes.rows, movsRes.rows);
+    const expected = totals.expectedCash;
     const finalAmt = parseFloat(final_amount) || 0;
     const difference = finalAmt - expected;
+    const closedAtIso = new Date().toISOString();
 
     await db.query(`
       UPDATE cash_registers 
@@ -785,18 +949,28 @@ app.post('/api/cash/close', async (req, res) => {
       success: true,
       message: 'Caja cerrada y Arqueo Z generado.',
       summary: {
-        initialAmount: initial,
-        efectivoSales,
-        abonosEfectivo,
-        ingresos,
-        retiros,
+        registerId: reg.id,
+        userName: reg.user_name || 'Administrador',
+        openedAt: reg.opened_at,
+        closedAt: closedAtIso,
+        initialAmount: totals.initialAmount,
+        efectivoSales: totals.efectivoSales,
+        yapeSales: totals.yapeSales,
+        tarjetaSales: totals.tarjetaSales,
+        creditoSales: totals.creditoSales,
+        abonosEfectivo: totals.abonosEfectivo,
+        abonosDigital: totals.abonosDigital,
+        totalSales: totals.totalSales,
+        ingresos: totals.ingresos,
+        retiros: totals.retiros,
         expectedAmount: expected,
         finalAmount: finalAmt,
-        difference
+        difference,
+        notes: notes || ''
       }
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'CLOSE_CASH', err, 'No se pudo cerrar la caja.');
   }
 });
 
@@ -809,18 +983,49 @@ app.get('/api/customers', async (req, res) => {
     const result = await db.query(`SELECT * FROM customers ORDER BY name ASC`);
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'GET_CUSTOMERS', err, 'Error al consultar la cartera de clientes.');
   }
 });
 
 app.post('/api/customers', async (req, res) => {
   try {
     const { doc, name, phone, address } = req.body;
-    if (!doc || !name) return res.status(400).json({ error: 'DNI/RUC y Nombre son requeridos.' });
-    await db.query(`INSERT INTO customers (doc, name, phone, address, debt) VALUES (?, ?, ?, ?, 0)`, [doc, name, phone || '', address || '']);
-    res.json({ success: true, message: 'Cliente registrado con éxito.' });
+    const cleanDoc = String(doc || '').trim();
+    const cleanName = String(name || '').trim();
+    if (!cleanDoc || !cleanName) return res.status(400).json({ error: 'DNI/RUC y Nombre son requeridos.' });
+
+    const insertRes = await db.query(
+      `INSERT INTO customers (doc, name, phone, address, debt) VALUES (?, ?, ?, ?, 0) RETURNING id`,
+      [cleanDoc, cleanName, String(phone || '').trim(), String(address || '').trim()]
+    );
+    const customerId = insertRes.lastID || (insertRes.rows && insertRes.rows[0] ? insertRes.rows[0].id : null);
+
+    res.json({
+      success: true,
+      customerId,
+      customer: { id: customerId, doc: cleanDoc, name: cleanName, phone: phone || '', address: address || '', debt: 0 },
+      message: 'Cliente registrado con éxito.'
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'CREATE_CUSTOMER', err, 'No se pudo registrar el cliente.');
+  }
+});
+
+app.put('/api/customers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { doc, name, phone, address } = req.body;
+    const cleanDoc = String(doc || '').trim();
+    const cleanName = String(name || '').trim();
+    if (!cleanDoc || !cleanName) return res.status(400).json({ error: 'DNI/RUC y Nombre son requeridos.' });
+
+    await db.query(
+      `UPDATE customers SET doc = ?, name = ?, phone = ?, address = ? WHERE id = ?`,
+      [cleanDoc, cleanName, String(phone || '').trim(), String(address || '').trim(), id]
+    );
+    res.json({ success: true, message: 'Datos del cliente actualizados correctamente.' });
+  } catch (err) {
+    sendSafeError(res, req, 'UPDATE_CUSTOMER', err, 'No se pudo actualizar el cliente.');
   }
 });
 
@@ -850,30 +1055,34 @@ app.post('/api/credits/abono', async (req, res) => {
 
     const newDebt = Math.max(0, currentDebt - abonoAmt);
 
-    // Correlativo para Recibo de Abono
-    const counterRes = await db.query(`SELECT last_number FROM counters WHERE doc_type = 'ReciboAbono'`);
-    const lastNum = counterRes.rows[0] ? parseInt(counterRes.rows[0].last_number) : 0;
-    const nextNum = lastNum + 1;
-    const receipt_code = `REC-001-${String(nextNum).padStart(6, '0')}`;
-    await db.query(`UPDATE counters SET last_number = ? WHERE doc_type = 'ReciboAbono'`, [nextNum]);
+    const receipt_code = await db.withTransaction(async (tx) => {
+      // Correlativo para Recibo de Abono
+      const counterRes = await tx(`SELECT last_number FROM counters WHERE doc_type = 'ReciboAbono'`);
+      const lastNum = counterRes.rows[0] ? parseInt(counterRes.rows[0].last_number, 10) : 0;
+      const nextNum = lastNum + 1;
+      const code = `REC-001-${String(nextNum).padStart(6, '0')}`;
+      await tx(`UPDATE counters SET last_number = ? WHERE doc_type = 'ReciboAbono'`, [nextNum]);
 
-    // Actualizar deuda del cliente
-    await db.query(`UPDATE customers SET debt = ? WHERE id = ?`, [newDebt, customer_id]);
+      // Actualizar deuda del cliente
+      await tx(`UPDATE customers SET debt = ? WHERE id = ?`, [newDebt, customer_id]);
 
-    // Registrar en historial de créditos
-    await db.query(`
-      INSERT INTO fiado_records (customer_id, type, amount, details, balance_after, receipt_code, payment_method)
-      VALUES (?, 'ABONO', ?, ?, ?, ?, ?)
-    `, [customer_id, abonoAmt, `Abono a cuenta (${method})`, newDebt, receipt_code, method]);
+      // Registrar en historial de créditos
+      await tx(`
+        INSERT INTO fiado_records (customer_id, type, amount, details, balance_after, receipt_code, payment_method)
+        VALUES (?, 'ABONO', ?, ?, ?, ?, ?)
+      `, [customer_id, abonoAmt, `Abono a cuenta (${method})`, newDebt, code, method]);
 
-    // Si hay caja abierta, registrar en movimientos de caja
-    const activeCash = await db.query(`SELECT id FROM cash_registers WHERE status = 'abierta' ORDER BY id DESC LIMIT 1`);
-    if (activeCash.rows.length > 0) {
-      await db.query(`
-        INSERT INTO cash_movements (cash_register_id, type, amount, reason, payment_method)
-        VALUES (?, 'ABONO', ?, ?, ?)
-      `, [activeCash.rows[0].id, abonoAmt, `ABONO CRÉDITO: ${customer.name} (#${receipt_code})`, method]);
-    }
+      // Si hay caja abierta, registrar en movimientos de caja
+      const activeCash = await tx(`SELECT id FROM cash_registers WHERE status = 'abierta' ORDER BY id DESC LIMIT 1`);
+      if (activeCash.rows.length > 0) {
+        await tx(`
+          INSERT INTO cash_movements (cash_register_id, type, amount, reason, payment_method, user_name)
+          VALUES (?, 'ABONO', ?, ?, ?, ?)
+        `, [activeCash.rows[0].id, abonoAmt, `ABONO CRÉDITO: ${customer.name} (#${code})`, method, req.user?.name || 'Administrador']);
+      }
+
+      return code;
+    });
 
     const abonoReceipt = {
       receipt_code,
@@ -896,7 +1105,7 @@ app.post('/api/credits/abono', async (req, res) => {
       abonoReceipt
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'REGISTER_ABONO', err, 'No se pudo procesar el abono.');
   }
 });
 
@@ -912,7 +1121,7 @@ app.get('/api/credits/:customerId', async (req, res) => {
     const result = await db.query(`SELECT * FROM fiado_records WHERE customer_id = ? ORDER BY id DESC`, [customerId]);
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'GET_CUSTOMER_CREDITS', err, 'Error al consultar el estado de cuenta del cliente.');
   }
 });
 
@@ -922,32 +1131,266 @@ app.get('/api/fiados/:customerId', (req, res, next) => {
 });
 
 // ==========================================
-// 7. DASHBOARD
+// 7. SERVICIO TÉCNICO / TALLER DE REPARACIONES
+// ==========================================
+
+app.get('/api/repairs', async (req, res) => {
+  try {
+    const result = await db.query(`SELECT * FROM repair_orders ORDER BY id DESC LIMIT 200`);
+    res.json(result.rows);
+  } catch (err) {
+    sendSafeError(res, req, 'GET_REPAIRS', err, 'Error al consultar las órdenes de servicio técnico.');
+  }
+});
+
+app.post('/api/repairs', async (req, res) => {
+  try {
+    const {
+      customer_id,
+      customer_name,
+      customer_phone,
+      device_brand,
+      device_model,
+      imei_or_serial,
+      unlock_pattern,
+      issue_description,
+      diagnosis,
+      estimated_cost,
+      advance_payment,
+      payment_method,
+      notes
+    } = req.body;
+
+    const cleanCustomerName = String(customer_name || '').trim();
+    const cleanBrand = String(device_brand || '').trim();
+    const cleanModel = String(device_model || '').trim();
+    const cleanIssue = String(issue_description || '').trim();
+
+    if (!cleanCustomerName || !cleanBrand || !cleanModel || !cleanIssue) {
+      return res.status(400).json({ error: 'Cliente, Marca, Modelo y Falla reportada son obligatorios.' });
+    }
+
+    const estCost = Math.max(0, parseFloat(estimated_cost) || 0);
+    const advPay = Math.max(0, parseFloat(advance_payment) || 0);
+    const method = payment_method || 'Efectivo';
+
+    const createdOrder = await db.withTransaction(async (tx) => {
+      const counterRes = await tx(`SELECT last_number FROM counters WHERE doc_type = 'OrdenServicio'`);
+      const lastNum = counterRes.rows[0] ? parseInt(counterRes.rows[0].last_number, 10) : 0;
+      const nextNum = lastNum + 1;
+      const order_code = `OS-001-${String(nextNum).padStart(6, '0')}`;
+      await tx(`UPDATE counters SET last_number = ? WHERE doc_type = 'OrdenServicio'`, [nextNum]);
+
+      const insRes = await tx(`
+        INSERT INTO repair_orders (
+          order_code, customer_id, customer_name, customer_phone,
+          device_brand, device_model, imei_or_serial, unlock_pattern,
+          issue_description, diagnosis, estimated_cost, advance_payment,
+          payment_method, status, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Recibido', ?)
+        RETURNING id
+      `, [
+        order_code,
+        customer_id || null,
+        cleanCustomerName,
+        String(customer_phone || '').trim(),
+        cleanBrand,
+        cleanModel,
+        String(imei_or_serial || '').trim(),
+        String(unlock_pattern || '').trim(),
+        cleanIssue,
+        String(diagnosis || '').trim(),
+        estCost,
+        advPay,
+        method,
+        String(notes || '').trim()
+      ]);
+
+      const orderId = insRes.lastID || (insRes.rows && insRes.rows[0] ? insRes.rows[0].id : null);
+
+      // Si el cliente deja adelanto y hay caja abierta, registrar ingreso en caja
+      if (advPay > 0) {
+        const activeCash = await tx(`SELECT id FROM cash_registers WHERE status = 'abierta' ORDER BY id DESC LIMIT 1`);
+        if (activeCash.rows.length > 0) {
+          await tx(`
+            INSERT INTO cash_movements (cash_register_id, type, amount, reason, payment_method, user_name)
+            VALUES (?, 'INGRESO', ?, ?, ?, ?)
+          `, [
+            activeCash.rows[0].id,
+            advPay,
+            `ADELANTO SERVICIO TÉCNICO #${order_code} (${cleanBrand} ${cleanModel} - ${cleanCustomerName})`,
+            method,
+            req.user?.name || 'Administrador'
+          ]);
+        }
+      }
+
+      return {
+        id: orderId,
+        order_code,
+        customer_id: customer_id || null,
+        customer_name: cleanCustomerName,
+        customer_phone: String(customer_phone || '').trim(),
+        device_brand: cleanBrand,
+        device_model: cleanModel,
+        imei_or_serial: String(imei_or_serial || '').trim(),
+        unlock_pattern: String(unlock_pattern || '').trim(),
+        issue_description: cleanIssue,
+        diagnosis: String(diagnosis || '').trim(),
+        estimated_cost: estCost,
+        advance_payment: advPay,
+        payment_method: method,
+        status: 'Recibido',
+        notes: String(notes || '').trim(),
+        created_at: new Date().toISOString()
+      };
+    });
+
+    io.emit('repair_updated', createdOrder);
+    if (advPay > 0) io.emit('cash_updated');
+
+    res.json({
+      success: true,
+      message: `Orden de Servicio #${createdOrder.order_code} registrada exitosamente.`,
+      order: createdOrder
+    });
+  } catch (err) {
+    sendSafeError(res, req, 'CREATE_REPAIR_ORDER', err, 'No se pudo registrar la orden de servicio técnico.');
+  }
+});
+
+app.put('/api/repairs/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, diagnosis, estimated_cost, notes, collect_balance, payment_method } = req.body;
+
+    const currentRes = await db.query(`SELECT * FROM repair_orders WHERE id = ?`, [id]);
+    const order = currentRes.rows[0];
+    if (!order) return res.status(404).json({ error: 'Orden de servicio no encontrada.' });
+
+    const newStatus = status || order.status;
+    const newDiagnosis = diagnosis !== undefined ? String(diagnosis).trim() : order.diagnosis;
+    const newCost = estimated_cost !== undefined ? Math.max(0, parseFloat(estimated_cost) || 0) : parseFloat(order.estimated_cost || 0);
+    const newNotes = notes !== undefined ? String(notes).trim() : order.notes;
+    const currentAdvance = parseFloat(order.advance_payment || 0);
+    const pendingBalance = Math.max(0, newCost - currentAdvance);
+    const method = payment_method || 'Efectivo';
+
+    let finalAdvance = currentAdvance;
+
+    await db.withTransaction(async (tx) => {
+      if (collect_balance && pendingBalance > 0) {
+        finalAdvance = newCost;
+        const activeCash = await tx(`SELECT id FROM cash_registers WHERE status = 'abierta' ORDER BY id DESC LIMIT 1`);
+        if (activeCash.rows.length > 0) {
+          await tx(`
+            INSERT INTO cash_movements (cash_register_id, type, amount, reason, payment_method, user_name)
+            VALUES (?, 'INGRESO', ?, ?, ?, ?)
+          `, [
+            activeCash.rows[0].id,
+            pendingBalance,
+            `SALDO SERVICIO TÉCNICO #${order.order_code} (${order.device_brand} ${order.device_model} - ${order.customer_name})`,
+            method,
+            req.user?.name || 'Administrador'
+          ]);
+        }
+      }
+
+      if (newStatus === 'Entregado') {
+        await tx(`
+          UPDATE repair_orders 
+          SET status = ?, diagnosis = ?, estimated_cost = ?, advance_payment = ?, notes = ?, delivered_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `, [newStatus, newDiagnosis, newCost, finalAdvance, newNotes, id]);
+      } else {
+        await tx(`
+          UPDATE repair_orders 
+          SET status = ?, diagnosis = ?, estimated_cost = ?, advance_payment = ?, notes = ?
+          WHERE id = ?
+        `, [newStatus, newDiagnosis, newCost, finalAdvance, newNotes, id]);
+      }
+    });
+
+    io.emit('repair_updated', { id, status: newStatus });
+    if (collect_balance && pendingBalance > 0) io.emit('cash_updated');
+
+    res.json({
+      success: true,
+      message: `Orden #${order.order_code} actualizada a estado "${newStatus}".`
+    });
+  } catch (err) {
+    sendSafeError(res, req, 'UPDATE_REPAIR_ORDER', err, 'No se pudo actualizar la orden de servicio técnico.');
+  }
+});
+
+// ==========================================
+// 8. DASHBOARD (VENTAS, UTILIDAD NETA Y STOCK CRÍTICO)
 // ==========================================
 app.get('/api/dashboard', async (req, res) => {
   try {
+    // Calcular el inicio del día en hora local de Perú (UTC-5) para evitar reinicio prematuro a las 7:00 PM
+    const now = new Date();
+    const peruOffsetMs = -5 * 60 * 60 * 1000;
+    const peruDate = new Date(now.getTime() + peruOffsetMs);
+    const yyyyMmDd = peruDate.toISOString().slice(0, 10);
+    // Medianoche de Perú expresada en UTC (05:00:00Z del día en curso)
+    const startOfPeruDayUtc = `${yyyyMmDd} 05:00:00`;
+
     const salesRes = await db.query(`
-      SELECT COALESCE(SUM(total), 0) AS totalSales, COUNT(id) AS ticketsCount
-      FROM sales WHERE DATE(created_at) = CURRENT_DATE AND status = 'completada'
-    `);
+      SELECT COALESCE(SUM(total), 0) AS totalSales, COALESCE(SUM(discount), 0) AS totalDiscount, COUNT(id) AS ticketsCount
+      FROM sales 
+      WHERE created_at >= ? AND status = 'completada'
+    `, [startOfPeruDayUtc]);
+
+    // Calcular ganancia bruta de los ítems vendidos hoy
+    const profitRes = await db.query(`
+      SELECT COALESCE(SUM((si.unit_price - COALESCE(p.purchase_price, 0)) * si.quantity), 0) AS grossProfit
+      FROM sale_items si
+      INNER JOIN sales s ON si.sale_id = s.id
+      LEFT JOIN products p ON si.product_id = p.id
+      WHERE s.created_at >= ? AND s.status = 'completada'
+    `, [startOfPeruDayUtc]);
+
     const fiadosRes = await db.query(`SELECT COALESCE(SUM(debt), 0) AS totalDebt FROM customers`);
     const topRes = await db.query(`
-      SELECT product_name, SUM(quantity) as totalQty 
-      FROM sale_items 
-      GROUP BY product_name 
+      SELECT si.product_name, SUM(si.quantity) as totalQty 
+      FROM sale_items si
+      INNER JOIN sales s ON si.sale_id = s.id
+      WHERE s.status = 'completada'
+      GROUP BY si.product_name 
       ORDER BY totalQty DESC LIMIT 1
     `);
-    const lowStockRes = await db.query(`SELECT COUNT(id) as lowCount FROM products WHERE stock <= min_stock`);
+
+    const lowStockListRes = await db.query(`
+      SELECT id, code, name, category, stock, min_stock, price 
+      FROM products 
+      WHERE stock <= min_stock 
+      ORDER BY stock ASC, name ASC
+    `);
+
+    const activeRepairsRes = await db.query(`
+      SELECT COUNT(id) as activeCount 
+      FROM repair_orders 
+      WHERE status IN ('Recibido', 'En Reparación', 'Listo')
+    `);
+
+    const todaySales = parseFloat(salesRes.rows[0]?.totalsales || salesRes.rows[0]?.totalSales || 0);
+    const todayDiscount = parseFloat(salesRes.rows[0]?.totaldiscount || salesRes.rows[0]?.totalDiscount || 0);
+    const grossProfit = parseFloat(profitRes.rows[0]?.grossprofit || profitRes.rows[0]?.grossProfit || 0);
+    const todayProfit = Math.max(0, grossProfit - todayDiscount);
 
     res.json({
-      todaySales: parseFloat(salesRes.rows[0]?.totalsales || salesRes.rows[0]?.totalSales || 0),
-      todayTickets: parseInt(salesRes.rows[0]?.ticketscount || salesRes.rows[0]?.ticketsCount || 0),
+      todaySales,
+      todayTickets: parseInt(salesRes.rows[0]?.ticketscount || salesRes.rows[0]?.ticketsCount || 0, 10),
+      todayProfit,
       totalFiadosDebt: parseFloat(fiadosRes.rows[0]?.totaldebt || fiadosRes.rows[0]?.totalDebt || 0),
       topProduct: topRes.rows[0]?.product_name || 'N/A',
-      lowStockCount: parseInt(lowStockRes.rows[0]?.lowcount || lowStockRes.rows[0]?.lowCount || 0)
+      lowStockCount: lowStockListRes.rows.length,
+      lowStockProducts: lowStockListRes.rows,
+      activeRepairsCount: parseInt(activeRepairsRes.rows[0]?.activecount || activeRepairsRes.rows[0]?.activeCount || 0, 10)
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendSafeError(res, req, 'GET_DASHBOARD', err, 'Error al cargar métricas del Dashboard.');
   }
 });
 
@@ -959,3 +1402,4 @@ app.get('*', (req, res) => {
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor CELLVENTAS activo en http://localhost:${PORT}`);
 });
+

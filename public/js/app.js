@@ -7,28 +7,46 @@ let CLIENTS = [];
 let SALES = [];
 let COVERAGE = [];
 let CART = [];
+let REPAIRS = [];
+let CASH_HISTORY = [];
 let isCashRegisterOpen = false;
 let selectedPaymentMethod = 'Efectivo';
 let pendingImeiProduct = null;
 let currentCoverageFilter = 'all';
+let currentRepairFilter = 'all';
+
+let currentUser = JSON.parse(localStorage.getItem('cellventas_user') || '{"id":1,"username":"admin","name":"Mostrador Tech","role":"Administrador"}');
+let authToken = localStorage.getItem('cellventas_token') || '';
+
+// Helper para cabeceras HTTP con autorización JWT
+function getAuthHeaders(includeJson = true) {
+  const headers = {};
+  if (includeJson) headers['Content-Type'] = 'application/json';
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  return headers;
+}
 
 // Conexión WebSockets
 const socket = typeof io !== 'undefined' ? io() : null;
 if (socket) {
   socket.on('sale_completed', () => { loadDashboard(); loadSalesHistory(); loadCashStatus(); });
   socket.on('sale_annulled', () => { loadProducts(); loadDashboard(); loadSalesHistory(); loadCashStatus(); });
-  socket.on('product_updated', () => { loadProducts(); loadBrandsAndModels(); });
+  socket.on('product_updated', () => { loadProducts(); loadBrandsAndModels(); loadDashboard(); });
   socket.on('compatibility_updated', () => { loadBrandsAndModels(); loadCoverageData(); });
-  socket.on('cash_updated', () => { loadCashStatus(); });
+  socket.on('cash_updated', () => { loadCashStatus(); loadCashHistory(); });
   socket.on('abono_registered', () => { loadCustomers(); loadCashStatus(); loadDashboard(); });
+  socket.on('repair_updated', () => { loadRepairs(); loadDashboard(); });
 }
 
 // Inicialización
 async function init() {
+  updateUserSessionUI();
   await loadCashStatus();
+  await loadCashHistory();
   await loadBrandsAndModels();
   await loadProducts();
   await loadCustomers();
+  await loadRepairs();
   await loadDashboard();
   await loadCoverageData();
   await loadSalesHistory();
@@ -82,8 +100,9 @@ function switchTab(tabId) {
   if (tabId === 'inventory') renderInventoryTable();
   if (tabId === 'imeis') searchImeiTracker();
   if (tabId === 'sales-history') loadSalesHistory();
-  if (tabId === 'cash') loadCashStatus();
+  if (tabId === 'cash') { loadCashStatus(); loadCashHistory(); }
   if (tabId === 'fiados') renderFiadosTable();
+  if (tabId === 'repairs') loadRepairs();
   if (tabId === 'dashboard') loadDashboard();
 }
 
@@ -133,7 +152,34 @@ async function loadDashboard() {
     document.getElementById('dash-tickets').innerText = `${data.todayTickets || 0}`;
     document.getElementById('dash-total-fiado').innerText = `S/ ${(data.totalFiadosDebt || 0).toFixed(2)}`;
     document.getElementById('dash-top-product').innerText = data.topProduct || '--';
-  } catch (err) {}
+
+    const profitEl = document.getElementById('dash-profit');
+    if (profitEl) profitEl.innerText = `S/ ${(data.todayProfit || 0).toFixed(2)}`;
+
+    const lowStockEl = document.getElementById('dash-low-stock');
+    if (lowStockEl) lowStockEl.innerText = `${data.lowStockCount || 0}`;
+
+    const lowBody = document.getElementById('dash-low-stock-body');
+    if (lowBody) {
+      const lowList = data.lowStockProducts || [];
+      if (lowList.length === 0) {
+        lowBody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-green-600 font-bold text-xs"><i class="fa-solid fa-circle-check mr-1"></i> Todo el inventario cuenta con stock óptimo sobre el mínimo.</td></tr>`;
+      } else {
+        lowBody.innerHTML = lowList.map(p => `
+          <tr class="hover:bg-red-50/40">
+            <td class="p-3.5 font-mono font-bold text-gray-500">${p.code}</td>
+            <td class="p-3.5 font-bold text-gray-900">${p.name}</td>
+            <td class="p-3.5"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-bold">${p.category}</span></td>
+            <td class="p-3.5 text-center"><span class="bg-red-100 text-red-700 px-2.5 py-0.5 rounded font-black">${p.stock} und.</span></td>
+            <td class="p-3.5 text-center font-bold text-gray-500">${p.min_stock} und.</td>
+            <td class="p-3.5 text-right font-black text-indigo-600">S/ ${Number(p.price || 0).toFixed(2)}</td>
+          </tr>
+        `).join('');
+      }
+    }
+  } catch (err) {
+    console.error('Error cargando dashboard:', err);
+  }
 }
 
 // ==============================================================
@@ -305,7 +351,7 @@ function updateAssistantCartBar() {
   if (!bar) return;
 
   const count = CART.reduce((sum, i) => sum + i.quantity, 0);
-  const total = CART.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+  const { total } = getCartTotals();
 
   if (count > 0) {
     bar.classList.remove('hidden');
@@ -743,8 +789,21 @@ function updateCartQty(productId, delta, imei = '') {
   updateAssistantCartBar();
 }
 
+function getCartTotals() {
+  const grossTotal = CART.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+  const discountInput = document.getElementById('cart-discount');
+  const rawDiscount = parseFloat(discountInput?.value) || 0;
+  const discount = Math.min(Math.max(0, rawDiscount), grossTotal);
+  const total = Math.max(0, grossTotal - discount);
+  const subtotal = total / 1.18;
+  const tax = total - subtotal;
+  return { grossTotal, discount, total, subtotal, tax };
+}
+
 function clearCart() {
   CART = [];
+  const discountInput = document.getElementById('cart-discount');
+  if (discountInput) discountInput.value = '0.00';
   renderCart();
   updateAssistantCartBar();
 }
@@ -760,10 +819,8 @@ function renderCart() {
     return;
   }
 
-  let total = 0;
   container.innerHTML = CART.map(i => {
     const itemSub = i.product.price * i.quantity;
-    total += itemSub;
     const imeiTag = i.imei ? `<p class="text-[10px] font-mono font-bold text-yellow-800 bg-yellow-50 px-1 rounded inline-block">IMEI: ${i.imei}</p>` : '';
 
     return `
@@ -787,12 +844,12 @@ function renderCart() {
     `;
   }).join('');
 
-  const sub = total / 1.18;
-  const tax = total - sub;
-  document.getElementById('summary-subtotal').innerText = `S/ ${sub.toFixed(2)}`;
+  const { subtotal, tax, total } = getCartTotals();
+  document.getElementById('summary-subtotal').innerText = `S/ ${subtotal.toFixed(2)}`;
   document.getElementById('summary-tax').innerText = `S/ ${tax.toFixed(2)}`;
   document.getElementById('summary-total').innerText = `S/ ${total.toFixed(2)}`;
   document.getElementById('btn-pay').disabled = false;
+  updateAssistantCartBar();
 }
 
 // ==============================================================
@@ -801,8 +858,10 @@ function renderCart() {
 function populateCustomerDropdown() {
   const select = document.getElementById('modal-select-customer');
   if (select) {
+    const prevVal = select.value;
     select.innerHTML = '<option value="">Público General</option>' + 
-      CLIENTS.map(c => `<option value="${c.id}">${c.name} (${c.doc}) ${c.debt > 0 ? '- Deuda: S/ ' + c.debt.toFixed(2) : ''}</option>`).join('');
+      CLIENTS.map(c => `<option value="${c.id}">${c.name} (${c.doc}) ${c.debt > 0 ? '- Deuda: S/ ' + parseFloat(c.debt).toFixed(2) : ''}</option>`).join('');
+    if (prevVal) select.value = prevVal;
   }
 }
 
@@ -812,7 +871,7 @@ function openPaymentModal() {
     return;
   }
 
-  const total = CART.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+  const { total } = getCartTotals();
   document.getElementById('modal-pay-total').innerText = `S/ ${total.toFixed(2)}`;
   document.getElementById('tendered-amount').value = total.toFixed(2);
   
@@ -843,8 +902,8 @@ function setPaymentMethod(method) {
     cashBox.classList.add('hidden');
     mixedBox.classList.remove('hidden');
     
-    // Inicializar desglose mixto con el total en efectivo por defecto
-    const total = CART.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+    // Inicializar desglose mixto con el total dividido por defecto
+    const { total } = getCartTotals();
     document.getElementById('mix-efectivo').value = (total / 2).toFixed(2);
     document.getElementById('mix-yape').value = (total / 2).toFixed(2);
     document.getElementById('mix-tarjeta').value = '0.00';
@@ -856,14 +915,14 @@ function setPaymentMethod(method) {
 }
 
 function calculateChange() {
-  const total = CART.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+  const { total } = getCartTotals();
   const tendered = parseFloat(document.getElementById('tendered-amount').value) || 0;
   const change = Math.max(0, tendered - total);
   document.getElementById('change-amount-display').innerText = `S/ ${change.toFixed(2)}`;
 }
 
 function calculateMixedPayment() {
-  const total = CART.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+  const { total } = getCartTotals();
   const ef = parseFloat(document.getElementById('mix-efectivo').value) || 0;
   const yp = parseFloat(document.getElementById('mix-yape').value) || 0;
   const tj = parseFloat(document.getElementById('mix-tarjeta').value) || 0;
@@ -897,7 +956,7 @@ async function processFinalSale() {
     return;
   }
 
-  const total = CART.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+  const { total, discount } = getCartTotals();
   let paymentDetails = null;
   let tendered = total;
   let change = 0;
@@ -929,6 +988,7 @@ async function processFinalSale() {
     payment_details: paymentDetails,
     paid_amount: tendered,
     change_amount: change,
+    discount: discount,
     items: CART.map(i => ({
       product_id: i.product.id,
       product_name: i.product.name,
@@ -941,7 +1001,7 @@ async function processFinalSale() {
   try {
     const res = await fetch('/api/sales', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload)
     });
     const data = await res.json();
@@ -991,11 +1051,13 @@ function renderThermalTicket(sale) {
   if (sale.payment_method === 'Mixto' && sale.payment_details) {
     const d = sale.payment_details;
     const parts = [];
-    if (d.efectivo > 0) parts.push(`Efec: S/ ${d.efectivo.toFixed(2)}`);
-    if (d.yape > 0) parts.push(`Yape: S/ ${d.yape.toFixed(2)}`);
-    if (d.tarjeta > 0) parts.push(`Tarj: S/ ${d.tarjeta.toFixed(2)}`);
+    if (d.efectivo > 0) parts.push(`Efec: S/ ${parseFloat(d.efectivo).toFixed(2)}`);
+    if (d.yape > 0) parts.push(`Yape: S/ ${parseFloat(d.yape).toFixed(2)}`);
+    if (d.tarjeta > 0) parts.push(`Tarj: S/ ${parseFloat(d.tarjeta).toFixed(2)}`);
     paymentText = `Mixto (${parts.join(', ')})`;
   }
+
+  const discountVal = parseFloat(sale.discount || 0);
 
   container.innerHTML = `
     <div style="text-align: center; border-bottom: 1px dashed #666; padding-bottom: 6px; margin-bottom: 6px;">
@@ -1016,6 +1078,12 @@ function renderThermalTicket(sale) {
     </div>
 
     <div style="border-top: 1px dashed #666; padding-top: 6px; margin-top: 6px;">
+      ${discountVal > 0 ? `
+        <div style="display: flex; justify-content: space-between;">
+          <span>Descuento:</span>
+          <span>- S/ ${discountVal.toFixed(2)}</span>
+        </div>
+      ` : ''}
       <div style="display: flex; justify-content: space-between;">
         <span>Subtotal:</span>
         <span>S/ ${parseFloat(sale.subtotal).toFixed(2)}</span>
@@ -1130,7 +1198,7 @@ async function anularSale(saleId, code) {
   if (!confirm(`¿Está seguro de ANULAR la venta #${code}?\n\n- Se restituirá el stock al almacén.\n- Se liberarán los códigos IMEI correspondientes.\n- El monto se descontará del arqueo de caja actual.\n- Si fue al crédito, se descontará la deuda.`)) return;
 
   try {
-    const res = await fetch(`/api/sales/${saleId}/anular`, { method: 'PUT' });
+    const res = await fetch(`/api/sales/${saleId}/anular`, { method: 'PUT', headers: getAuthHeaders() });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al anular venta');
 
@@ -1230,7 +1298,7 @@ async function saveImeiBatch(e) {
   try {
     const res = await fetch('/api/imeis', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ product_id, imeis })
     });
     const data = await res.json();
@@ -1262,7 +1330,7 @@ async function submitFastOpenCash() {
   try {
     const res = await fetch('/api/cash/open', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ initial_amount: amount })
     });
     const data = await res.json();
@@ -1459,7 +1527,7 @@ async function openCashRegister() {
   try {
     const res = await fetch('/api/cash/open', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ initial_amount: amount })
     });
     const data = await res.json();
@@ -1483,7 +1551,7 @@ async function registerCashMovement() {
   try {
     const res = await fetch('/api/cash/movement', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ type, amount, reason, payment_method })
     });
     const data = await res.json();
@@ -1508,16 +1576,187 @@ async function closeCashRegister() {
   try {
     const res = await fetch('/api/cash/close', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ final_amount: finalAmount, notes })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error');
 
     const s = data.summary;
-    alert(`📊 Arqueo Z Generado Exitosamente:\n\n- Efectivo Esperado: S/ ${s.expectedAmount.toFixed(2)}\n- Efectivo Contado: S/ ${s.finalAmount.toFixed(2)}\n- Diferencia: S/ ${s.difference.toFixed(2)} (${s.difference === 0 ? 'CUADRE EXACTO' : (s.difference > 0 ? 'SOBRANTE' : 'FALTANTE')})`);
+    showToast('Arqueo Z Generado', `Diferencia: S/ ${s.difference.toFixed(2)}`);
     await loadCashStatus();
+    await loadCashHistory();
+
+    // Renderizar Ticket Térmico de Arqueo Z
+    renderArqueoZTicket(s);
+    document.getElementById('modal-ticket').classList.remove('hidden');
   } catch (err) { alert('❌ Error: ' + err.message); }
+}
+
+async function loadCashHistory() {
+  const panel = document.getElementById('cash-history-panel');
+  if (!panel) return;
+
+  try {
+    const res = await fetch('/api/cash/history');
+    CASH_HISTORY = await res.json();
+
+    if (!Array.isArray(CASH_HISTORY) || CASH_HISTORY.length === 0) {
+      panel.innerHTML = '';
+      return;
+    }
+
+    const rowsHtml = CASH_HISTORY.map(r => {
+      const diff = parseFloat(r.difference || 0);
+      const diffClass = Math.abs(diff) < 0.01 ? 'bg-green-100 text-green-700' : (diff > 0 ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700');
+      const diffLabel = Math.abs(diff) < 0.01 ? 'EXACTO' : (diff > 0 ? `+S/ ${diff.toFixed(2)}` : `S/ ${diff.toFixed(2)}`);
+
+      return `
+        <tr class="hover:bg-gray-50 text-xs">
+          <td class="p-3 font-mono font-bold text-gray-700">#${r.id}</td>
+          <td class="p-3 text-gray-500">${new Date(r.opened_at).toLocaleString()}</td>
+          <td class="p-3 text-gray-500">${r.closed_at ? new Date(r.closed_at).toLocaleString() : '-'}</td>
+          <td class="p-3 text-right font-bold text-gray-700">S/ ${parseFloat(r.initial_amount || 0).toFixed(2)}</td>
+          <td class="p-3 text-right font-bold text-gray-800">S/ ${parseFloat(r.expected_amount || 0).toFixed(2)}</td>
+          <td class="p-3 text-right font-black text-indigo-700">S/ ${parseFloat(r.final_amount || 0).toFixed(2)}</td>
+          <td class="p-3 text-center">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${diffClass}">${diffLabel}</span>
+          </td>
+          <td class="p-3 text-gray-500 truncate max-w-xs">${r.notes || '-'}</td>
+          <td class="p-3 text-center">
+            <button onclick="reprintArqueoZ(${r.id})" class="text-indigo-600 hover:text-indigo-800 font-bold text-xs" title="Imprimir Arqueo Z">
+              <i class="fa-solid fa-print mr-1"></i> Arqueo Z
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    panel.innerHTML = `
+      <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+          <h4 class="font-black text-xs text-gray-800 flex items-center gap-2 uppercase tracking-wider">
+            <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> Historial de Cierres de Caja (Arqueos Z Anteriores)
+          </h4>
+          <span class="text-xs font-bold text-gray-400">Últimos ${CASH_HISTORY.length} cierres</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left">
+            <thead class="bg-gray-50 text-gray-400 font-bold uppercase text-[9px] tracking-wider">
+              <tr>
+                <th class="p-3">Turno</th>
+                <th class="p-3">Apertura</th>
+                <th class="p-3">Cierre</th>
+                <th class="p-3 text-right">Inicial</th>
+                <th class="p-3 text-right">Esperado</th>
+                <th class="p-3 text-right">Contado</th>
+                <th class="p-3 text-center">Diferencia</th>
+                <th class="p-3">Notas</th>
+                <th class="p-3 text-center">Ticket</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">${rowsHtml}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    console.error('Error cargando historial de caja:', err);
+  }
+}
+
+function reprintArqueoZ(registerId) {
+  const reg = CASH_HISTORY.find(r => r.id === registerId);
+  if (!reg) return;
+  renderArqueoZTicket({
+    registerId: reg.id,
+    openedAt: reg.opened_at,
+    closedAt: reg.closed_at,
+    initialAmount: parseFloat(reg.initial_amount || 0),
+    expectedAmount: parseFloat(reg.expected_amount || 0),
+    finalAmount: parseFloat(reg.final_amount || 0),
+    difference: parseFloat(reg.difference || 0),
+    notes: reg.notes || ''
+  });
+  document.getElementById('modal-ticket').classList.remove('hidden');
+}
+
+function renderArqueoZTicket(s) {
+  const container = document.getElementById('thermal-ticket-container');
+  if (!container) return;
+
+  const diff = parseFloat(s.difference || 0);
+  const statusText = Math.abs(diff) < 0.01 ? 'CUADRE EXACTO' : (diff > 0 ? 'SOBRANTE' : 'FALTANTE');
+  const regId = s.registerId || s.register_id || '-';
+  const openedAt = s.openedAt || s.opened_at || Date.now();
+  const closedAt = s.closedAt || s.closed_at || Date.now();
+  const cashSales = s.efectivoSales !== undefined ? s.efectivoSales : s.cashSales;
+
+  container.innerHTML = `
+    <div style="text-align: center; border-bottom: 1px dashed #666; padding-bottom: 6px; margin-bottom: 6px;">
+      <div style="font-size: 14px; font-weight: bold;">CELLVENTAS</div>
+      <div>CORTE DE CAJA - ARQUEO Z</div>
+      <div style="margin-top: 4px; font-weight: bold;">TURNO #${regId}</div>
+      <div style="font-size: 10px;">Apertura: ${new Date(openedAt).toLocaleString()}</div>
+      <div style="font-size: 10px;">Cierre: ${new Date(closedAt).toLocaleString()}</div>
+    </div>
+
+    <div style="padding: 4px 0; border-bottom: 1px dashed #666;">
+      <div style="display: flex; justify-content: space-between;">
+        <span>Saldo Inicial:</span>
+        <span>S/ ${parseFloat(s.initialAmount || 0).toFixed(2)}</span>
+      </div>
+      ${cashSales !== undefined ? `
+        <div style="display: flex; justify-content: space-between;">
+          <span>Ventas Efectivo:</span>
+          <span>+ S/ ${parseFloat(cashSales || 0).toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span>Abonos Efectivo:</span>
+          <span>+ S/ ${parseFloat(s.abonosEfectivo || 0).toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span>Ingresos Manuales:</span>
+          <span>+ S/ ${parseFloat(s.ingresos ?? s.ingresosManuales ?? 0).toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span>Gastos / Retiros:</span>
+          <span>- S/ ${parseFloat(s.retiros ?? s.retirosManuales ?? 0).toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 4px; border-top: 1px dotted #999; padding-top: 2px;">
+          <span>Ventas Yape/Plin:</span>
+          <span>S/ ${parseFloat(s.yapeSales || 0).toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span>Ventas Tarjeta:</span>
+          <span>S/ ${parseFloat(s.tarjetaSales || 0).toFixed(2)}</span>
+        </div>
+      ` : ''}
+    </div>
+
+    <div style="padding: 6px 0; border-bottom: 1px dashed #666;">
+      <div style="display: flex; justify-content: space-between; font-weight: bold;">
+        <span>EFECTIVO ESPERADO:</span>
+        <span>S/ ${parseFloat(s.expectedAmount || 0).toFixed(2)}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin: 4px 0;">
+        <span>EFECTIVO CONTADO:</span>
+        <span>S/ ${parseFloat(s.finalAmount || 0).toFixed(2)}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-weight: bold;">
+        <span>DIFERENCIA (${statusText}):</span>
+        <span>S/ ${diff.toFixed(2)}</span>
+      </div>
+    </div>
+
+    ${s.notes ? `<div style="padding: 4px 0; font-size: 11px;">OBS: ${s.notes}</div>` : ''}
+
+    <div style="text-align: center; margin-top: 18px; font-size: 11px;">
+      <div style="border-top: 1px solid #000; width: 80%; margin: 0 auto; padding-top: 4px;">
+        Firma Responsable de Caja
+      </div>
+    </div>
+  `;
 }
 
 // ==============================================================
@@ -1557,14 +1796,62 @@ function toggleSerializedCheckbox() {
   }
 }
 
-function openProductModal() { 
-  document.getElementById('modal-product').classList.remove('hidden'); 
-  toggleSerializedCheckbox();
+function openProductModal(productId = null) {
+  const idInput = document.getElementById('prod-id');
+  const titleEl = document.getElementById('modal-product-title');
+  const codeInput = document.getElementById('prod-code');
+  const nameInput = document.getElementById('prod-name');
+  const catInput = document.getElementById('prod-category');
+  const purchaseInput = document.getElementById('prod-purchase');
+  const priceInput = document.getElementById('prod-price');
+  const stockInput = document.getElementById('prod-stock');
+  const minStockInput = document.getElementById('prod-min-stock');
+  const serializedInput = document.getElementById('prod-serialized');
+
+  document.querySelectorAll('input[name="compat_models"]').forEach(cb => { cb.checked = false; });
+
+  if (productId) {
+    const p = PRODUCTS.find(prod => prod.id === productId);
+    if (!p) return;
+
+    if (idInput) idInput.value = p.id;
+    if (titleEl) titleEl.innerText = `Editar Producto (#${p.code})`;
+    codeInput.value = p.code || '';
+    nameInput.value = p.name || '';
+    catInput.value = p.category || 'Cases / Fundas';
+    purchaseInput.value = parseFloat(p.purchase_price || 0).toFixed(2);
+    priceInput.value = parseFloat(p.price || 0).toFixed(2);
+    stockInput.value = p.stock || 0;
+    if (minStockInput) minStockInput.value = p.min_stock || 5;
+
+    toggleSerializedCheckbox();
+    if (serializedInput) serializedInput.checked = p.is_serialized === 1;
+
+    const compatIds = (p.compatible_models || []).map(m => Number(m.id));
+    document.querySelectorAll('input[name="compat_models"]').forEach(cb => {
+      if (compatIds.includes(Number(cb.value))) cb.checked = true;
+    });
+  } else {
+    if (idInput) idInput.value = '';
+    if (titleEl) titleEl.innerText = 'Registrar Producto o Accesorio';
+    codeInput.value = '';
+    nameInput.value = '';
+    catInput.value = 'Cases / Fundas';
+    purchaseInput.value = '0.00';
+    priceInput.value = '';
+    stockInput.value = '10';
+    if (minStockInput) minStockInput.value = '5';
+    toggleSerializedCheckbox();
+  }
+
+  document.getElementById('modal-product').classList.remove('hidden');
 }
+
 function closeProductModal() { document.getElementById('modal-product').classList.add('hidden'); }
 
 async function saveProduct(e) {
   e.preventDefault();
+  const prodId = document.getElementById('prod-id')?.value;
   const selectedModelIds = Array.from(document.querySelectorAll('input[name="compat_models"]:checked')).map(cb => parseInt(cb.value));
 
   const payload = {
@@ -1574,21 +1861,26 @@ async function saveProduct(e) {
     purchase_price: parseFloat(document.getElementById('prod-purchase').value) || 0,
     price: parseFloat(document.getElementById('prod-price').value),
     stock: parseInt(document.getElementById('prod-stock').value) || 0,
+    min_stock: parseInt(document.getElementById('prod-min-stock')?.value) || 5,
     is_serialized: document.getElementById('prod-serialized')?.checked ? 1 : 0,
     model_ids: selectedModelIds
   };
 
   try {
-    const res = await fetch('/api/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const url = prodId ? `/api/products/${prodId}` : '/api/products';
+    const method = prodId ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error('Error al guardar producto');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al guardar producto');
     closeProductModal();
     await loadProducts();
     await loadCoverageData();
-    showToast('Producto Guardado', 'Producto y matriz de compatibilidad registrados.');
+    await loadDashboard();
+    showToast(prodId ? 'Producto Actualizado' : 'Producto Guardado', `${payload.name} guardado correctamente.`);
   } catch (err) { alert('❌ Error: ' + err.message); }
 }
 
@@ -1605,6 +1897,7 @@ function renderInventoryTable() {
 
   tbody.innerHTML = filtered.map(p => {
     const modelsStr = (p.compatible_models || []).map(m => m.model_name).join(', ') || 'Universal';
+    const minStock = p.min_stock || 5;
     return `
       <tr class="hover:bg-gray-50">
         <td class="p-4 font-mono font-bold text-gray-500 text-xs">${p.code}</td>
@@ -1614,12 +1907,15 @@ function renderInventoryTable() {
         <td class="p-4 text-right font-bold text-gray-500 text-xs">S/ ${(p.purchase_price || 0).toFixed(2)}</td>
         <td class="p-4 text-right font-black text-gray-900 text-xs">S/ ${p.price.toFixed(2)}</td>
         <td class="p-4 text-center">
-          <span class="${p.stock < 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'} px-2.5 py-0.5 rounded font-black text-xs">
+          <span class="${p.stock <= minStock ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'} px-2.5 py-0.5 rounded font-black text-xs">
             ${p.stock} und.
           </span>
         </td>
         <td class="p-4 text-center">
-          <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-700 font-bold text-xs"><i class="fa-solid fa-trash"></i></button>
+          <div class="flex items-center justify-center gap-2">
+            <button onclick="openProductModal(${p.id})" class="text-indigo-600 hover:text-indigo-800 font-bold text-xs" title="Editar Producto"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-700 font-bold text-xs" title="Eliminar Producto"><i class="fa-solid fa-trash"></i></button>
+          </div>
         </td>
       </tr>
     `;
@@ -1628,7 +1924,7 @@ function renderInventoryTable() {
 
 async function deleteProduct(id) {
   if (!confirm('¿Eliminar este producto del almacén?')) return;
-  await fetch('/api/products/' + id, { method: 'DELETE' });
+  await fetch('/api/products/' + id, { method: 'DELETE', headers: getAuthHeaders() });
   await loadProducts();
   await loadCoverageData();
 }
@@ -1638,7 +1934,7 @@ function renderFiadosTable() {
   if (!tbody) return;
 
   if (CLIENTS.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-400 font-bold">No hay clientes registrados.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 font-bold">No hay clientes registrados.</td></tr>`;
     return;
   }
 
@@ -1649,13 +1945,22 @@ function renderFiadosTable() {
         <td class="p-4 font-mono font-bold text-gray-500 text-xs">${c.doc}</td>
         <td class="p-4 font-bold text-gray-800 text-xs">${c.name}</td>
         <td class="p-4 text-gray-500 text-xs">${c.phone || '-'}</td>
+        <td class="p-4 text-gray-500 text-xs">${c.address || '-'}</td>
         <td class="p-4 text-right font-black ${debt > 0 ? 'text-red-600' : 'text-gray-400'} text-xs">
           S/ ${debt.toFixed(2)}
         </td>
         <td class="p-4 text-center">
-          <button onclick="handleAbonoClick(${c.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1 rounded-xl text-xs shadow-sm">
-            <i class="fa-solid fa-hand-holding-dollar mr-1"></i> Abonar
-          </button>
+          <div class="flex items-center justify-center gap-1.5">
+            <button onclick="handleAbonoClick(${c.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2.5 py-1 rounded-xl text-xs shadow-sm" title="Registrar Abono">
+              <i class="fa-solid fa-hand-holding-dollar mr-1"></i> Abonar
+            </button>
+            <button onclick="openCustomerHistoryModal(${c.id})" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-2.5 py-1 rounded-xl text-xs" title="Ver Estado de Cuenta">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </button>
+            <button onclick="openCustomerModal(${c.id})" class="bg-gray-100 hover:bg-gray-200 text-indigo-600 font-bold px-2.5 py-1 rounded-xl text-xs" title="Editar Cliente">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+          </div>
         </td>
       </tr>
     `;
@@ -1698,7 +2003,7 @@ async function submitAbono(e) {
   try {
     const res = await fetch('/api/credits/abono', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ customer_id, amount, payment_method })
     });
     const data = await res.json();
@@ -1737,7 +2042,7 @@ function renderAbonoReceipt(r) {
 
     <div style="border-bottom: 1px dashed #666; padding-bottom: 4px; margin-bottom: 4px;">
       <div>CLIENTE: ${r.customer_name}</div>
-      <div>DOC: ${r.customer_doc}</div>
+      <div>DOC: ${r.customer_doc || '-'}</div>
       <div>MÉTODO DE PAGO: ${r.payment_method}</div>
     </div>
 
@@ -1765,21 +2070,504 @@ function renderAbonoReceipt(r) {
   `;
 }
 
-function openCustomerModal() {
-  const doc = prompt('DNI / RUC del cliente:');
-  if (!doc) return;
-  const name = prompt('Nombre completo o Razón Social:');
-  if (!name) return;
-  const phone = prompt('Teléfono (opcional):') || '';
+function openCustomerModal(customerId = null, fromPos = false) {
+  const idInput = document.getElementById('cust-id');
+  const fromPosInput = document.getElementById('cust-from-pos');
+  const titleEl = document.getElementById('modal-customer-title');
+  const docInput = document.getElementById('cust-doc');
+  const nameInput = document.getElementById('cust-name');
+  const phoneInput = document.getElementById('cust-phone');
+  const addressInput = document.getElementById('cust-address');
 
-  fetch('/api/customers', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ doc, name, phone })
-  }).then(() => {
-    loadCustomers();
-    showToast('Cliente Registrado', name);
+  if (fromPosInput) fromPosInput.value = fromPos ? '1' : '0';
+
+  if (customerId) {
+    const c = CLIENTS.find(cl => cl.id === customerId);
+    if (!c) return;
+    idInput.value = c.id;
+    titleEl.innerText = 'Editar Cliente';
+    docInput.value = c.doc || '';
+    nameInput.value = c.name || '';
+    phoneInput.value = c.phone || '';
+    addressInput.value = c.address || '';
+  } else {
+    idInput.value = '';
+    titleEl.innerText = 'Registrar Cliente';
+    docInput.value = '';
+    nameInput.value = '';
+    phoneInput.value = '';
+    addressInput.value = '';
+  }
+
+  document.getElementById('modal-customer').classList.remove('hidden');
+}
+
+function closeCustomerModal() {
+  document.getElementById('modal-customer').classList.add('hidden');
+}
+
+async function saveCustomer(e) {
+  e.preventDefault();
+  const custId = document.getElementById('cust-id').value;
+  const fromPos = document.getElementById('cust-from-pos').value === '1';
+  const payload = {
+    doc: document.getElementById('cust-doc').value.trim(),
+    name: document.getElementById('cust-name').value.trim(),
+    phone: document.getElementById('cust-phone').value.trim(),
+    address: document.getElementById('cust-address').value.trim()
+  };
+
+  try {
+    const url = custId ? `/api/customers/${custId}` : '/api/customers';
+    const method = custId ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al guardar cliente');
+
+    closeCustomerModal();
+    await loadCustomers();
+    if (fromPos && data.id) {
+      const select = document.getElementById('modal-select-customer');
+      if (select) select.value = String(data.id);
+    }
+    showToast(custId ? 'Cliente Actualizado' : 'Cliente Registrado', payload.name);
+  } catch (err) {
+    alert('❌ Error: ' + err.message);
+  }
+}
+
+let CURRENT_CUSTOMER_RECORDS = [];
+let CURRENT_HISTORY_CUSTOMER = null;
+
+async function openCustomerHistoryModal(customerId) {
+  const c = CLIENTS.find(cl => cl.id === customerId);
+  if (!c) return;
+  CURRENT_HISTORY_CUSTOMER = c;
+
+  document.getElementById('credit-history-customer-label').innerText = `${c.name} (${c.doc}) — Deuda Actual: S/ ${parseFloat(c.debt || 0).toFixed(2)}`;
+  const tbody = document.getElementById('credit-history-table-body');
+  tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400 font-bold">Cargando historial...</td></tr>`;
+  document.getElementById('modal-customer-history').classList.remove('hidden');
+
+  try {
+    const res = await fetch(`/api/credits/${customerId}`);
+    CURRENT_CUSTOMER_RECORDS = await res.json();
+
+    if (!Array.isArray(CURRENT_CUSTOMER_RECORDS) || CURRENT_CUSTOMER_RECORDS.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400 font-bold">No se registran movimientos de crédito o abono para este cliente.</td></tr>`;
+      return;
+    }
+
+    // Calcular saldo después de cada movimiento en orden cronológico
+    const chronological = [...CURRENT_CUSTOMER_RECORDS].reverse();
+    let runningBalance = 0;
+    const balanceMap = {};
+    chronological.forEach(r => {
+      const amt = parseFloat(r.amount || 0);
+      if (r.type === 'ABONO') {
+        runningBalance = Math.max(0, runningBalance - amt);
+      } else {
+        runningBalance += amt;
+      }
+      balanceMap[r.id] = runningBalance;
+    });
+
+    tbody.innerHTML = CURRENT_CUSTOMER_RECORDS.map(r => {
+      const isAbono = r.type === 'ABONO';
+      const balanceAfter = balanceMap[r.id] ?? parseFloat(c.debt || 0);
+      return `
+        <tr class="hover:bg-gray-50">
+          <td class="p-3 text-gray-500">${new Date(r.created_at).toLocaleString()}</td>
+          <td class="p-3">
+            <span class="px-2 py-0.5 rounded text-[10px] font-black ${isAbono ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+              ${r.type}
+            </span>
+          </td>
+          <td class="p-3 font-medium text-gray-800">${r.description || '-'}</td>
+          <td class="p-3 text-right font-black ${isAbono ? 'text-green-700' : 'text-red-600'}">
+            ${isAbono ? '-' : '+'} S/ ${parseFloat(r.amount || 0).toFixed(2)}
+          </td>
+          <td class="p-3 text-right font-bold text-gray-700">S/ ${balanceAfter.toFixed(2)}</td>
+          <td class="p-3 text-center">
+            ${isAbono ? `
+              <button onclick="reprintAbonoFromRecord(${r.id})" class="text-indigo-600 hover:text-indigo-800 font-bold text-xs" title="Reimprimir Recibo de Abono">
+                <i class="fa-solid fa-print"></i>
+              </button>
+            ` : '-'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-500 font-bold">Error al cargar estado de cuenta.</td></tr>`;
+  }
+}
+
+function closeCustomerHistoryModal() {
+  document.getElementById('modal-customer-history').classList.add('hidden');
+}
+
+function reprintAbonoFromRecord(recordId) {
+  const rec = CURRENT_CUSTOMER_RECORDS.find(r => r.id === recordId);
+  if (!rec || !CURRENT_HISTORY_CUSTOMER) return;
+  const currentDebt = parseFloat(CURRENT_HISTORY_CUSTOMER.debt || 0);
+  renderAbonoReceipt({
+    receipt_code: `ABN-HIST-${rec.id}`,
+    customer_name: CURRENT_HISTORY_CUSTOMER.name,
+    customer_doc: CURRENT_HISTORY_CUSTOMER.doc,
+    payment_method: rec.payment_method || 'Efectivo',
+    previous_debt: currentDebt + parseFloat(rec.amount || 0),
+    amount: parseFloat(rec.amount || 0),
+    new_debt: currentDebt,
+    created_at: rec.created_at
   });
+  document.getElementById('modal-ticket').classList.remove('hidden');
+}
+
+// ==============================================================
+// 10. SERVICIO TÉCNICO (ÓRDENES DE REPARACIÓN)
+// ==============================================================
+async function loadRepairs() {
+  try {
+    const res = await fetch('/api/repairs');
+    REPAIRS = await res.json();
+    renderRepairsTable();
+  } catch (err) {
+    console.error('Error cargando órdenes de servicio:', err);
+  }
+}
+
+function filterRepairs(status) {
+  currentRepairFilter = status;
+  ['all', 'Recibido', 'En Reparación', 'Listo', 'Entregado'].forEach(st => {
+    const btn = document.getElementById(`rep-filter-${st}`);
+    if (btn) {
+      btn.className = st === status
+        ? 'px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold'
+        : 'px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold';
+    }
+  });
+  renderRepairsTable();
+}
+
+function renderRepairsTable() {
+  const tbody = document.getElementById('repairs-table-body');
+  if (!tbody) return;
+
+  const query = (document.getElementById('repairs-search')?.value || '').toLowerCase().trim();
+  const filtered = REPAIRS.filter(r => {
+    if (currentRepairFilter !== 'all' && r.status !== currentRepairFilter) return false;
+    if (!query) return true;
+    return (
+      (r.order_code || '').toLowerCase().includes(query) ||
+      (r.customer_name || '').toLowerCase().includes(query) ||
+      (r.device_brand || '').toLowerCase().includes(query) ||
+      (r.device_model || '').toLowerCase().includes(query) ||
+      (r.imei_or_serial || '').toLowerCase().includes(query)
+    );
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-gray-400 font-bold">No se encontraron órdenes de servicio técnico.</td></tr>`;
+    return;
+  }
+
+  const badgeColors = {
+    'Recibido': 'bg-yellow-100 text-yellow-800',
+    'En Reparación': 'bg-blue-100 text-blue-800',
+    'Listo': 'bg-emerald-100 text-emerald-800',
+    'Entregado': 'bg-gray-200 text-gray-700',
+    'Cancelado': 'bg-red-100 text-red-700'
+  };
+
+  tbody.innerHTML = filtered.map(r => {
+    const cost = parseFloat(r.estimated_cost || 0);
+    const deposit = parseFloat(r.advance_payment || 0);
+    const saldo = Math.max(0, cost - deposit);
+    const badgeClass = badgeColors[r.status] || 'bg-gray-100 text-gray-700';
+    const issueText = r.issue_description || '';
+
+    return `
+      <tr class="hover:bg-gray-50">
+        <td class="p-4 font-mono font-bold text-indigo-700 text-xs">${r.order_code}</td>
+        <td class="p-4 text-[11px] text-gray-500">${new Date(r.created_at).toLocaleString()}</td>
+        <td class="p-4 text-xs">
+          <p class="font-bold text-gray-900">${r.customer_name}</p>
+          <p class="text-[10px] text-gray-400">${r.customer_phone || '-'}</p>
+        </td>
+        <td class="p-4 text-xs">
+          <p class="font-bold text-gray-800">${r.device_brand} ${r.device_model}</p>
+          ${r.imei_or_serial ? `<p class="text-[10px] font-mono text-gray-500">IMEI/SN: ${r.imei_or_serial}</p>` : ''}
+        </td>
+        <td class="p-4 text-xs text-gray-600 max-w-xs truncate" title="${issueText}">
+          <p class="font-medium text-gray-800 truncate">${issueText}</p>
+          ${r.diagnosis ? `<p class="text-[10px] text-indigo-600 truncate">Diag: ${r.diagnosis}</p>` : ''}
+        </td>
+        <td class="p-4 text-right text-xs">
+          <p class="font-black text-gray-900">Costo: S/ ${cost.toFixed(2)}</p>
+          <p class="text-[10px] font-bold ${saldo > 0 ? 'text-red-600' : 'text-green-700'}">Saldo: S/ ${saldo.toFixed(2)} (Adel: S/ ${deposit.toFixed(2)})</p>
+        </td>
+        <td class="p-4 text-center">
+          <span class="px-2.5 py-1 rounded-full text-[10px] font-black ${badgeClass}">${r.status}</span>
+        </td>
+        <td class="p-4 text-center">
+          <div class="flex items-center justify-center gap-2">
+            <button onclick="openRepairUpdateModal(${r.id})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-2.5 py-1 rounded-xl text-xs" title="Actualizar Estado / Cobrar">
+              <i class="fa-solid fa-pen-to-square mr-1"></i> Estado
+            </button>
+            <button onclick="reprintRepairTicket(${r.id})" class="text-gray-600 hover:text-indigo-700 font-bold text-xs" title="Imprimir Orden de Servicio">
+              <i class="fa-solid fa-print"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function openRepairModal() {
+  document.getElementById('rep-customer-name').value = '';
+  document.getElementById('rep-customer-phone').value = '';
+  document.getElementById('rep-brand').value = '';
+  document.getElementById('rep-model').value = '';
+  document.getElementById('rep-imei').value = '';
+  document.getElementById('rep-pattern').value = '';
+  document.getElementById('rep-diagnosis').value = '';
+  document.getElementById('rep-issue').value = '';
+  document.getElementById('rep-cost').value = '0.00';
+  document.getElementById('rep-advance').value = '0.00';
+  document.getElementById('rep-payment-method').value = 'Efectivo';
+  document.getElementById('modal-repair').classList.remove('hidden');
+}
+
+function closeRepairModal() {
+  document.getElementById('modal-repair').classList.add('hidden');
+}
+
+async function saveRepairOrder(e) {
+  e.preventDefault();
+  const payload = {
+    customer_name: document.getElementById('rep-customer-name').value.trim(),
+    customer_phone: document.getElementById('rep-customer-phone').value.trim(),
+    device_brand: document.getElementById('rep-brand').value.trim(),
+    device_model: document.getElementById('rep-model').value.trim(),
+    imei_or_serial: document.getElementById('rep-imei').value.trim(),
+    unlock_pattern: document.getElementById('rep-pattern').value.trim(),
+    diagnosis: document.getElementById('rep-diagnosis').value.trim(),
+    issue_description: document.getElementById('rep-issue').value.trim(),
+    estimated_cost: parseFloat(document.getElementById('rep-cost').value) || 0,
+    advance_payment: parseFloat(document.getElementById('rep-advance').value) || 0,
+    payment_method: document.getElementById('rep-payment-method').value
+  };
+
+  try {
+    const res = await fetch('/api/repairs', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al registrar orden');
+
+    const created = data.order || data.repair;
+    closeRepairModal();
+    await loadRepairs();
+    await loadCashStatus();
+    await loadDashboard();
+    showToast('Orden Registrada', `Orden ${created.order_code} generada.`);
+
+    renderRepairThermalTicket(created);
+    document.getElementById('modal-ticket').classList.remove('hidden');
+  } catch (err) {
+    alert('❌ Error: ' + err.message);
+  }
+}
+
+function openRepairUpdateModal(repairId) {
+  const r = REPAIRS.find(item => item.id === repairId);
+  if (!r) return;
+
+  const cost = parseFloat(r.estimated_cost || 0);
+  const deposit = parseFloat(r.advance_payment || 0);
+  const pending = Math.max(0, cost - deposit);
+
+  document.getElementById('upd-rep-id').value = r.id;
+  document.getElementById('upd-rep-code').innerText = `#${r.order_code}`;
+  document.getElementById('upd-rep-status').value = r.status || 'Recibido';
+  document.getElementById('upd-rep-diagnosis').value = r.diagnosis || '';
+  document.getElementById('upd-rep-cost').value = cost.toFixed(2);
+  document.getElementById('upd-rep-pending').value = `S/ ${pending.toFixed(2)}`;
+  document.getElementById('upd-rep-collect').checked = false;
+  document.getElementById('upd-rep-method').value = 'Efectivo';
+
+  const collectBox = document.getElementById('upd-rep-collect-box');
+  if (collectBox) {
+    if (pending > 0) collectBox.classList.remove('hidden');
+    else collectBox.classList.add('hidden');
+  }
+
+  document.getElementById('modal-repair-update').classList.remove('hidden');
+}
+
+function closeRepairUpdateModal() {
+  document.getElementById('modal-repair-update').classList.add('hidden');
+}
+
+async function submitRepairUpdate(e) {
+  e.preventDefault();
+  const id = document.getElementById('upd-rep-id').value;
+  const payload = {
+    status: document.getElementById('upd-rep-status').value,
+    diagnosis: document.getElementById('upd-rep-diagnosis').value.trim(),
+    estimated_cost: parseFloat(document.getElementById('upd-rep-cost').value) || 0,
+    collect_balance: document.getElementById('upd-rep-collect').checked,
+    payment_method: document.getElementById('upd-rep-method').value
+  };
+
+  try {
+    const res = await fetch(`/api/repairs/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al actualizar orden');
+
+    closeRepairUpdateModal();
+    await loadRepairs();
+    await loadCashStatus();
+    await loadDashboard();
+    showToast('Orden Actualizada', data.message || `Estado actualizado a ${payload.status}`);
+  } catch (err) {
+    alert('❌ Error: ' + err.message);
+  }
+}
+
+function reprintRepairTicket(repairId) {
+  const r = REPAIRS.find(item => item.id === repairId);
+  if (!r) return;
+  renderRepairThermalTicket(r);
+  document.getElementById('modal-ticket').classList.remove('hidden');
+}
+
+function renderRepairThermalTicket(r) {
+  const container = document.getElementById('thermal-ticket-container');
+  if (!container) return;
+
+  const cost = parseFloat(r.estimated_cost || 0);
+  const deposit = parseFloat(r.advance_payment || 0);
+  const pending = Math.max(0, cost - deposit);
+
+  container.innerHTML = `
+    <div style="text-align: center; border-bottom: 1px dashed #666; padding-bottom: 6px; margin-bottom: 6px;">
+      <div style="font-size: 14px; font-weight: bold;">CELLVENTAS</div>
+      <div>ORDEN DE SERVICIO TÉCNICO</div>
+      <div style="margin-top: 4px; font-weight: bold; font-size: 13px;">${r.order_code}</div>
+      <div style="font-size: 10px;">Fecha: ${new Date(r.created_at || Date.now()).toLocaleString()}</div>
+      <div style="font-size: 11px; font-weight: bold; margin-top: 2px;">ESTADO: ${(r.status || 'Recibido').toUpperCase()}</div>
+    </div>
+
+    <div style="border-bottom: 1px dashed #666; padding-bottom: 4px; margin-bottom: 4px;">
+      <div><strong>CLIENTE:</strong> ${r.customer_name}</div>
+      <div><strong>TELÉFONO:</strong> ${r.customer_phone || '-'}</div>
+    </div>
+
+    <div style="border-bottom: 1px dashed #666; padding-bottom: 4px; margin-bottom: 4px;">
+      <div><strong>EQUIPO:</strong> ${r.device_brand} ${r.device_model}</div>
+      ${r.imei_or_serial ? `<div><strong>IMEI/SERIE:</strong> ${r.imei_or_serial}</div>` : ''}
+      ${r.unlock_pattern ? `<div><strong>CLAVE/PATRÓN:</strong> ${r.unlock_pattern}</div>` : ''}
+      <div style="margin-top: 3px;"><strong>FALLA REPORTADA:</strong> ${r.issue_description || ''}</div>
+      ${r.diagnosis ? `<div style="margin-top: 3px;"><strong>DIAGNÓSTICO:</strong> ${r.diagnosis}</div>` : ''}
+    </div>
+
+    <div style="padding: 4px 0; border-bottom: 1px dashed #666;">
+      <div style="display: flex; justify-content: space-between;">
+        <span>Costo Estimado:</span>
+        <span>S/ ${cost.toFixed(2)}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span>Adelanto / Abonado:</span>
+        <span>S/ ${deposit.toFixed(2)}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-top: 3px;">
+        <span>SALDO PENDIENTE:</span>
+        <span>S/ ${pending.toFixed(2)}</span>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 10px; font-size: 10px;">
+      <div>Conserve este ticket para recoger su equipo.</div>
+      <div>Pasados 30 días de notificado, la tienda no se responsabiliza por equipos abandonados.</div>
+      <div style="margin-top: 24px; border-top: 1px solid #000; width: 80%; margin-left: auto; margin-right: auto; padding-top: 4px;">
+        Firma Conformidad Cliente
+      </div>
+    </div>
+  `;
+}
+
+// ==============================================================
+// 11. AUTENTICACIÓN Y CAMBIO DE ROL DE USUARIO
+// ==============================================================
+function updateUserSessionUI() {
+  const nameEl = document.getElementById('sidebar-user-name');
+  const roleEl = document.getElementById('sidebar-user-role');
+  const avatarEl = document.getElementById('sidebar-user-avatar');
+  const profitCard = document.getElementById('dash-profit-card');
+
+  if (nameEl) nameEl.innerText = currentUser.name || 'Usuario';
+  if (roleEl) roleEl.innerText = (currentUser.role || 'admin').toUpperCase();
+  if (avatarEl) avatarEl.innerText = (currentUser.name || 'A').charAt(0).toUpperCase();
+
+  // Ocultar utilidad bruta si el rol activo es vendedor
+  if (profitCard) {
+    if (currentUser.role === 'vendedor') {
+      profitCard.classList.add('hidden');
+    } else {
+      profitCard.classList.remove('hidden');
+    }
+  }
+}
+
+function openLoginModal() {
+  document.getElementById('login-username').value = currentUser.username || 'admin';
+  document.getElementById('login-password').value = '';
+  document.getElementById('modal-login').classList.remove('hidden');
+}
+
+function closeLoginModal() {
+  document.getElementById('modal-login').classList.add('hidden');
+}
+
+async function submitLogin(e) {
+  e.preventDefault();
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Credenciales incorrectas');
+
+    authToken = data.token;
+    currentUser = data.user;
+    localStorage.setItem('cellventas_token', authToken);
+    localStorage.setItem('cellventas_user', JSON.stringify(currentUser));
+
+    updateUserSessionUI();
+    closeLoginModal();
+    showToast('Sesión Iniciada', `Bienvenido, ${currentUser.name} (${currentUser.role.toUpperCase()})`);
+  } catch (err) {
+    alert('❌ ' + err.message);
+  }
 }
 
 window.onload = init;
+

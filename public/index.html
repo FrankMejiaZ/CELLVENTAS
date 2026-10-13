@@ -148,7 +148,12 @@
         <i class="fa-solid fa-hand-holding-dollar w-5 text-base"></i> CRM & Créditos
       </button>
 
-      <!-- 9. DASHBOARD -->
+      <!-- 9. SERVICIO TÉCNICO / TALLER -->
+      <button onclick="switchTab('repairs')" id="btn-tab-repairs" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-bold transition-all">
+        <i class="fa-solid fa-screwdriver-wrench w-5 text-base"></i> Servicio Técnico
+      </button>
+
+      <!-- 10. DASHBOARD -->
       <button onclick="switchTab('dashboard')" id="btn-tab-dashboard" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-bold transition-all">
         <i class="fa-solid fa-chart-pie w-5 text-base"></i> Dashboard
       </button>
@@ -156,18 +161,24 @@
 
     <!-- PIE USUARIO & STATUS CAJA -->
     <div class="p-4 border-t border-gray-800 bg-gray-900 shrink-0 space-y-2">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div id="sidebar-user-avatar" class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md shrink-0">
             CV
           </div>
-          <div>
-            <p class="text-xs font-bold text-white leading-tight">Mostrador Tech</p>
-            <p id="sidebar-cash-indicator" class="text-[10px] text-gray-400 font-bold flex items-center gap-1">
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <p id="sidebar-user-name" class="text-xs font-bold text-white leading-tight truncate">Mostrador Tech</p>
+              <span id="sidebar-user-role" class="text-[9px] bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 px-1.5 py-0.2 rounded font-black uppercase">Admin</span>
+            </div>
+            <p id="sidebar-cash-indicator" class="text-[10px] text-gray-400 font-bold flex items-center gap-1 mt-0.5">
               <span class="w-2 h-2 rounded-full bg-gray-500 inline-block"></span> Verificando caja...
             </p>
           </div>
         </div>
+        <button onclick="openLoginModal()" title="Cambiar Usuario / Rol" class="p-2 rounded-xl bg-gray-800 hover:bg-indigo-600 text-gray-300 hover:text-white text-xs transition-all shrink-0">
+          <i class="fa-solid fa-user-shield"></i>
+        </button>
       </div>
     </div>
   </aside>
@@ -313,7 +324,11 @@
         <div id="cart-items" class="flex-1 overflow-y-auto custom-scrollbar p-4 divide-y divide-gray-100"></div>
         
         <div class="p-4 border-t border-gray-200 bg-gray-50 flex flex-col gap-3 shrink-0">
-          <div class="space-y-1 text-xs font-bold text-gray-500">
+          <div class="space-y-1.5 text-xs font-bold text-gray-500">
+            <div class="flex justify-between items-center">
+              <span>Descuento Combo (S/):</span>
+              <input type="number" step="0.50" min="0" id="cart-discount" value="0.00" oninput="renderCart()" class="w-24 p-1 border border-gray-300 rounded-lg text-right font-black text-xs text-red-600 bg-white outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
             <div class="flex justify-between"><span>Subtotal:</span><span id="summary-subtotal" class="text-gray-800">S/ 0.00</span></div>
             <div class="flex justify-between"><span>IGV (18%):</span><span id="summary-tax" class="text-gray-800">S/ 0.00</span></div>
             <div class="flex justify-between text-base font-black text-gray-900 pt-2 border-t border-gray-200">
@@ -377,7 +392,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="coverage-grid"></div>
         </div>
 
-        <div id="subtab-catalog" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6" id="compatibility-matrix-container"></div>
+        <div id="subtab-catalog" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6"></div>
       </div>
     </section>
 
@@ -511,16 +526,17 @@
             <h2 class="text-2xl font-black text-gray-800 flex items-center gap-2">
               <i class="fa-solid fa-vault text-indigo-600"></i> Control de Caja & Arqueo Z
             </h2>
-            <p class="text-xs text-gray-500 font-medium">Apertura de turno, movimientos de gastos/ingresos y arqueo contable multicanal.</p>
+            <p class="text-xs text-gray-500 font-medium">Apertura de turno, movimientos de gastos/ingresos, impresión térmica de Arqueo Z e historial de cierres.</p>
           </div>
         </div>
 
         <div id="cash-status-panel"></div>
+        <div id="cash-history-panel" class="space-y-3"></div>
       </div>
     </section>
 
     <!-- ============================================================== -->
-    <!-- 8. CRM & CRÉDITOS (CON ABONOS Y RECIBOS) -->
+    <!-- 8. CRM & CRÉDITOS (CON ABONOS, EDICIÓN Y ESTADO DE CUENTA) -->
     <!-- ============================================================== -->
     <section id="view-fiados" class="view-section hidden p-6 overflow-y-auto w-full h-full">
       <div class="max-w-7xl mx-auto space-y-4 w-full">
@@ -529,7 +545,7 @@
             <h2 class="text-2xl font-black text-gray-800 flex items-center gap-2">
               <i class="fa-solid fa-hand-holding-dollar text-indigo-600"></i> CRM & Créditos a Clientes
             </h2>
-            <p class="text-xs text-gray-500 font-medium">Registro de clientes, deudas por crédito y emisión de recibos de abono.</p>
+            <p class="text-xs text-gray-500 font-medium">Registro y edición de clientes, estado de cuenta histórico, deudas por crédito y emisión de recibos de abono.</p>
           </div>
           <button onclick="openCustomerModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center gap-2">
             <i class="fa-solid fa-user-plus"></i> Registrar Cliente
@@ -542,6 +558,7 @@
                 <th class="p-4">DNI / RUC</th>
                 <th class="p-4">Cliente / Razón Social</th>
                 <th class="p-4">Teléfono</th>
+                <th class="p-4">Dirección</th>
                 <th class="p-4 text-right">Deuda Pendiente</th>
                 <th class="p-4 text-center">Acciones</th>
               </tr>
@@ -553,41 +570,132 @@
     </section>
 
     <!-- ============================================================== -->
-    <!-- 9. DASHBOARD -->
+    <!-- 9. SERVICIO TÉCNICO / TALLER DE REPARACIONES -->
+    <!-- ============================================================== -->
+    <section id="view-repairs" class="view-section hidden p-6 overflow-y-auto w-full h-full">
+      <div class="max-w-7xl mx-auto space-y-4 w-full pb-10">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h2 class="text-2xl font-black text-gray-800 flex items-center gap-2">
+              <i class="fa-solid fa-screwdriver-wrench text-indigo-600"></i> Servicio Técnico & Taller de Reparaciones
+            </h2>
+            <p class="text-xs text-gray-500 font-medium">Recepción de equipos, diagnóstico, seguimiento de estado, cobro de adelantos/saldos y ticket térmico de orden.</p>
+          </div>
+          <button onclick="openRepairModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i> Nueva Orden de Servicio
+          </button>
+        </div>
+
+        <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row justify-between gap-3 items-center">
+            <div class="flex flex-wrap gap-1.5 items-center">
+              <button onclick="filterRepairs('all')" id="rep-filter-all" class="px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold">Todos</button>
+              <button onclick="filterRepairs('Recibido')" id="rep-filter-Recibido" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold">Recibidos</button>
+              <button onclick="filterRepairs('En Reparación')" id="rep-filter-En Reparación" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold">En Reparación</button>
+              <button onclick="filterRepairs('Listo')" id="rep-filter-Listo" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold">Listos p/ Entrega</button>
+              <button onclick="filterRepairs('Entregado')" id="rep-filter-Entregado" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold">Entregados</button>
+            </div>
+            <div class="relative w-full md:w-72">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-xs"></i>
+              <input type="text" id="repairs-search" oninput="renderRepairsTable()" placeholder="Buscar por orden, cliente, equipo o IMEI..." class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-gray-600">
+              <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
+                <tr>
+                  <th class="p-4">Orden</th>
+                  <th class="p-4">Ingreso</th>
+                  <th class="p-4">Cliente / Tel.</th>
+                  <th class="p-4">Equipo / IMEI</th>
+                  <th class="p-4">Falla / Diagnóstico</th>
+                  <th class="p-4 text-right">Costo / Saldo</th>
+                  <th class="p-4 text-center">Estado</th>
+                  <th class="p-4 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="repairs-table-body" class="divide-y divide-gray-100 font-medium"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- 10. DASHBOARD -->
     <!-- ============================================================== -->
     <section id="view-dashboard" class="view-section hidden p-6 overflow-y-auto w-full h-full">
-      <div class="max-w-7xl mx-auto space-y-6 w-full">
+      <div class="max-w-7xl mx-auto space-y-6 w-full pb-10">
         <h2 class="text-2xl font-black text-gray-800 flex items-center gap-2">
           <i class="fa-solid fa-chart-pie text-indigo-600"></i> Métricas del Negocio CELLVENTAS
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl"><i class="fa-solid fa-sack-dollar"></i></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-sack-dollar"></i></div>
             <div>
               <p class="text-[10px] font-bold text-gray-400 uppercase">Ventas de Hoy</p>
-              <p class="text-xl font-black text-gray-900" id="dash-sales">S/ 0.00</p>
+              <p class="text-lg font-black text-gray-900" id="dash-sales">S/ 0.00</p>
             </div>
           </div>
-          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center text-xl"><i class="fa-solid fa-receipt"></i></div>
+          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-3.5" id="dash-profit-card">
+            <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-chart-line"></i></div>
+            <div>
+              <p class="text-[10px] font-bold text-gray-400 uppercase">Ganancia Neta Hoy</p>
+              <p class="text-lg font-black text-emerald-600" id="dash-profit">S/ 0.00</p>
+            </div>
+          </div>
+          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-receipt"></i></div>
             <div>
               <p class="text-[10px] font-bold text-gray-400 uppercase">Tickets Emitidos</p>
-              <p class="text-xl font-black text-gray-900" id="dash-tickets">0</p>
+              <p class="text-lg font-black text-gray-900" id="dash-tickets">0</p>
             </div>
           </div>
-          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-yellow-100 text-yellow-800 flex items-center justify-center text-xl"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-2xl bg-yellow-100 text-yellow-800 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-hand-holding-dollar"></i></div>
             <div>
               <p class="text-[10px] font-bold text-gray-400 uppercase">Créditos Pendientes</p>
-              <p class="text-xl font-black text-yellow-600" id="dash-total-fiado">S/ 0.00</p>
+              <p class="text-lg font-black text-yellow-600" id="dash-total-fiado">S/ 0.00</p>
             </div>
           </div>
-          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl"><i class="fa-solid fa-star"></i></div>
+          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></div>
             <div>
-              <p class="text-[10px] font-bold text-gray-400 uppercase">Accesorio Top</p>
-              <p class="text-sm font-black text-gray-900 truncate w-32" id="dash-top-product">--</p>
+              <p class="text-[10px] font-bold text-gray-400 uppercase">Stock Crítico</p>
+              <p class="text-lg font-black text-red-600" id="dash-low-stock">0</p>
             </div>
+          </div>
+          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-star"></i></div>
+            <div class="min-w-0">
+              <p class="text-[10px] font-bold text-gray-400 uppercase">Accesorio Top</p>
+              <p class="text-xs font-black text-gray-900 truncate" id="dash-top-product">--</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLA DE ALERTAS DE REPOSICIÓN DE STOCK CRÍTICO -->
+        <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <h3 class="font-black text-xs text-gray-800 flex items-center gap-2">
+              <i class="fa-solid fa-boxes-packing text-red-500"></i> Alertas de Reposición: Productos con Stock Crítico (Stock &le; Mínimo)
+            </h3>
+            <button onclick="switchTab('inventory')" class="text-xs font-bold text-indigo-600 hover:underline">Ir a Inventario <i class="fa-solid fa-arrow-right ml-1"></i></button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-gray-600">
+              <thead class="bg-gray-50 text-gray-400 font-bold uppercase text-[10px]">
+                <tr>
+                  <th class="p-3.5">SKU</th>
+                  <th class="p-3.5">Producto / Accesorio</th>
+                  <th class="p-3.5">Categoría</th>
+                  <th class="p-3.5 text-center">Stock Actual</th>
+                  <th class="p-3.5 text-center">Stock Mínimo</th>
+                  <th class="p-3.5 text-right">Precio Venta</th>
+                </tr>
+              </thead>
+              <tbody id="dash-low-stock-body" class="divide-y divide-gray-100 font-medium"></tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -661,7 +769,10 @@
             </select>
           </div>
           <div>
-            <label class="text-xs font-bold text-gray-600 block mb-1">Cliente</label>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-xs font-bold text-gray-600">Cliente</label>
+              <button type="button" onclick="openCustomerModal(null, true)" class="text-[10px] font-black text-indigo-600 hover:underline">+ Nuevo</button>
+            </div>
             <select id="modal-select-customer" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none bg-gray-50"></select>
           </div>
         </div>
@@ -731,7 +842,7 @@
     <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 space-y-4 flex flex-col max-h-[90vh]">
       <div class="flex justify-between items-center border-b border-gray-100 pb-2">
         <h3 class="font-black text-sm text-gray-800 flex items-center gap-1.5">
-          <i class="fa-solid fa-receipt text-indigo-600"></i> Comprobante de Venta
+          <i class="fa-solid fa-receipt text-indigo-600"></i> Comprobante Térmico
         </h3>
         <button onclick="closeTicketModal()" class="text-gray-400 hover:text-gray-600 text-sm font-bold"><i class="fa-solid fa-xmark"></i></button>
       </div>
@@ -849,7 +960,7 @@
         <div>
           <label class="text-xs font-bold text-gray-600 block mb-1">Códigos IMEI (1 por línea o pegados en bloque) *</label>
           <textarea id="imei-entry-codes" required rows="5" placeholder="864201061234567&#10;864201061234568&#10;864201061234569" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-mono outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
-          <p class="text-[10px] text-gray-400">El stock del producto aumentará automáticamente por cada IMEI válido ingresado.</p>
+          <p class="text-[10px] text-gray-400">El stock del producto se sincronizará automáticamente con los IMEIs disponibles.</p>
         </div>
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeImeiEntryModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
@@ -859,13 +970,14 @@
     </div>
   </div>
 
-  <!-- MODAL NUEVO PRODUCTO -->
+  <!-- MODAL NUEVO / EDITAR PRODUCTO -->
   <div id="modal-product" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl p-6 space-y-4 max-h-[90vh] flex flex-col">
       <h3 class="font-black text-lg text-gray-800 flex items-center gap-2">
-        <i class="fa-solid fa-box text-indigo-600"></i> Registrar Producto o Accesorio
+        <i class="fa-solid fa-box text-indigo-600"></i> <span id="modal-product-title">Registrar Producto o Accesorio</span>
       </h3>
       <form id="form-product" onsubmit="saveProduct(event)" class="space-y-3 overflow-y-auto custom-scrollbar p-1">
+        <input type="hidden" id="prod-id">
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-xs font-bold text-gray-600">Código / SKU *</label>
@@ -887,25 +999,29 @@
           <label class="text-xs font-bold text-gray-600">Nombre del Producto / Accesorio *</label>
           <input type="text" id="prod-name" required placeholder="Ej. Case Transparente MagSafe 3D" class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
         </div>
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-4 gap-2">
           <div>
-            <label class="text-xs font-bold text-gray-600">Precio Compra (S/)</label>
+            <label class="text-[11px] font-bold text-gray-600">P. Compra (S/)</label>
             <input type="number" step="0.50" id="prod-purchase" value="0.00" class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
           </div>
           <div>
-            <label class="text-xs font-bold text-gray-600">Precio Venta (S/) *</label>
+            <label class="text-[11px] font-bold text-gray-600">P. Venta (S/) *</label>
             <input type="number" step="0.50" id="prod-price" required class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-700">
           </div>
           <div>
-            <label class="text-xs font-bold text-gray-600">Stock Inicial *</label>
+            <label class="text-[11px] font-bold text-gray-600">Stock *</label>
             <input type="number" id="prod-stock" value="10" required class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
+          </div>
+          <div>
+            <label class="text-[11px] font-bold text-gray-600">Stock Mín.</label>
+            <input type="number" id="prod-min-stock" value="5" required class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
           </div>
         </div>
 
         <div id="is-serialized-container" class="hidden bg-yellow-50 p-2.5 rounded-xl border border-yellow-200">
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" id="prod-serialized" class="rounded text-indigo-600">
-            <span class="text-xs font-bold text-yellow-900">Requiere registro obligatorio de IMEI al vender</span>
+            <span class="text-xs font-bold text-yellow-900">Requiere registro obligatorio de IMEI al vender (el stock se calcula por sus IMEIs disponibles)</span>
           </label>
         </div>
 
@@ -961,6 +1077,235 @@
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeModelModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
           <button type="submit" class="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md">Guardar Modelo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL REGISTRAR / EDITAR CLIENTE (CRM) -->
+  <div id="modal-customer" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+        <h3 class="font-black text-base text-gray-800 flex items-center gap-2">
+          <i class="fa-solid fa-user-plus text-indigo-600"></i> <span id="modal-customer-title">Registrar Cliente</span>
+        </h3>
+        <button onclick="closeCustomerModal()" class="text-gray-400 hover:text-gray-600 font-bold"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="saveCustomer(event)" class="space-y-3">
+        <input type="hidden" id="cust-id">
+        <input type="hidden" id="cust-from-pos" value="0">
+        <div>
+          <label class="text-xs font-bold text-gray-600 block mb-1">DNI o RUC *</label>
+          <input type="text" id="cust-doc" required placeholder="Ej. 45891234 o 20601234567" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-600 block mb-1">Nombre Completo o Razón Social *</label>
+          <input type="text" id="cust-name" required placeholder="Ej. María Gómez / Inversiones Móvil SAC" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-600 block mb-1">Teléfono / WhatsApp</label>
+          <input type="text" id="cust-phone" placeholder="Ej. 987654321" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-600 block mb-1">Dirección</label>
+          <input type="text" id="cust-address" placeholder="Ej. Av. Los Incas 450 - Tienda 12" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeCustomerModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-md">Guardar Cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL ESTADO DE CUENTA / HISTORIAL DE CRÉDITOS DEL CLIENTE -->
+  <div id="modal-customer-history" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl p-6 space-y-4 max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+        <div>
+          <h3 class="font-black text-base text-gray-800 flex items-center gap-2">
+            <i class="fa-solid fa-file-invoice-dollar text-indigo-600"></i> Estado de Cuenta & Historial de Créditos
+          </h3>
+          <p class="text-xs text-gray-500 font-bold" id="credit-history-customer-label">Cliente</p>
+        </div>
+        <button onclick="closeCustomerHistoryModal()" class="text-gray-400 hover:text-gray-600 font-bold"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="overflow-y-auto custom-scrollbar flex-1 border border-gray-100 rounded-2xl">
+        <table class="w-full text-left text-xs text-gray-600">
+          <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-[10px]">
+            <tr>
+              <th class="p-3">Fecha / Hora</th>
+              <th class="p-3">Movimiento</th>
+              <th class="p-3">Comprobante / Detalle</th>
+              <th class="p-3 text-right">Monto</th>
+              <th class="p-3 text-right">Saldo Después</th>
+              <th class="p-3 text-center">Ticket</th>
+            </tr>
+          </thead>
+          <tbody id="credit-history-table-body" class="divide-y divide-gray-100 font-medium"></tbody>
+        </table>
+      </div>
+      <div class="flex justify-end pt-2">
+        <button onclick="closeCustomerHistoryModal()" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl text-xs">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL NUEVA ORDEN DE SERVICIO TÉCNICO -->
+  <div id="modal-repair" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl p-6 space-y-4 max-h-[92vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+        <h3 class="font-black text-lg text-gray-800 flex items-center gap-2">
+          <i class="fa-solid fa-screwdriver-wrench text-indigo-600"></i> Recepción de Equipo - Servicio Técnico
+        </h3>
+        <button onclick="closeRepairModal()" class="text-gray-400 hover:text-gray-600 font-bold"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="saveRepairOrder(event)" class="space-y-3 overflow-y-auto custom-scrollbar p-1">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-gray-600 block mb-1">Nombre del Cliente *</label>
+            <input type="text" id="rep-customer-name" required placeholder="Nombre completo..." class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-600 block mb-1">Teléfono / WhatsApp *</label>
+            <input type="text" id="rep-customer-phone" required placeholder="Ej. 987654321" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label class="text-xs font-bold text-gray-600 block mb-1">Marca del Equipo *</label>
+            <input type="text" id="rep-brand" required placeholder="Ej. Samsung, Apple, Xiaomi" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-600 block mb-1">Modelo *</label>
+            <input type="text" id="rep-model" required placeholder="Ej. Galaxy A54, iPhone 13" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-600 block mb-1">IMEI / Serie</label>
+            <input type="text" id="rep-imei" placeholder="Opcional..." class="w-full p-2 border border-gray-300 rounded-xl text-xs font-mono outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-gray-600 block mb-1">Clave / PIN / Patrón de Desbloqueo</label>
+            <input type="text" id="rep-pattern" placeholder="Ej. PIN 2580 / Patrón L" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-600 block mb-1">Diagnóstico / Estado Físico Inicial</label>
+            <input type="text" id="rep-diagnosis" placeholder="Ej. Tapa rayada, ingresa sin chip ni bandeja" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-600 block mb-1">Falla Reportada / Trabajo a Realizar *</label>
+          <textarea id="rep-issue" required rows="2" placeholder="Ej. Cambio de pantalla completa + mantenimiento de puerto de carga..." class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+        </div>
+        <div class="grid grid-cols-3 gap-3 bg-indigo-50/60 p-3 rounded-2xl border border-indigo-100">
+          <div>
+            <label class="text-[11px] font-bold text-indigo-900 block mb-1">Costo Total (S/) *</label>
+            <input type="number" step="0.50" id="rep-cost" required value="0.00" class="w-full p-2 border border-indigo-200 rounded-xl text-xs font-black text-indigo-900 bg-white outline-none">
+          </div>
+          <div>
+            <label class="text-[11px] font-bold text-indigo-900 block mb-1">Adelanto (S/)</label>
+            <input type="number" step="0.50" id="rep-advance" value="0.00" class="w-full p-2 border border-indigo-200 rounded-xl text-xs font-black text-green-700 bg-white outline-none">
+          </div>
+          <div>
+            <label class="text-[11px] font-bold text-indigo-900 block mb-1">Medio Adelanto</label>
+            <select id="rep-payment-method" class="w-full p-2 border border-indigo-200 rounded-xl text-xs font-bold bg-white outline-none">
+              <option value="Efectivo">Efectivo</option>
+              <option value="Yape/Plin">Yape/Plin</option>
+              <option value="Tarjeta">Tarjeta</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeRepairModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-md">
+            <i class="fa-solid fa-print mr-1"></i> Registrar e Imprimir Orden
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL GESTIONAR / ENTREGAR ORDEN DE SERVICIO TÉCNICO -->
+  <div id="modal-repair-update" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+        <h3 class="font-black text-base text-gray-800 flex items-center gap-2">
+          <i class="fa-solid fa-wrench text-indigo-600"></i> Actualizar Orden <span id="upd-rep-code" class="text-indigo-600"></span>
+        </h3>
+        <button onclick="closeRepairUpdateModal()" class="text-gray-400 hover:text-gray-600 font-bold"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="submitRepairUpdate(event)" class="space-y-3">
+        <input type="hidden" id="upd-rep-id">
+        <div>
+          <label class="text-xs font-bold text-gray-600 block mb-1">Estado de la Orden *</label>
+          <select id="upd-rep-status" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none bg-gray-50">
+            <option value="Recibido">Recibido</option>
+            <option value="En Reparación">En Reparación</option>
+            <option value="Listo">Listo para Entrega</option>
+            <option value="Entregado">Entregado al Cliente</option>
+            <option value="Cancelado">Cancelado / Sin Reparación</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-600 block mb-1">Informe Técnico / Diagnóstico</label>
+          <textarea id="upd-rep-diagnosis" rows="2" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-gray-600 block mb-1">Costo Total (S/)</label>
+            <input type="number" step="0.50" id="upd-rep-cost" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-black outline-none">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-600 block mb-1">Saldo Pendiente</label>
+            <input type="text" id="upd-rep-pending" disabled class="w-full p-2 border border-gray-200 rounded-xl text-xs font-black text-red-600 bg-gray-100">
+          </div>
+        </div>
+        <div id="upd-rep-collect-box" class="bg-green-50 p-3 rounded-2xl border border-green-200 space-y-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="upd-rep-collect" class="rounded text-green-600">
+            <span class="text-xs font-black text-green-900">Cobrar saldo pendiente e ingresar a Caja ahora</span>
+          </label>
+          <select id="upd-rep-method" class="w-full p-2 border border-green-300 rounded-xl text-xs font-bold bg-white outline-none">
+            <option value="Efectivo">Efectivo</option>
+            <option value="Yape/Plin">Yape/Plin</option>
+            <option value="Tarjeta">Tarjeta</option>
+          </select>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeRepairUpdateModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-md">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL INICIAR SESIÓN / CAMBIAR DE ROL -->
+  <div id="modal-login" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+        <h3 class="font-black text-base text-gray-800 flex items-center gap-2">
+          <i class="fa-solid fa-user-shield text-indigo-600"></i> Control de Acceso & Rol
+        </h3>
+        <button onclick="closeLoginModal()" class="text-gray-400 hover:text-gray-600 font-bold"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="submitLogin(event)" class="space-y-3">
+        <div>
+          <label class="text-xs font-bold text-gray-600 block mb-1">Usuario</label>
+          <select id="login-username" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none bg-gray-50">
+            <option value="admin">admin (Rol: Administrador)</option>
+            <option value="vendedor">vendedor (Rol: Vendedor de Mostrador)</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-600 block mb-1">Contraseña *</label>
+          <input type="password" id="login-password" required placeholder="Ingrese su contraseña..." class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          <p class="text-[10px] text-gray-400 mt-1">Credenciales iniciales: <b>admin123</b> o <b>vendedor123</b></p>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeLoginModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-md">Cambiar Sesión</button>
         </div>
       </form>
     </div>
