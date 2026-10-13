@@ -40,6 +40,7 @@ if (socket) {
 
 // Inicialización
 async function init() {
+  setupKeyboardShortcuts();
   updateUserSessionUI();
   await loadCashStatus();
   await loadCashHistory();
@@ -50,6 +51,40 @@ async function init() {
   await loadDashboard();
   await loadCoverageData();
   await loadSalesHistory();
+}
+
+// Atajos de teclado rápidos de mostrador (F1, F2, F4, ESC)
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'F1') {
+      e.preventDefault();
+      switchTab('pos');
+      setTimeout(() => document.getElementById('search-input')?.focus(), 60);
+    } else if (e.key === 'F2') {
+      e.preventDefault();
+      switchTab('assistant');
+      setTimeout(() => document.getElementById('assistant-brand-select')?.focus(), 60);
+    } else if (e.key === 'F4') {
+      e.preventDefault();
+      if (CART.length > 0) openPaymentModal();
+    } else if (e.key === 'Escape') {
+      closePaymentModal();
+      closeTicketModal();
+      closeProductModal();
+      closeCustomerModal();
+      closeCustomerHistoryModal();
+      closeRepairModal();
+      closeRepairUpdateModal();
+      closeLoginModal();
+      closeAbonoModal();
+      closeImeiSelectModal();
+      closeImeiEntryModal();
+      closeBulkCompatModal();
+      closeBrandModal();
+      closeModelModal();
+      closeRequireCashModal();
+    }
+  });
 }
 
 // Toast Flotante
@@ -65,13 +100,13 @@ function showToast(title, msg, type = 'success') {
   tMsg.innerText = msg;
 
   if (type === 'error') {
-    tIcon.className = 'w-7 h-7 rounded-xl bg-red-500 text-white flex items-center justify-center text-xs font-bold';
+    tIcon.className = 'w-7 h-7 rounded-xl bg-rose-500 text-white flex items-center justify-center text-xs font-bold';
     tIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
   } else if (type === 'warning') {
-    tIcon.className = 'w-7 h-7 rounded-xl bg-yellow-500 text-white flex items-center justify-center text-xs font-bold';
+    tIcon.className = 'w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xs font-bold';
     tIcon.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i>';
   } else {
-    tIcon.className = 'w-7 h-7 rounded-xl bg-green-500 text-white flex items-center justify-center text-xs font-bold';
+    tIcon.className = 'w-7 h-7 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xs font-bold';
     tIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
   }
 
@@ -81,17 +116,35 @@ function showToast(title, msg, type = 'success') {
   }, 3200);
 }
 
+const SECTION_TITLES = {
+  'assistant': 'Asistente de Mostrador 360°',
+  'pos': 'Punto de Venta (POS) & Carrito',
+  'repairs': 'Taller & Servicio Técnico',
+  'compatibility': 'Matriz & Auditoría de Compatibilidades',
+  'inventory': 'Almacén, Precios & Stock',
+  'imeis': 'Rastreador de Series / IMEIs',
+  'cash': 'Control de Caja & Arqueo Z',
+  'sales-history': 'Historial de Ventas & Anulaciones',
+  'fiados': 'Cuentas por Cobrar & CRM',
+  'dashboard': 'Dashboard & Reporte Ejecutivo'
+};
+
 function switchTab(tabId) {
   document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
   const target = document.getElementById('view-' + tabId);
   if (target) target.classList.remove('hidden');
 
   document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.className = 'nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-bold transition-all';
+    btn.className = 'nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-semibold text-[13px] transition-all';
   });
   const activeBtn = document.getElementById('btn-tab-' + tabId);
   if (activeBtn) {
-    activeBtn.className = 'nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-black transition-all shadow-md';
+    activeBtn.className = 'nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-bold text-[13px] transition-all shadow-md';
+  }
+
+  const topbarTitle = document.getElementById('topbar-section-title');
+  if (topbarTitle && SECTION_TITLES[tabId]) {
+    topbarTitle.innerText = SECTION_TITLES[tabId];
   }
 
   if (tabId === 'assistant') { populateAssistantBrandDropdown(); updateAssistantCartBar(); }
@@ -159,20 +212,25 @@ async function loadDashboard() {
     const lowStockEl = document.getElementById('dash-low-stock');
     if (lowStockEl) lowStockEl.innerText = `${data.lowStockCount || 0}`;
 
+    const repCountEl = document.getElementById('topbar-repairs-count');
+    if (repCountEl && data.activeRepairsCount !== undefined) {
+      repCountEl.innerText = `${data.activeRepairsCount} en Taller`;
+    }
+
     const lowBody = document.getElementById('dash-low-stock-body');
     if (lowBody) {
       const lowList = data.lowStockProducts || [];
       if (lowList.length === 0) {
-        lowBody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-green-600 font-bold text-xs"><i class="fa-solid fa-circle-check mr-1"></i> Todo el inventario cuenta con stock óptimo sobre el mínimo.</td></tr>`;
+        lowBody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-emerald-600 font-bold text-xs"><i class="fa-solid fa-circle-check mr-1"></i> Todo el inventario cuenta con stock óptimo sobre el mínimo.</td></tr>`;
       } else {
         lowBody.innerHTML = lowList.map(p => `
-          <tr class="hover:bg-red-50/40">
-            <td class="p-3.5 font-mono font-bold text-gray-500">${p.code}</td>
-            <td class="p-3.5 font-bold text-gray-900">${p.name}</td>
-            <td class="p-3.5"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-bold">${p.category}</span></td>
-            <td class="p-3.5 text-center"><span class="bg-red-100 text-red-700 px-2.5 py-0.5 rounded font-black">${p.stock} und.</span></td>
-            <td class="p-3.5 text-center font-bold text-gray-500">${p.min_stock} und.</td>
-            <td class="p-3.5 text-right font-black text-indigo-600">S/ ${Number(p.price || 0).toFixed(2)}</td>
+          <tr class="hover:bg-rose-50/40 transition-colors">
+            <td class="p-3.5 font-mono-code font-bold text-slate-500 text-xs">${p.code}</td>
+            <td class="p-3.5 font-bold text-slate-900">${p.name}</td>
+            <td class="p-3.5"><span class="bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-lg text-[11px] font-bold">${p.category}</span></td>
+            <td class="p-3.5 text-center"><span class="bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-lg font-mono-code tabular-nums font-black text-xs">${p.stock} und.</span></td>
+            <td class="p-3.5 text-center font-mono-code tabular-nums font-bold text-slate-500 text-xs">${p.min_stock} und.</td>
+            <td class="p-3.5 text-right font-mono-code tabular-nums font-black text-indigo-600">S/ ${Number(p.price || 0).toFixed(2)}</td>
           </tr>
         `).join('');
       }
@@ -212,7 +270,7 @@ async function loadAssistantModelData(customModelId = null) {
   const container = document.getElementById('assistant-results-container');
   if (!modelId) return;
 
-  container.innerHTML = `<div class="text-center py-12 text-gray-500 font-bold text-sm"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Consultando ficha de compatibilidades...</div>`;
+  container.innerHTML = `<div class="text-center py-12 text-slate-500 font-bold text-sm"><i class="fa-solid fa-spinner fa-spin mr-2 text-indigo-600"></i> Consultando ficha de compatibilidades...</div>`;
 
   try {
     const res = await fetch(`/api/compatibilities/assistant/${modelId}`);
@@ -230,32 +288,32 @@ async function loadAssistantModelData(customModelId = null) {
     const renderCard = (p) => {
       const isLow = p.stock <= 0;
       const sharedBadges = (p.shared_with && p.shared_with.length > 0) ? `
-        <div class="mt-2 p-2 bg-indigo-50 rounded-xl border border-indigo-100">
-          <p class="text-[10px] font-black text-indigo-900 leading-tight">
-            <i class="fa-solid fa-share-nodes text-indigo-600 mr-1"></i> También compatible con:
+        <div class="mt-2.5 p-2.5 bg-indigo-50/80 rounded-xl border border-indigo-100">
+          <p class="text-[10px] font-black text-indigo-900 leading-tight uppercase tracking-wide">
+            <i class="fa-solid fa-share-nodes text-indigo-600 mr-1"></i> También le calza a:
           </p>
-          <p class="text-[10px] font-medium text-indigo-700 mt-0.5 line-clamp-2">${p.shared_with.join(', ')}</p>
+          <p class="text-[11px] font-bold text-indigo-700 mt-1 line-clamp-2">${p.shared_with.join(' • ')}</p>
         </div>
       ` : '';
 
       return `
-        <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition-all flex flex-col justify-between">
           <div>
             <div class="flex justify-between items-start mb-1.5">
-              <span class="bg-gray-100 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-md">${p.category}</span>
-              <span class="text-[10px] font-mono text-gray-400">#${p.code}</span>
+              <span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-md">${p.category}</span>
+              <span class="text-[11px] font-mono-code font-semibold text-slate-400">#${p.code}</span>
             </div>
-            <h4 class="font-bold text-xs text-gray-900 line-clamp-2">${p.name}</h4>
+            <h4 class="font-bold text-[13px] text-slate-900 line-clamp-2 leading-snug">${p.name}</h4>
             ${sharedBadges}
           </div>
-          <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
+          <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
             <div>
-              <span class="text-[10px] font-bold ${isLow ? 'text-red-600' : 'text-green-700'}">
+              <span class="text-[11px] font-mono-code tabular-nums font-bold ${isLow ? 'text-rose-600' : 'text-emerald-700'}">
                 Stock: ${p.stock} und.
               </span>
-              <p class="text-base font-black text-indigo-600">S/ ${p.price.toFixed(2)}</p>
+              <p class="text-base font-mono-code tabular-nums font-black text-indigo-600">S/ ${p.price.toFixed(2)}</p>
             </div>
-            <button onclick="addToCartFromAssistant(${p.id})" ${isLow ? 'disabled' : ''} class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all">
+            <button onclick="addToCartFromAssistant(${p.id})" ${isLow ? 'disabled' : ''} class="btn-tactile px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all">
               <i class="fa-solid fa-cart-plus"></i> + Añadir
             </button>
           </div>
@@ -266,20 +324,20 @@ async function loadAssistantModelData(customModelId = null) {
     container.innerHTML = `
       <div class="bg-white p-6 rounded-3xl border border-indigo-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <span class="text-xs font-black uppercase tracking-wider text-indigo-600">${model.brand_name}</span>
-          <h3 class="text-2xl font-black text-gray-900 mt-0.5 flex items-center gap-2">
-            <i class="fa-solid fa-mobile text-indigo-600"></i> ${model.model_name}
+          <span class="text-[11px] font-black uppercase tracking-wider text-indigo-600">${model.brand_name}</span>
+          <h3 class="text-2xl font-black text-slate-900 mt-0.5 flex items-center gap-2 tracking-tight">
+            <i class="fa-solid fa-mobile-screen text-indigo-600"></i> ${model.model_name}
           </h3>
-          <p class="text-xs text-gray-400">Año de lanzamiento: ${model.release_year || 2024}</p>
+          <p class="text-xs text-slate-400 font-medium">Año de lanzamiento: <span class="font-mono-code">${model.release_year || 2024}</span></p>
         </div>
         <div class="flex gap-3">
-          <div class="px-4 py-2 bg-indigo-50 text-indigo-900 rounded-2xl border border-indigo-100 text-center">
-            <p class="text-[10px] uppercase font-bold text-gray-500">Fundas / Cases</p>
-            <p class="text-lg font-black text-indigo-700">${cases.length} opciones</p>
+          <div class="px-4 py-2.5 bg-indigo-50 text-indigo-900 rounded-2xl border border-indigo-100 text-center">
+            <p class="text-[10px] uppercase font-bold text-slate-500">Fundas / Cases</p>
+            <p class="text-lg font-mono-code tabular-nums font-black text-indigo-700">${cases.length} opciones</p>
           </div>
-          <div class="px-4 py-2 bg-green-50 text-green-900 rounded-2xl border border-green-100 text-center">
-            <p class="text-[10px] uppercase font-bold text-gray-500">Micas / Protectores</p>
-            <p class="text-lg font-black text-green-700">${micas.length} opciones</p>
+          <div class="px-4 py-2.5 bg-emerald-50 text-emerald-900 rounded-2xl border border-emerald-100 text-center">
+            <p class="text-[10px] uppercase font-bold text-slate-500">Micas / Protectores</p>
+            <p class="text-lg font-mono-code tabular-nums font-black text-emerald-700">${micas.length} opciones</p>
           </div>
         </div>
       </div>
@@ -287,23 +345,23 @@ async function loadAssistantModelData(customModelId = null) {
       <div class="space-y-3">
         <div class="flex items-center gap-2">
           <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-shield-cat"></i></div>
-          <h3 class="text-base font-black text-gray-800">1. Fundas, Cases y Protectores Antigolpe (${cases.length})</h3>
+          <h3 class="text-base font-black text-slate-800">1. Fundas, Cases y Protectores Antigolpe (${cases.length})</h3>
         </div>
         ${cases.length === 0 ? `
-          <div class="p-6 bg-red-50 border border-red-100 text-red-800 rounded-2xl text-xs font-bold flex items-center gap-2">
-            <i class="fa-solid fa-triangle-exclamation text-red-600 text-base"></i> No hay fundas ni cases registrados en stock para este modelo.
+          <div class="p-6 bg-rose-50 border border-rose-100 text-rose-800 rounded-2xl text-xs font-bold flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base"></i> No hay fundas ni cases registrados en stock para este modelo.
           </div>
         ` : `<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">${cases.map(renderCard).join('')}</div>`}
       </div>
 
       <div class="space-y-3">
         <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded-lg bg-green-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-square"></i></div>
-          <h3 class="text-base font-black text-gray-800">2. Micas de Vidrio, Cerámica, Hidrogel & Cámara (${micas.length})</h3>
+          <div class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-square"></i></div>
+          <h3 class="text-base font-black text-slate-800">2. Micas de Vidrio, Cerámica, Hidrogel & Cámara (${micas.length})</h3>
         </div>
         ${micas.length === 0 ? `
-          <div class="p-6 bg-red-50 border border-red-100 text-red-800 rounded-2xl text-xs font-bold flex items-center gap-2">
-            <i class="fa-solid fa-triangle-exclamation text-red-600 text-base"></i> Alerta: 0 micas registradas para este modelo.
+          <div class="p-6 bg-rose-50 border border-rose-100 text-rose-800 rounded-2xl text-xs font-bold flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base"></i> Alerta: 0 micas registradas para este modelo.
           </div>
         ` : `<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">${micas.map(renderCard).join('')}</div>`}
       </div>
@@ -311,8 +369,8 @@ async function loadAssistantModelData(customModelId = null) {
       ${(cargadores.length > 0 || otros.length > 0) ? `
         <div class="space-y-3">
           <div class="flex items-center gap-2">
-            <div class="w-7 h-7 rounded-lg bg-yellow-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-bolt"></i></div>
-            <h3 class="text-base font-black text-gray-800">3. Cargadores, Cables y Repuestos Compatibles (${cargadores.length + otros.length})</h3>
+            <div class="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-bolt"></i></div>
+            <h3 class="text-base font-black text-slate-800">3. Cargadores, Cables y Repuestos Compatibles (${cargadores.length + otros.length})</h3>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
             ${[...cargadores, ...otros].map(renderCard).join('')}
@@ -324,7 +382,7 @@ async function loadAssistantModelData(customModelId = null) {
     updateAssistantCartBar();
 
   } catch (err) {
-    container.innerHTML = `<div class="p-6 bg-red-50 border border-red-100 text-red-800 rounded-2xl text-xs font-bold">Error: ${err.message}</div>`;
+    container.innerHTML = `<div class="p-6 bg-rose-50 border border-rose-100 text-rose-800 rounded-2xl text-xs font-bold">Error: ${err.message}</div>`;
   }
 }
 
@@ -370,12 +428,12 @@ function switchCompatSubtab(subtab) {
     document.getElementById('subtab-coverage').classList.remove('hidden');
     document.getElementById('subtab-catalog').classList.add('hidden');
     document.getElementById('subtab-btn-coverage').className = 'font-bold text-xs pb-3 border-b-2 border-indigo-600 text-indigo-600';
-    document.getElementById('subtab-btn-catalog').className = 'font-bold text-xs pb-3 border-b-2 border-transparent text-gray-400 hover:text-gray-700';
+    document.getElementById('subtab-btn-catalog').className = 'font-bold text-xs pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-700';
     loadCoverageData();
   } else {
     document.getElementById('subtab-coverage').classList.add('hidden');
     document.getElementById('subtab-catalog').classList.remove('hidden');
-    document.getElementById('subtab-btn-coverage').className = 'font-bold text-xs pb-3 border-b-2 border-transparent text-gray-400 hover:text-gray-700';
+    document.getElementById('subtab-btn-coverage').className = 'font-bold text-xs pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-700';
     document.getElementById('subtab-btn-catalog').className = 'font-bold text-xs pb-3 border-b-2 border-indigo-600 text-indigo-600';
     renderCompatibilityMatrix();
   }
@@ -397,8 +455,8 @@ function filterCoverage(mode) {
     const btn = document.getElementById('cov-filter-' + m);
     if (btn) {
       btn.className = (m === mode) 
-        ? 'px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-bold' 
-        : 'px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-200';
+        ? 'btn-tactile px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold' 
+        : 'btn-tactile px-3 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200';
     }
   });
   renderCoverageGrid();
@@ -417,33 +475,33 @@ function renderCoverageGrid() {
   document.getElementById('cov-count-label').innerText = `${filtered.length} modelos mostrados`;
 
   if (filtered.length === 0) {
-    container.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 font-bold text-xs">No hay modelos que coincidan con el filtro.</div>`;
+    container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 font-bold text-xs">No hay modelos que coincidan con el filtro.</div>`;
     return;
   }
 
   container.innerHTML = filtered.map(m => `
-    <div class="bg-white p-5 rounded-3xl border ${m.needsMicas || m.needsCases ? 'border-yellow-200 bg-yellow-50/20' : 'border-gray-200'} shadow-sm space-y-3">
+    <div class="bg-white p-5 rounded-3xl border ${m.needsMicas || m.needsCases ? 'border-amber-200 bg-amber-50/20' : 'border-slate-200'} shadow-sm space-y-3">
       <div class="flex justify-between items-start">
         <div>
           <span class="text-[10px] font-black uppercase text-indigo-600">${m.brand_name}</span>
-          <h4 class="font-black text-sm text-gray-900">${m.model_name}</h4>
-          <p class="text-[10px] text-gray-400">Año ${m.release_year}</p>
+          <h4 class="font-black text-sm text-slate-900">${m.model_name}</h4>
+          <p class="text-[10px] font-mono-code text-slate-400">Año ${m.release_year}</p>
         </div>
-        <button onclick="switchTab('assistant'); document.getElementById('assistant-brand-select').value='${m.brand_id}'; onAssistantBrandChange(); document.getElementById('assistant-model-select').value='${m.id}'; loadAssistantModelData(${m.id});" class="text-indigo-600 hover:text-indigo-800 text-xs font-bold bg-indigo-50 px-2.5 py-1 rounded-xl">
+        <button onclick="switchTab('assistant'); document.getElementById('assistant-brand-select').value='${m.brand_id}'; onAssistantBrandChange(); document.getElementById('assistant-model-select').value='${m.id}'; loadAssistantModelData(${m.id});" class="btn-tactile text-indigo-600 hover:text-indigo-800 text-xs font-bold bg-indigo-50 px-2.5 py-1.5 rounded-xl">
           Ver 360° <i class="fa-solid fa-arrow-right ml-1"></i>
         </button>
       </div>
 
-      <div class="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
-        <div class="p-2.5 rounded-2xl ${m.needsCases ? 'bg-red-50 text-red-800 border border-red-100' : 'bg-gray-50 text-gray-700'}">
-          <p class="text-[9px] uppercase font-bold text-gray-400">Cases / Fundas</p>
-          <p class="text-xs font-black ${m.needsCases ? 'text-red-600' : 'text-gray-900'}">${m.casesStock} en stock (${m.casesCount} tipos)</p>
-          ${m.needsCases ? '<span class="text-[9px] font-bold text-red-600 uppercase">⚠️ Desabastecido</span>' : ''}
+      <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+        <div class="p-2.5 rounded-2xl ${m.needsCases ? 'bg-rose-50 text-rose-800 border border-rose-100' : 'bg-slate-50 text-slate-700'}">
+          <p class="text-[9px] uppercase font-bold text-slate-400">Cases / Fundas</p>
+          <p class="text-xs font-mono-code tabular-nums font-black ${m.needsCases ? 'text-rose-600' : 'text-slate-900'}">${m.casesStock} en stock (${m.casesCount} tipos)</p>
+          ${m.needsCases ? '<span class="text-[9px] font-bold text-rose-600 uppercase">⚠️ Desabastecido</span>' : ''}
         </div>
-        <div class="p-2.5 rounded-2xl ${m.needsMicas ? 'bg-red-50 text-red-800 border border-red-100' : 'bg-gray-50 text-gray-700'}">
-          <p class="text-[9px] uppercase font-bold text-gray-400">Micas / Vidrios</p>
-          <p class="text-xs font-black ${m.needsMicas ? 'text-red-600' : 'text-gray-900'}">${m.micasStock} en stock (${m.micasCount} tipos)</p>
-          ${m.needsMicas ? '<span class="text-[9px] font-bold text-red-600 uppercase">⚠️ Desabastecido</span>' : ''}
+        <div class="p-2.5 rounded-2xl ${m.needsMicas ? 'bg-rose-50 text-rose-800 border border-rose-100' : 'bg-slate-50 text-slate-700'}">
+          <p class="text-[9px] uppercase font-bold text-slate-400">Micas / Vidrios</p>
+          <p class="text-xs font-mono-code tabular-nums font-black ${m.needsMicas ? 'text-rose-600' : 'text-slate-900'}">${m.micasStock} en stock (${m.micasCount} tipos)</p>
+          ${m.needsMicas ? '<span class="text-[9px] font-bold text-rose-600 uppercase">⚠️ Desabastecido</span>' : ''}
         </div>
       </div>
     </div>
@@ -455,25 +513,25 @@ function renderCompatibilityMatrix() {
   if (!container) return;
 
   if (BRANDS.length === 0) {
-    container.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 font-bold">No hay marcas ni modelos registrados.</div>`;
+    container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 font-bold">No hay marcas ni modelos registrados.</div>`;
     return;
   }
 
   container.innerHTML = BRANDS.map(b => `
-    <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm space-y-3">
-      <div class="flex justify-between items-center pb-2 border-b border-gray-100">
+    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-100">
         <h3 class="font-black text-indigo-900 text-sm flex items-center gap-2">
-          <i class="fa-solid fa-mobile text-indigo-600"></i> ${b.name}
+          <i class="fa-solid fa-mobile-screen text-indigo-600"></i> ${b.name}
         </h3>
-        <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-0.5 rounded-full">${b.models.length} Modelos</span>
+        <span class="bg-indigo-50 text-indigo-700 font-mono-code tabular-nums text-xs font-bold px-2.5 py-0.5 rounded-full">${b.models.length} Modelos</span>
       </div>
-      <div class="divide-y divide-gray-100 max-h-56 overflow-y-auto custom-scrollbar">
+      <div class="divide-y divide-slate-100 max-h-56 overflow-y-auto custom-scrollbar">
         ${b.models.map(m => `
-          <div class="py-2 flex justify-between items-center text-xs">
-            <span class="font-bold text-gray-800"><i class="fa-solid fa-angle-right text-indigo-400 mr-1.5"></i>${m.model_name}</span>
+          <div class="py-2 flex justify-between items-center text-[13px]">
+            <span class="font-bold text-slate-800"><i class="fa-solid fa-angle-right text-indigo-400 mr-1.5"></i>${m.model_name}</span>
             <div class="flex items-center gap-2">
-              <span class="text-gray-400 text-[10px]">${m.release_year || 2024}</span>
-              <button onclick="deleteModel(${m.id})" class="text-red-400 hover:text-red-600 text-[10px] font-bold"><i class="fa-solid fa-trash"></i></button>
+              <span class="font-mono-code text-slate-400 text-[11px]">${m.release_year || 2024}</span>
+              <button onclick="deleteModel(${m.id})" class="action-icon-btn bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-700" title="Eliminar Modelo"><i class="fa-solid fa-trash text-xs"></i></button>
             </div>
           </div>
         `).join('')}
@@ -654,7 +712,7 @@ function renderProducts() {
   });
 
   if (filtered.length === 0) {
-    grid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 font-bold text-xs">No se encontraron productos ni accesorios compatibles.</div>`;
+    grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 font-bold text-xs">No se encontraron productos ni accesorios compatibles.</div>`;
     return;
   }
 
@@ -665,19 +723,19 @@ function renderProducts() {
     `).join('');
 
     return `
-      <div onclick="handleProductClick(${p.id})" class="bg-white p-4 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group">
+      <div onclick="handleProductClick(${p.id})" class="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group">
         <div>
           <div class="flex justify-between items-start mb-1.5">
-            <span class="bg-gray-100 text-gray-600 text-[9px] font-bold px-2 py-0.5 rounded-md truncate max-w-[110px]">${p.category}</span>
-            ${isSerialized ? '<span class="bg-yellow-100 text-yellow-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded">IMEI</span>' : ''}
+            <span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-md truncate max-w-[110px]">${p.category}</span>
+            ${isSerialized ? '<span class="bg-amber-100 text-amber-800 text-[9px] font-mono-code font-extrabold px-1.5 py-0.5 rounded">IMEI</span>' : `<span class="text-[10px] font-mono-code text-slate-400">#${p.code}</span>`}
           </div>
-          <h3 class="font-bold text-gray-900 text-xs group-hover:text-indigo-600 transition-colors line-clamp-2">${p.name}</h3>
+          <h3 class="font-bold text-slate-900 text-[13px] group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug">${p.name}</h3>
           <div class="mt-2 flex flex-wrap gap-1">${modelBadges}</div>
         </div>
-        <div class="mt-4 flex justify-between items-end pt-2 border-t border-gray-100">
+        <div class="mt-4 flex justify-between items-end pt-2.5 border-t border-slate-100">
           <div>
-            <p class="text-[10px] text-gray-400 font-bold">Stock: ${p.stock}</p>
-            <p class="text-sm font-black text-indigo-600">S/ ${p.price.toFixed(2)}</p>
+            <p class="text-[10px] font-mono-code tabular-nums ${p.stock <= (p.min_stock || 5) ? 'text-amber-600' : 'text-slate-400'} font-bold">Stock: ${p.stock}</p>
+            <p class="text-[15px] font-mono-code tabular-nums font-black text-indigo-600">S/ ${p.price.toFixed(2)}</p>
           </div>
           <button class="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all">
             <i class="fa-solid fa-plus text-xs"></i>
@@ -700,24 +758,24 @@ async function handleProductClick(productId) {
     pendingImeiProduct = prod;
     document.getElementById('modal-imei-prod-name').innerText = `${prod.name} (#${prod.code})`;
     const listContainer = document.getElementById('modal-imei-list');
-    listContainer.innerHTML = '<p class="text-xs text-gray-400">Consultando IMEIs disponibles...</p>';
+    listContainer.innerHTML = '<p class="text-xs text-slate-400">Consultando IMEIs disponibles...</p>';
     document.getElementById('modal-select-imei').classList.remove('hidden');
 
     try {
       const res = await fetch(`/api/imeis/available/${productId}`);
       const imeis = await res.json();
       if (imeis.length === 0) {
-        listContainer.innerHTML = '<p class="text-xs text-red-500 font-bold">⚠️ No hay códigos IMEI disponibles para este equipo.</p>';
+        listContainer.innerHTML = '<p class="text-xs text-rose-500 font-bold">⚠️ No hay códigos IMEI disponibles para este equipo.</p>';
         return;
       }
       listContainer.innerHTML = imeis.map(i => `
-        <div onclick="selectImeiForSale('${i.imei_code}')" class="p-2.5 bg-gray-50 hover:bg-indigo-50 rounded-xl border border-gray-200 hover:border-indigo-300 cursor-pointer flex justify-between items-center">
-          <span class="font-mono text-xs font-black text-gray-800">${i.imei_code}</span>
-          <span class="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded">Asignar</span>
+        <div onclick="selectImeiForSale('${i.imei_code}')" class="p-2.5 bg-slate-50 hover:bg-indigo-50 rounded-xl border border-slate-200 hover:border-indigo-300 cursor-pointer flex justify-between items-center transition-all">
+          <span class="font-mono-code text-xs font-black text-slate-800">${i.imei_code}</span>
+          <span class="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-2.5 py-0.5 rounded-lg">Asignar</span>
         </div>
       `).join('');
     } catch (e) {
-      listContainer.innerHTML = '<p class="text-xs text-red-500">Error al cargar IMEIs</p>';
+      listContainer.innerHTML = '<p class="text-xs text-rose-500">Error al cargar IMEIs</p>';
     }
   } else {
     addToCart(productId);
@@ -811,7 +869,7 @@ function clearCart() {
 function renderCart() {
   const container = document.getElementById('cart-items');
   if (CART.length === 0) {
-    container.innerHTML = `<div class="text-center py-12 text-gray-400 font-bold text-xs">Carrito vacío</div>`;
+    container.innerHTML = `<div class="text-center py-12 text-slate-400 font-bold text-xs">Carrito vacío</div>`;
     document.getElementById('summary-subtotal').innerText = 'S/ 0.00';
     document.getElementById('summary-tax').innerText = 'S/ 0.00';
     document.getElementById('summary-total').innerText = 'S/ 0.00';
@@ -821,25 +879,25 @@ function renderCart() {
 
   container.innerHTML = CART.map(i => {
     const itemSub = i.product.price * i.quantity;
-    const imeiTag = i.imei ? `<p class="text-[10px] font-mono font-bold text-yellow-800 bg-yellow-50 px-1 rounded inline-block">IMEI: ${i.imei}</p>` : '';
+    const imeiTag = i.imei ? `<p class="text-[10px] font-mono-code font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded inline-block mt-0.5">IMEI: ${i.imei}</p>` : '';
 
     return `
       <div class="py-2.5 flex justify-between items-center gap-2">
         <div class="flex-1 min-w-0">
-          <p class="font-bold text-xs text-gray-800 truncate">${i.product.name}</p>
+          <p class="font-bold text-xs text-slate-800 truncate">${i.product.name}</p>
           ${imeiTag}
-          <p class="text-[10px] text-gray-400">S/ ${i.product.price.toFixed(2)} c/u</p>
+          <p class="text-[10px] font-mono-code tabular-nums text-slate-400">S/ ${i.product.price.toFixed(2)} c/u</p>
         </div>
         <div class="flex items-center gap-1.5">
           ${!i.imei ? `
-            <button onclick="updateCartQty(${i.product.id}, -1)" class="w-5 h-5 bg-gray-100 rounded text-xs font-bold">-</button>
-            <span class="text-xs font-bold w-4 text-center">${i.quantity}</span>
-            <button onclick="updateCartQty(${i.product.id}, 1)" class="w-5 h-5 bg-gray-100 rounded text-xs font-bold">+</button>
+            <button onclick="updateCartQty(${i.product.id}, -1)" class="w-6 h-6 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors">-</button>
+            <span class="text-xs font-mono-code tabular-nums font-bold w-5 text-center">${i.quantity}</span>
+            <button onclick="updateCartQty(${i.product.id}, 1)" class="w-6 h-6 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors">+</button>
           ` : `
-            <button onclick="updateCartQty(${i.product.id}, -1, '${i.imei}')" class="text-red-500 hover:text-red-700 text-xs font-bold px-1.5"><i class="fa-solid fa-trash"></i></button>
+            <button onclick="updateCartQty(${i.product.id}, -1, '${i.imei}')" class="action-icon-btn bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-700" title="Quitar IMEI"><i class="fa-solid fa-trash text-xs"></i></button>
           `}
         </div>
-        <span class="font-black text-xs text-gray-900 w-14 text-right">S/ ${itemSub.toFixed(2)}</span>
+        <span class="font-mono-code tabular-nums font-black text-xs text-slate-900 w-16 text-right">S/ ${itemSub.toFixed(2)}</span>
       </div>
     `;
   }).join('');
@@ -887,10 +945,10 @@ function closePaymentModal() {
 function setPaymentMethod(method) {
   selectedPaymentMethod = method;
   document.querySelectorAll('.pay-btn').forEach(b => {
-    b.className = 'pay-btn bg-gray-100 text-gray-700 font-bold py-2 rounded-xl text-xs';
+    b.className = 'pay-btn btn-tactile bg-slate-100 text-slate-700 font-bold py-2.5 rounded-xl text-xs';
   });
   const activeBtn = document.getElementById('pay-' + method);
-  if (activeBtn) activeBtn.className = 'pay-btn active bg-indigo-600 text-white font-bold py-2 rounded-xl text-xs';
+  if (activeBtn) activeBtn.className = 'pay-btn active btn-tactile bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm';
 
   const cashBox = document.getElementById('cash-calculator-box');
   const mixedBox = document.getElementById('mixed-payment-box');
@@ -932,10 +990,10 @@ function calculateMixedPayment() {
 
   document.getElementById('mixed-covered-label').innerText = `Cubierto: S/ ${covered.toFixed(2)}`;
   if (pending <= 0.01) {
-    document.getElementById('mixed-pending-label').className = 'text-green-700 font-black';
+    document.getElementById('mixed-pending-label').className = 'font-mono-code tabular-nums text-emerald-700 font-black';
     document.getElementById('mixed-pending-label').innerText = '✅ Monto Cubierto Total';
   } else {
-    document.getElementById('mixed-pending-label').className = 'text-red-600 font-black';
+    document.getElementById('mixed-pending-label').className = 'font-mono-code tabular-nums text-rose-600 font-black';
     document.getElementById('mixed-pending-label').innerText = `Falta: S/ ${pending.toFixed(2)}`;
   }
 }
@@ -1144,13 +1202,13 @@ function renderSalesHistoryTable() {
   );
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-gray-400 font-bold">No hay comprobantes de venta registrados.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-bold">No hay comprobantes de venta registrados.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = filtered.map(s => {
     const isAnulada = s.status === 'anulada';
-    const itemsPreview = (s.items || []).map(i => `${i.quantity}x ${i.product_name} ${i.imei_code ? '<span class="font-mono text-[9px] bg-yellow-50 text-yellow-800 px-1 rounded">(IMEI: ' + i.imei_code + ')</span>' : ''}`).join('<br>');
+    const itemsPreview = (s.items || []).map(i => `<span class="font-mono-code font-bold text-slate-500">${i.quantity}x</span> ${i.product_name} ${i.imei_code ? '<span class="font-mono-code text-[10px] bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded">(IMEI: ' + i.imei_code + ')</span>' : ''}`).join('<br>');
 
     let payLabel = s.payment_method;
     if (s.payment_method === 'Mixto' && s.payment_details) {
@@ -1158,23 +1216,23 @@ function renderSalesHistoryTable() {
     }
 
     return `
-      <tr class="hover:bg-gray-50 ${isAnulada ? 'opacity-40 line-through' : ''}">
-        <td class="p-4 font-mono font-bold text-gray-800 text-xs">${s.receipt_code}</td>
-        <td class="p-4 text-gray-500 text-[11px]">${new Date(s.created_at).toLocaleString()}</td>
-        <td class="p-4 font-bold text-gray-800 text-xs">${s.customer_name}</td>
-        <td class="p-4"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-bold">${payLabel}</span></td>
-        <td class="p-4 text-[11px] text-gray-600">${itemsPreview}</td>
-        <td class="p-4 text-right font-black text-gray-900 text-xs">S/ ${parseFloat(s.total).toFixed(2)}</td>
+      <tr class="hover:bg-slate-50/80 transition-colors ${isAnulada ? 'opacity-40 line-through' : ''}">
+        <td class="p-4 font-mono-code font-bold text-slate-800 text-xs">${s.receipt_code}</td>
+        <td class="p-4 text-slate-500 text-xs">${new Date(s.created_at).toLocaleString()}</td>
+        <td class="p-4 font-bold text-slate-800">${s.customer_name}</td>
+        <td class="p-4"><span class="bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-lg text-[11px] font-bold">${payLabel}</span></td>
+        <td class="p-4 text-xs text-slate-600">${itemsPreview}</td>
+        <td class="p-4 text-right font-mono-code tabular-nums font-black text-slate-900">S/ ${parseFloat(s.total).toFixed(2)}</td>
         <td class="p-4 text-center">
-          <span class="px-2.5 py-1 rounded-full text-[10px] font-black ${isAnulada ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
+          <span class="px-2.5 py-1 rounded-full text-[10px] font-black ${isAnulada ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">
             ${s.status.toUpperCase()}
           </span>
         </td>
         <td class="p-4 text-center">
           <div class="flex items-center justify-center gap-2">
-            <button onclick="reprintTicket(${s.id})" class="text-indigo-600 hover:text-indigo-800 font-bold text-xs" title="Ver / Imprimir Ticket"><i class="fa-solid fa-print"></i></button>
+            <button onclick="reprintTicket(${s.id})" class="action-icon-btn bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800" title="Ver / Imprimir Ticket"><i class="fa-solid fa-print text-xs"></i></button>
             ${!isAnulada ? `
-              <button onclick="anularSale(${s.id}, '${s.receipt_code}')" class="text-red-500 hover:text-red-700 font-bold text-xs" title="Anular Venta"><i class="fa-solid fa-ban"></i></button>
+              <button onclick="anularSale(${s.id}, '${s.receipt_code}')" class="action-icon-btn bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-800" title="Anular Venta"><i class="fa-solid fa-ban text-xs"></i></button>
             ` : ''}
           </div>
         </td>
@@ -1222,42 +1280,42 @@ async function searchImeiTracker() {
   if (!container) return;
 
   if (!query) {
-    container.innerHTML = '<div class="text-center py-8 text-gray-400 font-medium text-xs">Escriba un código IMEI (ej. 8642...) para ver su trazabilidad.</div>';
+    container.innerHTML = '<div class="text-center py-8 text-slate-400 font-medium text-xs">Escriba un código IMEI (ej. 8642...) para ver su trazabilidad.</div>';
     return;
   }
 
-  container.innerHTML = '<div class="text-center py-6 text-gray-400 text-xs font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Buscando IMEI...</div>';
+  container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs font-bold"><i class="fa-solid fa-spinner fa-spin mr-2 text-indigo-600"></i> Buscando IMEI...</div>';
 
   try {
     const res = await fetch(`/api/imeis/search/${query}`);
     const results = await res.json();
 
     if (results.length === 0) {
-      container.innerHTML = '<div class="text-center py-8 text-red-500 font-bold text-xs">⚠️ No se encontró ningún teléfono registrado con ese código IMEI.</div>';
+      container.innerHTML = '<div class="text-center py-8 text-rose-500 font-bold text-xs">⚠️ No se encontró ningún teléfono registrado con ese código IMEI.</div>';
       return;
     }
 
     container.innerHTML = results.map(i => {
       const isVendido = i.status === 'vendido';
       return `
-        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
             <div class="flex items-center gap-2">
-              <span class="font-mono font-black text-sm text-gray-900">${i.imei_code}</span>
-              <span class="px-2 py-0.5 rounded text-[10px] font-black ${isVendido ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">
+              <span class="font-mono-code font-black text-sm text-slate-900">${i.imei_code}</span>
+              <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-black ${isVendido ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
                 ${i.status.toUpperCase()}
               </span>
             </div>
-            <p class="text-xs font-bold text-gray-700 mt-1">${i.product_name} <span class="text-gray-400 font-mono">(#${i.product_code})</span></p>
+            <p class="text-[13px] font-bold text-slate-700 mt-1">${i.product_name} <span class="text-slate-400 font-mono-code text-xs">(#${i.product_code})</span></p>
           </div>
-          <div class="text-xs text-gray-500 space-y-0.5 md:text-right">
+          <div class="text-xs text-slate-500 space-y-0.5 md:text-right">
             ${isVendido ? `
-              <p><span class="font-bold text-gray-700">Comprobante:</span> ${i.receipt_code}</p>
-              <p><span class="font-bold text-gray-700">Cliente:</span> ${i.customer_name}</p>
-              <p><span class="font-bold text-gray-700">Fecha Venta:</span> ${new Date(i.sold_at || i.sale_date).toLocaleString()}</p>
+              <p><span class="font-bold text-slate-700">Comprobante:</span> <span class="font-mono-code font-bold text-indigo-600">${i.receipt_code}</span></p>
+              <p><span class="font-bold text-slate-700">Cliente:</span> ${i.customer_name}</p>
+              <p><span class="font-bold text-slate-700">Fecha Venta:</span> ${new Date(i.sold_at || i.sale_date).toLocaleString()}</p>
             ` : `
-              <p class="text-green-700 font-bold"><i class="fa-solid fa-check mr-1"></i> Disponible en vitrina / stock</p>
-              <p class="text-[10px] text-gray-400">Ingresado: ${new Date(i.created_at).toLocaleDateString()}</p>
+              <p class="text-emerald-700 font-bold"><i class="fa-solid fa-check mr-1"></i> Disponible en vitrina / stock</p>
+              <p class="text-[11px] text-slate-400">Ingresado: ${new Date(i.created_at).toLocaleDateString()}</p>
             `}
           </div>
         </div>
@@ -1265,7 +1323,7 @@ async function searchImeiTracker() {
     }).join('');
 
   } catch (err) {
-    container.innerHTML = `<div class="p-4 bg-red-50 text-red-700 rounded-xl text-xs font-bold">Error: ${err.message}</div>`;
+    container.innerHTML = `<div class="p-4 bg-rose-50 text-rose-700 rounded-xl text-xs font-bold">Error: ${err.message}</div>`;
   }
 }
 
@@ -1347,6 +1405,7 @@ async function submitFastOpenCash() {
 async function loadCashStatus() {
   const panel = document.getElementById('cash-status-panel');
   const indicator = document.getElementById('sidebar-cash-indicator');
+  const topbarCash = document.getElementById('topbar-cash-badge');
 
   try {
     const res = await fetch('/api/cash/status');
@@ -1356,11 +1415,21 @@ async function loadCashStatus() {
 
     if (indicator) {
       if (data.isOpen) {
-        indicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 inline-block animate-pulse"></span> Caja Abierta (Turno Activo)';
-        indicator.className = 'text-[10px] text-green-400 font-bold flex items-center gap-1';
+        indicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span> Caja Abierta (Turno Activo)';
+        indicator.className = 'text-[10px] text-emerald-400 font-bold flex items-center gap-1.5';
       } else {
-        indicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Caja Cerrada';
-        indicator.className = 'text-[10px] text-red-400 font-bold flex items-center gap-1';
+        indicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span> Caja Cerrada';
+        indicator.className = 'text-[10px] text-rose-400 font-bold flex items-center gap-1.5';
+      }
+    }
+
+    if (topbarCash) {
+      if (data.isOpen) {
+        topbarCash.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold cursor-pointer hover:bg-emerald-100 transition-all';
+        topbarCash.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Caja Abierta · Efectivo: <strong class="font-mono-code tabular-nums">S/ ${(data.expectedCash || 0).toFixed(2)}</strong></span>`;
+      } else {
+        topbarCash.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold cursor-pointer hover:bg-rose-100 transition-all';
+        topbarCash.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>Caja Cerrada (Abrir Turno)</span>';
       }
     }
 
@@ -1368,18 +1437,18 @@ async function loadCashStatus() {
 
     if (!data.isOpen) {
       panel.innerHTML = `
-        <div class="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm max-w-md mx-auto text-center space-y-4">
+        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm max-w-md mx-auto text-center space-y-4">
           <div class="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl mx-auto shadow-inner">
             <i class="fa-solid fa-lock"></i>
           </div>
-          <h3 class="text-lg font-black text-gray-800">Caja de Turno Cerrada</h3>
-          <p class="text-xs text-gray-500">Para procesar ventas y registrar movimientos de mostrador, abra el turno de caja.</p>
-          <div class="space-y-3 pt-2 text-left bg-gray-50 p-4 rounded-2xl border border-gray-100">
+          <h3 class="text-lg font-black text-slate-900">Caja de Turno Cerrada</h3>
+          <p class="text-xs text-slate-500">Para procesar ventas y registrar movimientos de mostrador, abra el turno de caja.</p>
+          <div class="space-y-3 pt-2 text-left bg-slate-50 p-4 rounded-2xl border border-slate-100">
             <div>
-              <label class="text-xs font-bold text-gray-700 block mb-1">Monto Inicial en Efectivo (S/):</label>
-              <input type="number" step="0.50" id="cash-open-amount" value="50.00" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-black outline-none focus:ring-2 focus:ring-indigo-500">
+              <label class="text-xs font-bold text-slate-700 block mb-1">Monto Inicial en Efectivo (S/):</label>
+              <input type="number" step="0.50" id="cash-open-amount" value="50.00" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm font-mono-code tabular-nums font-black outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
-            <button onclick="openCashRegister()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl text-xs shadow-md uppercase">
+            <button onclick="openCashRegister()" class="btn-tactile w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl text-xs shadow-md uppercase">
               <i class="fa-solid fa-key mr-1"></i> Abrir Caja de Hoy
             </button>
           </div>
@@ -1390,18 +1459,18 @@ async function loadCashStatus() {
       const movs = data.movements || [];
 
       const movsTableRows = movs.length === 0 ? `
-        <tr><td colspan="5" class="p-6 text-center text-gray-400 font-bold">No se registran movimientos manuales o abonos en este turno.</td></tr>
+        <tr><td colspan="5" class="p-6 text-center text-slate-400 font-bold">No se registran movimientos manuales o abonos en este turno.</td></tr>
       ` : movs.map(m => `
-        <tr class="hover:bg-gray-50 text-xs">
-          <td class="p-3 text-gray-500">${new Date(m.created_at).toLocaleTimeString()}</td>
-          <td class="p-3 font-bold">
-            <span class="px-2 py-0.5 rounded text-[10px] font-black ${m.type === 'INGRESO' ? 'bg-green-100 text-green-700' : (m.type === 'ABONO' ? 'bg-indigo-100 text-indigo-700' : 'bg-red-100 text-red-700')}">
+        <tr class="hover:bg-slate-50/80 transition-colors">
+          <td class="p-3.5 text-slate-500 font-mono-code text-xs">${new Date(m.created_at).toLocaleTimeString()}</td>
+          <td class="p-3.5 font-bold">
+            <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-black ${m.type === 'INGRESO' ? 'bg-emerald-100 text-emerald-700' : (m.type === 'ABONO' ? 'bg-indigo-100 text-indigo-700' : 'bg-rose-100 text-rose-700')}">
               ${m.type}
             </span>
           </td>
-          <td class="p-3 font-medium text-gray-800">${m.reason}</td>
-          <td class="p-3 text-gray-600 font-bold text-[11px]">${m.payment_method || 'Efectivo'}</td>
-          <td class="p-3 text-right font-black ${m.type === 'RETIRO' ? 'text-red-600' : 'text-green-700'}">
+          <td class="p-3.5 font-medium text-slate-800">${m.reason}</td>
+          <td class="p-3.5 text-slate-600 font-bold text-xs">${m.payment_method || 'Efectivo'}</td>
+          <td class="p-3.5 text-right font-mono-code tabular-nums font-black ${m.type === 'RETIRO' ? 'text-rose-600' : 'text-emerald-700'}">
             ${m.type === 'RETIRO' ? '-' : '+'} S/ ${parseFloat(m.amount).toFixed(2)}
           </td>
         </tr>
@@ -1411,51 +1480,51 @@ async function loadCashStatus() {
         <div class="space-y-6">
           <!-- TARJETAS DE ARQUEO MULTICANAL EN VIVO -->
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm">
-              <p class="text-[10px] uppercase font-bold text-gray-400">1. Saldo Inicial</p>
-              <p class="text-xl font-black text-gray-800">S/ ${data.initialAmount.toFixed(2)}</p>
-              <p class="text-[10px] text-gray-400 mt-1">Apertura: ${new Date(reg.opened_at).toLocaleTimeString()}</p>
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+              <p class="text-[10px] uppercase font-bold text-slate-400">1. Saldo Inicial</p>
+              <p class="text-xl font-mono-code tabular-nums font-black text-slate-800 mt-1">S/ ${data.initialAmount.toFixed(2)}</p>
+              <p class="text-[11px] text-slate-400 mt-1">Apertura: ${new Date(reg.opened_at).toLocaleTimeString()}</p>
             </div>
             
-            <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm">
-              <p class="text-[10px] uppercase font-bold text-gray-400">2. Ventas Efectivo</p>
-              <p class="text-xl font-black text-green-600">S/ ${data.efectivoSales.toFixed(2)}</p>
-              <p class="text-[10px] text-gray-400 mt-1">+ S/ ${(data.abonosEfectivo || 0).toFixed(2)} de abonos</p>
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+              <p class="text-[10px] uppercase font-bold text-slate-400">2. Ventas Efectivo</p>
+              <p class="text-xl font-mono-code tabular-nums font-black text-emerald-600 mt-1">S/ ${data.efectivoSales.toFixed(2)}</p>
+              <p class="text-[11px] font-mono-code tabular-nums text-slate-400 mt-1">+ S/ ${(data.abonosEfectivo || 0).toFixed(2)} de abonos</p>
             </div>
 
-            <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm">
-              <p class="text-[10px] uppercase font-bold text-gray-400">3. Ventas Digitales</p>
-              <p class="text-xl font-black text-indigo-600">S/ ${(data.yapeSales + data.tarjetaSales).toFixed(2)}</p>
-              <p class="text-[10px] text-gray-400 mt-1">Yape/Plin: S/ ${data.yapeSales.toFixed(2)} | Tarj: S/ ${data.tarjetaSales.toFixed(2)}</p>
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+              <p class="text-[10px] uppercase font-bold text-slate-400">3. Ventas Digitales</p>
+              <p class="text-xl font-mono-code tabular-nums font-black text-indigo-600 mt-1">S/ ${(data.yapeSales + data.tarjetaSales).toFixed(2)}</p>
+              <p class="text-[11px] font-mono-code tabular-nums text-slate-400 mt-1">Yape/Plin: S/ ${data.yapeSales.toFixed(2)} | Tarj: S/ ${data.tarjetaSales.toFixed(2)}</p>
             </div>
 
-            <div class="bg-gradient-to-tr from-gray-900 to-indigo-950 p-5 rounded-3xl text-white shadow-lg">
+            <div class="bg-gradient-to-tr from-slate-900 to-indigo-950 p-5 rounded-3xl text-white shadow-lg">
               <p class="text-[10px] uppercase font-bold text-indigo-300">4. Efectivo Físico Esperado</p>
-              <p class="text-2xl font-black text-white">S/ ${data.expectedCash.toFixed(2)}</p>
-              <p class="text-[10px] text-gray-400 mt-1">Total vendido turno: S/ ${data.totalSales.toFixed(2)}</p>
+              <p class="text-2xl font-mono-code tabular-nums font-black text-white mt-1">S/ ${data.expectedCash.toFixed(2)}</p>
+              <p class="text-[11px] font-mono-code tabular-nums text-slate-400 mt-1">Total vendido turno: S/ ${data.totalSales.toFixed(2)}</p>
             </div>
           </div>
 
           <!-- TABLA DE MOVIMIENTOS Y GASTOS VISIBLES EN VIVO -->
-          <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden space-y-2">
-            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h4 class="font-black text-xs text-gray-800 flex items-center gap-2">
+          <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden space-y-2">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h4 class="font-black text-xs text-slate-800 flex items-center gap-2">
                 <i class="fa-solid fa-list-check text-indigo-600"></i> Movimientos, Gastos y Abonos del Turno
               </h4>
-              <span class="text-xs font-bold text-gray-500">${movs.length} registros</span>
+              <span class="text-xs font-mono-code tabular-nums font-bold text-slate-500">${movs.length} registros</span>
             </div>
             <div class="overflow-x-auto">
               <table class="w-full text-left">
-                <thead class="bg-gray-50 text-gray-400 font-bold uppercase text-[9px] tracking-wider">
+                <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
                   <tr>
-                    <th class="p-3">Hora</th>
-                    <th class="p-3">Tipo</th>
-                    <th class="p-3">Motivo / Detalle</th>
-                    <th class="p-3">Método</th>
-                    <th class="p-3 text-right">Monto</th>
+                    <th class="p-3.5">Hora</th>
+                    <th class="p-3.5">Tipo</th>
+                    <th class="p-3.5">Motivo / Detalle</th>
+                    <th class="p-3.5">Método</th>
+                    <th class="p-3.5 text-right">Monto</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">${movsTableRows}</tbody>
+                <tbody class="divide-y divide-slate-100">${movsTableRows}</tbody>
               </table>
             </div>
           </div>
@@ -1463,53 +1532,53 @@ async function loadCashStatus() {
           <!-- BOTONES DE ACCIÓN: MOVIMIENTO Y CIERRE -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- REGISTRAR MOVIMIENTO MANUAL -->
-            <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm space-y-3">
-              <h4 class="font-black text-sm text-gray-800 flex items-center gap-2">
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+              <h4 class="font-black text-sm text-slate-800 flex items-center gap-2">
                 <i class="fa-solid fa-money-bill-transfer text-indigo-600"></i> Registrar Gasto / Ingreso Manual
               </h4>
               <div class="grid grid-cols-3 gap-3">
                 <div>
-                  <label class="text-[10px] font-bold text-gray-500 uppercase">Tipo</label>
-                  <select id="mov-type" class="w-full p-2 border border-gray-200 rounded-xl text-xs font-bold outline-none">
+                  <label class="text-[10px] font-bold text-slate-500 uppercase">Tipo</label>
+                  <select id="mov-type" class="w-full p-2 border border-slate-200 rounded-xl text-xs font-bold outline-none">
                     <option value="RETIRO">Gasto / Retiro</option>
                     <option value="INGRESO">Ingreso Extra</option>
                   </select>
                 </div>
                 <div>
-                  <label class="text-[10px] font-bold text-gray-500 uppercase">Monto (S/)</label>
-                  <input type="number" step="0.50" id="mov-amount" placeholder="0.00" class="w-full p-2 border border-gray-200 rounded-xl text-xs font-bold outline-none">
+                  <label class="text-[10px] font-bold text-slate-500 uppercase">Monto (S/)</label>
+                  <input type="number" step="0.50" id="mov-amount" placeholder="0.00" class="w-full p-2 border border-slate-200 rounded-xl text-xs font-mono-code tabular-nums font-bold outline-none">
                 </div>
                 <div>
-                  <label class="text-[10px] font-bold text-gray-500 uppercase">Medio</label>
-                  <select id="mov-method" class="w-full p-2 border border-gray-200 rounded-xl text-xs font-bold outline-none">
+                  <label class="text-[10px] font-bold text-slate-500 uppercase">Medio</label>
+                  <select id="mov-method" class="w-full p-2 border border-slate-200 rounded-xl text-xs font-bold outline-none">
                     <option value="Efectivo">Efectivo</option>
                     <option value="Yape/Plin">Yape/Plin</option>
                   </select>
                 </div>
               </div>
               <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Motivo / Detalle *</label>
-                <input type="text" id="mov-reason" placeholder="Ej. Pago de almuerzo, compra de cinta térmica, cambio sencillo..." class="w-full p-2 border border-gray-200 rounded-xl text-xs outline-none">
+                <label class="text-[10px] font-bold text-slate-500 uppercase">Motivo / Detalle *</label>
+                <input type="text" id="mov-reason" placeholder="Ej. Pago de almuerzo, compra de cinta térmica, cambio sencillo..." class="w-full p-2 border border-slate-200 rounded-xl text-xs outline-none">
               </div>
-              <button onclick="registerCashMovement()" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm">
+              <button onclick="registerCashMovement()" class="btn-tactile w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm">
                 Guardar Movimiento
               </button>
             </div>
 
             <!-- CIERRE DE CAJA / ARQUEO Z -->
-            <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm space-y-3">
-              <h4 class="font-black text-sm text-gray-800 flex items-center gap-2">
-                <i class="fa-solid fa-file-invoice-dollar text-green-600"></i> Realizar Corte de Caja (Arqueo Z)
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+              <h4 class="font-black text-sm text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-file-invoice-dollar text-emerald-600"></i> Realizar Corte de Caja (Arqueo Z)
               </h4>
               <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Efectivo Real Contado en Gaveta (S/) *</label>
-                <input type="number" step="0.50" id="close-final-amount" placeholder="Monto contado físicamente..." class="w-full p-2 border border-gray-200 rounded-xl text-xs font-black outline-none text-indigo-700 text-sm">
+                <label class="text-[10px] font-bold text-slate-500 uppercase">Efectivo Real Contado en Gaveta (S/) *</label>
+                <input type="number" step="0.50" id="close-final-amount" placeholder="Monto contado físicamente..." class="w-full p-2 border border-slate-200 rounded-xl font-mono-code tabular-nums font-black outline-none text-indigo-700 text-sm">
               </div>
               <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Observaciones de Cierre</label>
-                <input type="text" id="close-notes" placeholder="Notas de cuadre (opcional)..." class="w-full p-2 border border-gray-200 rounded-xl text-xs outline-none">
+                <label class="text-[10px] font-bold text-slate-500 uppercase">Observaciones de Cierre</label>
+                <input type="text" id="close-notes" placeholder="Notas de cuadre (opcional)..." class="w-full p-2 border border-slate-200 rounded-xl text-xs outline-none">
               </div>
-              <button onclick="closeCashRegister()" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2.5 rounded-xl text-xs shadow-sm uppercase">
+              <button onclick="closeCashRegister()" class="btn-tactile w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-2.5 rounded-xl text-xs shadow-sm uppercase">
                 <i class="fa-solid fa-lock mr-1"></i> Cerrar Turno y Generar Arqueo Z
               </button>
             </div>
@@ -1608,23 +1677,23 @@ async function loadCashHistory() {
 
     const rowsHtml = CASH_HISTORY.map(r => {
       const diff = parseFloat(r.difference || 0);
-      const diffClass = Math.abs(diff) < 0.01 ? 'bg-green-100 text-green-700' : (diff > 0 ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700');
+      const diffClass = Math.abs(diff) < 0.01 ? 'bg-emerald-100 text-emerald-700' : (diff > 0 ? 'bg-indigo-100 text-indigo-700' : 'bg-rose-100 text-rose-700');
       const diffLabel = Math.abs(diff) < 0.01 ? 'EXACTO' : (diff > 0 ? `+S/ ${diff.toFixed(2)}` : `S/ ${diff.toFixed(2)}`);
 
       return `
-        <tr class="hover:bg-gray-50 text-xs">
-          <td class="p-3 font-mono font-bold text-gray-700">#${r.id}</td>
-          <td class="p-3 text-gray-500">${new Date(r.opened_at).toLocaleString()}</td>
-          <td class="p-3 text-gray-500">${r.closed_at ? new Date(r.closed_at).toLocaleString() : '-'}</td>
-          <td class="p-3 text-right font-bold text-gray-700">S/ ${parseFloat(r.initial_amount || 0).toFixed(2)}</td>
-          <td class="p-3 text-right font-bold text-gray-800">S/ ${parseFloat(r.expected_amount || 0).toFixed(2)}</td>
-          <td class="p-3 text-right font-black text-indigo-700">S/ ${parseFloat(r.final_amount || 0).toFixed(2)}</td>
-          <td class="p-3 text-center">
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${diffClass}">${diffLabel}</span>
+        <tr class="hover:bg-slate-50/80 transition-colors">
+          <td class="p-3.5 font-mono-code font-bold text-slate-700 text-xs">#${r.id}</td>
+          <td class="p-3.5 text-slate-500 text-xs">${new Date(r.opened_at).toLocaleString()}</td>
+          <td class="p-3.5 text-slate-500 text-xs">${r.closed_at ? new Date(r.closed_at).toLocaleString() : '-'}</td>
+          <td class="p-3.5 text-right font-mono-code tabular-nums font-bold text-slate-700">S/ ${parseFloat(r.initial_amount || 0).toFixed(2)}</td>
+          <td class="p-3.5 text-right font-mono-code tabular-nums font-bold text-slate-800">S/ ${parseFloat(r.expected_amount || 0).toFixed(2)}</td>
+          <td class="p-3.5 text-right font-mono-code tabular-nums font-black text-indigo-700">S/ ${parseFloat(r.final_amount || 0).toFixed(2)}</td>
+          <td class="p-3.5 text-center">
+            <span class="px-2.5 py-0.5 rounded-full font-mono-code tabular-nums text-[10px] font-black ${diffClass}">${diffLabel}</span>
           </td>
-          <td class="p-3 text-gray-500 truncate max-w-xs">${r.notes || '-'}</td>
-          <td class="p-3 text-center">
-            <button onclick="reprintArqueoZ(${r.id})" class="text-indigo-600 hover:text-indigo-800 font-bold text-xs" title="Imprimir Arqueo Z">
+          <td class="p-3.5 text-slate-500 truncate max-w-xs text-xs">${r.notes || '-'}</td>
+          <td class="p-3.5 text-center">
+            <button onclick="reprintArqueoZ(${r.id})" class="btn-tactile bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800 px-2.5 py-1 rounded-xl font-bold text-xs" title="Imprimir Arqueo Z">
               <i class="fa-solid fa-print mr-1"></i> Arqueo Z
             </button>
           </td>
@@ -1633,29 +1702,29 @@ async function loadCashHistory() {
     }).join('');
 
     panel.innerHTML = `
-      <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-          <h4 class="font-black text-xs text-gray-800 flex items-center gap-2 uppercase tracking-wider">
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+          <h4 class="font-black text-xs text-slate-800 flex items-center gap-2 uppercase tracking-wider">
             <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> Historial de Cierres de Caja (Arqueos Z Anteriores)
           </h4>
-          <span class="text-xs font-bold text-gray-400">Últimos ${CASH_HISTORY.length} cierres</span>
+          <span class="text-xs font-mono-code tabular-nums font-bold text-slate-400">Últimos ${CASH_HISTORY.length} cierres</span>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-left">
-            <thead class="bg-gray-50 text-gray-400 font-bold uppercase text-[9px] tracking-wider">
+            <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
               <tr>
-                <th class="p-3">Turno</th>
-                <th class="p-3">Apertura</th>
-                <th class="p-3">Cierre</th>
-                <th class="p-3 text-right">Inicial</th>
-                <th class="p-3 text-right">Esperado</th>
-                <th class="p-3 text-right">Contado</th>
-                <th class="p-3 text-center">Diferencia</th>
-                <th class="p-3">Notas</th>
-                <th class="p-3 text-center">Ticket</th>
+                <th class="p-3.5">Turno</th>
+                <th class="p-3.5">Apertura</th>
+                <th class="p-3.5">Cierre</th>
+                <th class="p-3.5 text-right">Inicial</th>
+                <th class="p-3.5 text-right">Esperado</th>
+                <th class="p-3.5 text-right">Contado</th>
+                <th class="p-3.5 text-center">Diferencia</th>
+                <th class="p-3.5">Notas</th>
+                <th class="p-3.5 text-center">Ticket</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">${rowsHtml}</tbody>
+            <tbody class="divide-y divide-slate-100">${rowsHtml}</tbody>
           </table>
         </div>
       </div>
@@ -1899,22 +1968,22 @@ function renderInventoryTable() {
     const modelsStr = (p.compatible_models || []).map(m => m.model_name).join(', ') || 'Universal';
     const minStock = p.min_stock || 5;
     return `
-      <tr class="hover:bg-gray-50">
-        <td class="p-4 font-mono font-bold text-gray-500 text-xs">${p.code}</td>
-        <td class="p-4 font-bold text-gray-900 text-xs">${p.name}</td>
-        <td class="p-4"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-bold">${p.category}</span></td>
-        <td class="p-4 text-xs text-indigo-700 font-medium truncate max-w-xs">${modelsStr}</td>
-        <td class="p-4 text-right font-bold text-gray-500 text-xs">S/ ${(p.purchase_price || 0).toFixed(2)}</td>
-        <td class="p-4 text-right font-black text-gray-900 text-xs">S/ ${p.price.toFixed(2)}</td>
+      <tr class="hover:bg-slate-50/80 transition-colors">
+        <td class="p-4 font-mono-code font-bold text-slate-500 text-xs">${p.code}</td>
+        <td class="p-4 font-bold text-slate-900">${p.name}</td>
+        <td class="p-4"><span class="bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-lg text-[11px] font-bold">${p.category}</span></td>
+        <td class="p-4 text-xs text-indigo-700 font-semibold truncate max-w-xs">${modelsStr}</td>
+        <td class="p-4 text-right font-mono-code tabular-nums font-bold text-slate-500">S/ ${(p.purchase_price || 0).toFixed(2)}</td>
+        <td class="p-4 text-right font-mono-code tabular-nums font-black text-slate-900">S/ ${p.price.toFixed(2)}</td>
         <td class="p-4 text-center">
-          <span class="${p.stock <= minStock ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'} px-2.5 py-0.5 rounded font-black text-xs">
+          <span class="${p.stock <= minStock ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'} px-2.5 py-0.5 rounded-lg font-mono-code tabular-nums font-black text-xs">
             ${p.stock} und.
           </span>
         </td>
         <td class="p-4 text-center">
           <div class="flex items-center justify-center gap-2">
-            <button onclick="openProductModal(${p.id})" class="text-indigo-600 hover:text-indigo-800 font-bold text-xs" title="Editar Producto"><i class="fa-solid fa-pen-to-square"></i></button>
-            <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-700 font-bold text-xs" title="Eliminar Producto"><i class="fa-solid fa-trash"></i></button>
+            <button onclick="openProductModal(${p.id})" class="action-icon-btn bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800" title="Editar Producto"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
+            <button onclick="deleteProduct(${p.id})" class="action-icon-btn bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-800" title="Eliminar Producto"><i class="fa-solid fa-trash text-xs"></i></button>
           </div>
         </td>
       </tr>
@@ -1934,31 +2003,31 @@ function renderFiadosTable() {
   if (!tbody) return;
 
   if (CLIENTS.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 font-bold">No hay clientes registrados.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 font-bold">No hay clientes registrados.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = CLIENTS.map(c => {
     const debt = parseFloat(c.debt || 0);
     return `
-      <tr class="hover:bg-gray-50">
-        <td class="p-4 font-mono font-bold text-gray-500 text-xs">${c.doc}</td>
-        <td class="p-4 font-bold text-gray-800 text-xs">${c.name}</td>
-        <td class="p-4 text-gray-500 text-xs">${c.phone || '-'}</td>
-        <td class="p-4 text-gray-500 text-xs">${c.address || '-'}</td>
-        <td class="p-4 text-right font-black ${debt > 0 ? 'text-red-600' : 'text-gray-400'} text-xs">
+      <tr class="hover:bg-slate-50/80 transition-colors">
+        <td class="p-4 font-mono-code font-bold text-slate-500 text-xs">${c.doc}</td>
+        <td class="p-4 font-bold text-slate-800">${c.name}</td>
+        <td class="p-4 font-mono-code text-slate-500 text-xs">${c.phone || '-'}</td>
+        <td class="p-4 text-slate-500 text-xs">${c.address || '-'}</td>
+        <td class="p-4 text-right font-mono-code tabular-nums font-black ${debt > 0 ? 'text-rose-600' : 'text-slate-400'}">
           S/ ${debt.toFixed(2)}
         </td>
         <td class="p-4 text-center">
           <div class="flex items-center justify-center gap-1.5">
-            <button onclick="handleAbonoClick(${c.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2.5 py-1 rounded-xl text-xs shadow-sm" title="Registrar Abono">
+            <button onclick="handleAbonoClick(${c.id})" class="btn-tactile bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-sm" title="Registrar Abono">
               <i class="fa-solid fa-hand-holding-dollar mr-1"></i> Abonar
             </button>
-            <button onclick="openCustomerHistoryModal(${c.id})" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-2.5 py-1 rounded-xl text-xs" title="Ver Estado de Cuenta">
-              <i class="fa-solid fa-clock-rotate-left"></i>
+            <button onclick="openCustomerHistoryModal(${c.id})" class="action-icon-btn bg-slate-100 hover:bg-slate-200 text-slate-700" title="Ver Estado de Cuenta">
+              <i class="fa-solid fa-clock-rotate-left text-xs"></i>
             </button>
-            <button onclick="openCustomerModal(${c.id})" class="bg-gray-100 hover:bg-gray-200 text-indigo-600 font-bold px-2.5 py-1 rounded-xl text-xs" title="Editar Cliente">
-              <i class="fa-solid fa-pen"></i>
+            <button onclick="openCustomerModal(${c.id})" class="action-icon-btn bg-indigo-50 hover:bg-indigo-100 text-indigo-600" title="Editar Cliente">
+              <i class="fa-solid fa-pen text-xs"></i>
             </button>
           </div>
         </td>
@@ -2150,7 +2219,7 @@ async function openCustomerHistoryModal(customerId) {
 
   document.getElementById('credit-history-customer-label').innerText = `${c.name} (${c.doc}) — Deuda Actual: S/ ${parseFloat(c.debt || 0).toFixed(2)}`;
   const tbody = document.getElementById('credit-history-table-body');
-  tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400 font-bold">Cargando historial...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 font-bold">Cargando historial...</td></tr>`;
   document.getElementById('modal-customer-history').classList.remove('hidden');
 
   try {
@@ -2158,7 +2227,7 @@ async function openCustomerHistoryModal(customerId) {
     CURRENT_CUSTOMER_RECORDS = await res.json();
 
     if (!Array.isArray(CURRENT_CUSTOMER_RECORDS) || CURRENT_CUSTOMER_RECORDS.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400 font-bold">No se registran movimientos de crédito o abono para este cliente.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 font-bold">No se registran movimientos de crédito o abono para este cliente.</td></tr>`;
       return;
     }
 
@@ -2180,22 +2249,22 @@ async function openCustomerHistoryModal(customerId) {
       const isAbono = r.type === 'ABONO';
       const balanceAfter = balanceMap[r.id] ?? parseFloat(c.debt || 0);
       return `
-        <tr class="hover:bg-gray-50">
-          <td class="p-3 text-gray-500">${new Date(r.created_at).toLocaleString()}</td>
+        <tr class="hover:bg-slate-50/80 transition-colors">
+          <td class="p-3 text-slate-500 text-xs">${new Date(r.created_at).toLocaleString()}</td>
           <td class="p-3">
-            <span class="px-2 py-0.5 rounded text-[10px] font-black ${isAbono ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+            <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-black ${isAbono ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
               ${r.type}
             </span>
           </td>
-          <td class="p-3 font-medium text-gray-800">${r.description || '-'}</td>
-          <td class="p-3 text-right font-black ${isAbono ? 'text-green-700' : 'text-red-600'}">
+          <td class="p-3 font-medium text-slate-800">${r.description || '-'}</td>
+          <td class="p-3 text-right font-mono-code tabular-nums font-black ${isAbono ? 'text-emerald-700' : 'text-rose-600'}">
             ${isAbono ? '-' : '+'} S/ ${parseFloat(r.amount || 0).toFixed(2)}
           </td>
-          <td class="p-3 text-right font-bold text-gray-700">S/ ${balanceAfter.toFixed(2)}</td>
+          <td class="p-3 text-right font-mono-code tabular-nums font-bold text-slate-700">S/ ${balanceAfter.toFixed(2)}</td>
           <td class="p-3 text-center">
             ${isAbono ? `
-              <button onclick="reprintAbonoFromRecord(${r.id})" class="text-indigo-600 hover:text-indigo-800 font-bold text-xs" title="Reimprimir Recibo de Abono">
-                <i class="fa-solid fa-print"></i>
+              <button onclick="reprintAbonoFromRecord(${r.id})" class="action-icon-btn bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800" title="Reimprimir Recibo de Abono">
+                <i class="fa-solid fa-print text-xs"></i>
               </button>
             ` : '-'}
           </td>
@@ -2203,7 +2272,7 @@ async function openCustomerHistoryModal(customerId) {
       `;
     }).join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-500 font-bold">Error al cargar estado de cuenta.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-rose-500 font-bold">Error al cargar estado de cuenta.</td></tr>`;
   }
 }
 
@@ -2235,6 +2304,11 @@ async function loadRepairs() {
   try {
     const res = await fetch('/api/repairs');
     REPAIRS = await res.json();
+    const repCountEl = document.getElementById('topbar-repairs-count');
+    if (repCountEl && Array.isArray(REPAIRS)) {
+      const activeCount = REPAIRS.filter(r => r.status !== 'Entregado' && r.status !== 'Cancelado').length;
+      repCountEl.innerText = `${activeCount} en Taller`;
+    }
     renderRepairsTable();
   } catch (err) {
     console.error('Error cargando órdenes de servicio:', err);
@@ -2247,8 +2321,8 @@ function filterRepairs(status) {
     const btn = document.getElementById(`rep-filter-${st}`);
     if (btn) {
       btn.className = st === status
-        ? 'px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold'
-        : 'px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold';
+        ? 'btn-tactile px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold'
+        : 'btn-tactile px-3 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200';
     }
   });
   renderRepairsTable();
@@ -2272,55 +2346,55 @@ function renderRepairsTable() {
   });
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-gray-400 font-bold">No se encontraron órdenes de servicio técnico.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-bold">No se encontraron órdenes de servicio técnico.</td></tr>`;
     return;
   }
 
   const badgeColors = {
-    'Recibido': 'bg-yellow-100 text-yellow-800',
-    'En Reparación': 'bg-blue-100 text-blue-800',
+    'Recibido': 'bg-amber-100 text-amber-800',
+    'En Reparación': 'bg-indigo-100 text-indigo-800',
     'Listo': 'bg-emerald-100 text-emerald-800',
-    'Entregado': 'bg-gray-200 text-gray-700',
-    'Cancelado': 'bg-red-100 text-red-700'
+    'Entregado': 'bg-slate-200 text-slate-700',
+    'Cancelado': 'bg-rose-100 text-rose-700'
   };
 
   tbody.innerHTML = filtered.map(r => {
     const cost = parseFloat(r.estimated_cost || 0);
     const deposit = parseFloat(r.advance_payment || 0);
     const saldo = Math.max(0, cost - deposit);
-    const badgeClass = badgeColors[r.status] || 'bg-gray-100 text-gray-700';
+    const badgeClass = badgeColors[r.status] || 'bg-slate-100 text-slate-700';
     const issueText = r.issue_description || '';
 
     return `
-      <tr class="hover:bg-gray-50">
-        <td class="p-4 font-mono font-bold text-indigo-700 text-xs">${r.order_code}</td>
-        <td class="p-4 text-[11px] text-gray-500">${new Date(r.created_at).toLocaleString()}</td>
-        <td class="p-4 text-xs">
-          <p class="font-bold text-gray-900">${r.customer_name}</p>
-          <p class="text-[10px] text-gray-400">${r.customer_phone || '-'}</p>
+      <tr class="hover:bg-slate-50/80 transition-colors">
+        <td class="p-4 font-mono-code font-bold text-indigo-700 text-xs">${r.order_code}</td>
+        <td class="p-4 text-xs text-slate-500">${new Date(r.created_at).toLocaleString()}</td>
+        <td class="p-4">
+          <p class="font-bold text-slate-900">${r.customer_name}</p>
+          <p class="text-[11px] font-mono-code text-slate-400">${r.customer_phone || '-'}</p>
         </td>
-        <td class="p-4 text-xs">
-          <p class="font-bold text-gray-800">${r.device_brand} ${r.device_model}</p>
-          ${r.imei_or_serial ? `<p class="text-[10px] font-mono text-gray-500">IMEI/SN: ${r.imei_or_serial}</p>` : ''}
+        <td class="p-4">
+          <p class="font-bold text-slate-800">${r.device_brand} ${r.device_model}</p>
+          ${r.imei_or_serial ? `<p class="text-[11px] font-mono-code text-slate-500">IMEI/SN: ${r.imei_or_serial}</p>` : ''}
         </td>
-        <td class="p-4 text-xs text-gray-600 max-w-xs truncate" title="${issueText}">
-          <p class="font-medium text-gray-800 truncate">${issueText}</p>
-          ${r.diagnosis ? `<p class="text-[10px] text-indigo-600 truncate">Diag: ${r.diagnosis}</p>` : ''}
+        <td class="p-4 text-xs text-slate-600 max-w-xs truncate" title="${issueText}">
+          <p class="font-medium text-slate-800 truncate">${issueText}</p>
+          ${r.diagnosis ? `<p class="text-[11px] text-indigo-600 font-semibold truncate">Diag: ${r.diagnosis}</p>` : ''}
         </td>
-        <td class="p-4 text-right text-xs">
-          <p class="font-black text-gray-900">Costo: S/ ${cost.toFixed(2)}</p>
-          <p class="text-[10px] font-bold ${saldo > 0 ? 'text-red-600' : 'text-green-700'}">Saldo: S/ ${saldo.toFixed(2)} (Adel: S/ ${deposit.toFixed(2)})</p>
+        <td class="p-4 text-right">
+          <p class="font-mono-code tabular-nums font-black text-slate-900">Costo: S/ ${cost.toFixed(2)}</p>
+          <p class="text-[11px] font-mono-code tabular-nums font-bold ${saldo > 0 ? 'text-rose-600' : 'text-emerald-700'}">Saldo: S/ ${saldo.toFixed(2)} (Adel: S/ ${deposit.toFixed(2)})</p>
         </td>
         <td class="p-4 text-center">
           <span class="px-2.5 py-1 rounded-full text-[10px] font-black ${badgeClass}">${r.status}</span>
         </td>
         <td class="p-4 text-center">
           <div class="flex items-center justify-center gap-2">
-            <button onclick="openRepairUpdateModal(${r.id})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-2.5 py-1 rounded-xl text-xs" title="Actualizar Estado / Cobrar">
+            <button onclick="openRepairUpdateModal(${r.id})" class="btn-tactile bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-2.5 py-1.5 rounded-xl text-xs" title="Actualizar Estado / Cobrar">
               <i class="fa-solid fa-pen-to-square mr-1"></i> Estado
             </button>
-            <button onclick="reprintRepairTicket(${r.id})" class="text-gray-600 hover:text-indigo-700 font-bold text-xs" title="Imprimir Orden de Servicio">
-              <i class="fa-solid fa-print"></i>
+            <button onclick="reprintRepairTicket(${r.id})" class="action-icon-btn bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700" title="Imprimir Orden de Servicio">
+              <i class="fa-solid fa-print text-xs"></i>
             </button>
           </div>
         </td>

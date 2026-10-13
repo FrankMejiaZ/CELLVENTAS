@@ -6,19 +6,97 @@
   <title>CELLVENTAS | Asistente de Compatibilidades, Celulares & POS</title>
   <link rel="stylesheet" href="/css/tailwind.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-300: #cbd5e1;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
+      --slate-950: #020617;
+      --indigo-600: #4f46e5;
+      --indigo-700: #4338ca;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      background-color: var(--slate-50) !important;
+      color: var(--slate-800) !important;
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+
+    .font-mono, .font-mono-code {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Scrollbars estilizados */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    .custom-scrollbar::-webkit-scrollbar { height: 4px; }
+    .custom-scrollbar::-webkit-scrollbar { height: 5px; width: 5px; }
 
+    /* Micro-interacciones táctiles en botones */
+    button, .btn-tactile {
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    button:active:not(:disabled), .btn-tactile:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    /* Botones de acción en tablas (34x34px para evitar clics erróneos) */
+    .action-icon-btn {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.5rem;
+      transition: all 0.15s ease;
+    }
+
+    /* Etiquetas de atajos de teclado */
+    .kbd-shortcut {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 4px;
+      line-height: 1.4;
+    }
+
+    /* Paleta Slate, Emerald, Amber, Rose y utilidades modernas para compatibilidad total con Tailwind local */
     .sidebar-dark {
       background-color: #0f172a !important;
-      border-right: 1px solid #1e293b;
+      border-right: 1px solid #1e293b !important;
     }
+    .sidebar-header-dark {
+      background-color: #020617 !important;
+      border-bottom: 1px solid #1e293b !important;
+    }
+    .sidebar-section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      padding: 0.5rem 0.75rem 0.25rem 0.75rem;
+    }
+
     .assistant-header-banner {
-      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%) !important;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #0f172a 100%) !important;
       border: 1px solid #3730a3 !important;
       color: #ffffff !important;
     }
@@ -36,6 +114,68 @@
     .assistant-select-box option {
       background-color: #0f172a !important;
       color: #ffffff !important;
+    }
+
+    /* Soporte nativo para clases semánticas modernas y tamaños precisos */
+    .text-\[9px\] { font-size: 9px !important; }
+    .text-\[10px\] { font-size: 10px !important; }
+    .text-\[11px\] { font-size: 11px !important; }
+    .text-\[13px\] { font-size: 13px !important; }
+    .bg-slate-50 { background-color: #f8fafc !important; }
+    .bg-slate-100 { background-color: #f1f5f9 !important; }
+    .bg-slate-800 { background-color: #1e293b !important; }
+    .bg-slate-900 { background-color: #0f172a !important; }
+    .bg-slate-950 { background-color: #020617 !important; }
+    .text-slate-400 { color: #94a3b8 !important; }
+    .text-slate-500 { color: #64748b !important; }
+    .text-slate-600 { color: #475569 !important; }
+    .text-slate-700 { color: #334155 !important; }
+    .text-slate-800 { color: #1e293b !important; }
+    .text-slate-900 { color: #0f172a !important; }
+    .border-slate-100 { border-color: #f1f5f9 !important; }
+    .border-slate-200 { border-color: #e2e8f0 !important; }
+    .border-slate-300 { border-color: #cbd5e1 !important; }
+    .border-slate-800 { border-color: #1e293b !important; }
+
+    .bg-emerald-50 { background-color: #ecfdf5 !important; }
+    .bg-emerald-100 { background-color: #d1fae5 !important; }
+    .text-emerald-600 { color: #059669 !important; }
+    .text-emerald-700 { color: #047857 !important; }
+    .text-emerald-800 { color: #065f46 !important; }
+    .border-emerald-200 { border-color: #a7f3d0 !important; }
+
+    .bg-amber-50 { background-color: #fffbeb !important; }
+    .bg-amber-100 { background-color: #fef3c7 !important; }
+    .text-amber-600 { color: #d97706 !important; }
+    .text-amber-700 { color: #b45309 !important; }
+    .text-amber-800 { color: #92400e !important; }
+    .border-amber-200 { border-color: #fde68a !important; }
+
+    .bg-rose-50 { background-color: #fff1f2 !important; }
+    .bg-rose-100 { background-color: #ffe4e6 !important; }
+    .text-rose-600 { color: #e11d48 !important; }
+    .text-rose-700 { color: #be123c !important; }
+    .border-rose-200 { border-color: #fecdd3 !important; }
+
+    .rounded-2xl { border-radius: 1rem !important; }
+    .rounded-3xl { border-radius: 1.25rem !important; }
+    .modal-backdrop {
+      background-color: rgba(2, 6, 23, 0.72) !important;
+      backdrop-filter: blur(4px);
+    }
+
+    /* Tablas más legibles (13px base y encabezados nítidos) */
+    table thead th {
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.04em !important;
+      color: #64748b !important;
+      background-color: #f8fafc !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+    table tbody td {
+      font-size: 13px !important;
+      vertical-align: middle;
     }
 
     /* ESTILOS DE TICKET TÉRMICO UNIFICADO (Sin letras ultrafinas para ticketeras 58mm/80mm) */
@@ -80,143 +220,224 @@
     }
   </style>
 </head>
-<body class="bg-gray-100 font-sans h-screen flex overflow-hidden text-gray-800">
+<body class="bg-slate-50 font-sans h-screen flex overflow-hidden text-slate-800">
 
   <!-- TOAST FLOTANTE DE NOTIFICACIÓN -->
-  <div id="toast-notification" class="fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-[-100px] opacity-0 pointer-events-none bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-indigo-500/50">
-    <div id="toast-icon" class="w-7 h-7 rounded-xl bg-green-500 text-white flex items-center justify-center text-xs font-bold">
+  <div id="toast-notification" class="fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-[-100px] opacity-0 pointer-events-none bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border border-indigo-500">
+    <div id="toast-icon" class="w-8 h-8 rounded-xl bg-green-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
       <i class="fa-solid fa-check"></i>
     </div>
     <div>
-      <p id="toast-title" class="text-xs font-black">Notificación</p>
-      <p id="toast-msg" class="text-[11px] text-gray-300">Mensaje de prueba</p>
+      <p id="toast-title" class="text-xs font-extrabold tracking-wide">Notificación</p>
+      <p id="toast-msg" class="text-xs text-gray-300 font-medium">Mensaje del sistema</p>
     </div>
   </div>
 
-  <!-- SIDEBAR NAVEGACIÓN -->
-  <aside class="sidebar-dark w-64 text-gray-300 flex flex-col shrink-0 shadow-2xl z-20 h-screen">
-    <!-- LOGO -->
-    <div class="p-5 border-b border-gray-800 flex items-center gap-3 bg-gray-950 shrink-0">
-      <div class="bg-gradient-to-tr from-indigo-600 to-purple-600 text-white p-2.5 rounded-xl font-black text-xl flex items-center justify-center shadow-lg shadow-indigo-900/50">
+  <!-- ============================================================== -->
+  <!-- SIDEBAR NAVEGACIÓN CATEGORIZADO -->
+  <!-- ============================================================== -->
+  <aside class="sidebar-dark w-64 text-gray-300 flex flex-col shrink-0 shadow-2xl z-20 h-screen select-none">
+    <!-- CABECERA DE MARCA -->
+    <div class="sidebar-header-dark px-5 py-4 flex items-center gap-3 shrink-0">
+      <div class="bg-gradient-to-tr from-indigo-600 to-purple-600 text-white w-10 h-10 rounded-xl font-black text-lg flex items-center justify-center shadow-lg shrink-0">
         <i class="fa-solid fa-mobile-screen-button"></i>
       </div>
-      <div>
-        <h1 class="text-white font-black text-lg tracking-wider">CELLVENTAS</h1>
-        <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Matriz & POS Móvil</p>
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <h1 class="text-white font-extrabold text-base tracking-tight">CELLVENTAS</h1>
+          <span class="text-[10px] font-mono-code font-bold bg-indigo-900 text-indigo-200 px-1.5 py-0.5 rounded">v2.5</span>
+        </div>
+        <p class="text-[11px] text-slate-400 font-medium truncate">POS & Taller Especializado</p>
       </div>
     </div>
 
-    <!-- MENÚ PRINCIPAL -->
-    <nav class="p-3 space-y-1.5 flex-1 overflow-y-auto custom-scrollbar" id="main-nav">
+    <!-- MENÚ PRINCIPAL CATEGORIZADO -->
+    <nav class="p-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar" id="main-nav">
+      
+      <!-- GRUPO 1: MOSTRADOR -->
+      <div class="sidebar-section-title">Operación de Mostrador</div>
+
       <!-- 1. ASISTENTE MOSTRADOR -->
-      <button onclick="switchTab('assistant')" id="btn-tab-assistant" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-black transition-all shadow-md">
-        <i class="fa-solid fa-wand-magic-sparkles text-yellow-300 w-5 text-base"></i> Asistente de Mostrador
+      <button onclick="switchTab('assistant')" id="btn-tab-assistant" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold text-[13px] transition-all shadow-md">
+        <span class="flex items-center gap-3">
+          <i class="fa-solid fa-wand-magic-sparkles text-yellow-300 w-4 text-center"></i>
+          <span>Asistente Modelos</span>
+        </span>
+        <span class="kbd-shortcut bg-indigo-800 text-indigo-200">F2</span>
       </button>
 
       <!-- 2. POS -->
-      <button onclick="switchTab('pos')" id="btn-tab-pos" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-bold transition-all">
-        <i class="fa-solid fa-cash-register w-5 text-base"></i> Punto de Venta (POS)
-      </button>
-
-      <!-- 3. MATRIZ & AUDITORÍA DE COMPATIBILIDAD -->
-      <button onclick="switchTab('compatibility')" id="btn-tab-compatibility" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-bold transition-all">
-        <i class="fa-solid fa-layer-group w-5 text-base"></i> Matriz & Auditoría
-      </button>
-
-      <!-- 4. INVENTARIO & PRODUCTOS -->
-      <button onclick="switchTab('inventory')" id="btn-tab-inventory" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-bold transition-all">
-        <i class="fa-solid fa-boxes-stacked w-5 text-base"></i> Inventario & Almacén
-      </button>
-
-      <!-- 5. TRAZABILIDAD DE IMEIS -->
-      <button onclick="switchTab('imeis')" id="btn-tab-imeis" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-bold transition-all">
-        <i class="fa-solid fa-barcode w-5 text-base"></i> Rastreador de IMEIs
-      </button>
-
-      <!-- 6. HISTORIAL DE VENTAS & ANULACIONES -->
-      <button onclick="switchTab('sales-history')" id="btn-tab-sales-history" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-bold transition-all">
-        <i class="fa-solid fa-clock-rotate-left w-5 text-base"></i> Ventas & Tickets
-      </button>
-
-      <!-- 7. CONTROL DE CAJA Y ARQUEO Z -->
-      <button onclick="switchTab('cash')" id="btn-tab-cash" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-bold transition-all">
-        <i class="fa-solid fa-vault w-5 text-base"></i> Caja & Arqueo Z
-      </button>
-
-      <!-- 8. CRM Y CRÉDITOS -->
-      <button onclick="switchTab('fiados')" id="btn-tab-fiados" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-bold transition-all">
-        <i class="fa-solid fa-hand-holding-dollar w-5 text-base"></i> CRM & Créditos
+      <button onclick="switchTab('pos')" id="btn-tab-pos" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-medium text-[13px] transition-all">
+        <span class="flex items-center gap-3">
+          <i class="fa-solid fa-cash-register text-indigo-400 w-4 text-center"></i>
+          <span>Punto de Venta</span>
+        </span>
+        <span class="kbd-shortcut bg-gray-800 text-gray-400">F1</span>
       </button>
 
       <!-- 9. SERVICIO TÉCNICO / TALLER -->
-      <button onclick="switchTab('repairs')" id="btn-tab-repairs" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-bold transition-all">
-        <i class="fa-solid fa-screwdriver-wrench w-5 text-base"></i> Servicio Técnico
+      <button onclick="switchTab('repairs')" id="btn-tab-repairs" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-medium text-[13px] transition-all">
+        <span class="flex items-center gap-3">
+          <i class="fa-solid fa-screwdriver-wrench text-yellow-400 w-4 text-center"></i>
+          <span>Servicio Técnico</span>
+        </span>
+      </button>
+
+      <!-- GRUPO 2: CATÁLOGO & ALMACÉN -->
+      <div class="sidebar-section-title pt-3">Catálogo & Almacén</div>
+
+      <!-- 4. INVENTARIO & PRODUCTOS -->
+      <button onclick="switchTab('inventory')" id="btn-tab-inventory" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-medium text-[13px] transition-all">
+        <span class="flex items-center gap-3">
+          <i class="fa-solid fa-boxes-stacked text-blue-400 w-4 text-center"></i>
+          <span>Inventario & Stock</span>
+        </span>
+      </button>
+
+      <!-- 3. MATRIZ & AUDITORÍA DE COMPATIBILIDAD -->
+      <button onclick="switchTab('compatibility')" id="btn-tab-compatibility" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-medium text-[13px] transition-all">
+        <span class="flex items-center gap-3">
+          <i class="fa-solid fa-layer-group text-purple-400 w-4 text-center"></i>
+          <span>Matriz & Auditoría</span>
+        </span>
+      </button>
+
+      <!-- 5. TRAZABILIDAD DE IMEIS -->
+      <button onclick="switchTab('imeis')" id="btn-tab-imeis" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-medium text-[13px] transition-all">
+        <span class="flex items-center gap-3">
+          <i class="fa-solid fa-barcode text-green-400 w-4 text-center"></i>
+          <span>Rastreador IMEIs</span>
+        </span>
+      </button>
+
+      <!-- GRUPO 3: FINANZAS & CONTROL -->
+      <div class="sidebar-section-title pt-3">Finanzas & Control</div>
+
+      <!-- 7. CONTROL DE CAJA Y ARQUEO Z -->
+      <button onclick="switchTab('cash')" id="btn-tab-cash" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-medium text-[13px] transition-all">
+        <span class="flex items-center gap-3">
+          <i class="fa-solid fa-vault text-green-400 w-4 text-center"></i>
+          <span>Caja & Arqueo Z</span>
+        </span>
+      </button>
+
+      <!-- 6. HISTORIAL DE VENTAS & ANULACIONES -->
+      <button onclick="switchTab('sales-history')" id="btn-tab-sales-history" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-medium text-[13px] transition-all">
+        <span class="flex items-center gap-3">
+          <i class="fa-solid fa-clock-rotate-left text-indigo-300 w-4 text-center"></i>
+          <span>Ventas & Tickets</span>
+        </span>
+      </button>
+
+      <!-- 8. CRM Y CRÉDITOS -->
+      <button onclick="switchTab('fiados')" id="btn-tab-fiados" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-medium text-[13px] transition-all">
+        <span class="flex items-center gap-3">
+          <i class="fa-solid fa-hand-holding-dollar text-yellow-300 w-4 text-center"></i>
+          <span>CRM & Créditos</span>
+        </span>
       </button>
 
       <!-- 10. DASHBOARD -->
-      <button onclick="switchTab('dashboard')" id="btn-tab-dashboard" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-bold transition-all">
-        <i class="fa-solid fa-chart-pie w-5 text-base"></i> Dashboard
+      <button onclick="switchTab('dashboard')" id="btn-tab-dashboard" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white font-medium text-[13px] transition-all">
+        <span class="flex items-center gap-3">
+          <i class="fa-solid fa-chart-pie text-pink-400 w-4 text-center"></i>
+          <span>Dashboard Ejecutivo</span>
+        </span>
       </button>
     </nav>
 
     <!-- PIE USUARIO & STATUS CAJA -->
-    <div class="p-4 border-t border-gray-800 bg-gray-900 shrink-0 space-y-2">
+    <div class="p-3.5 border-t border-gray-800 bg-slate-950 shrink-0">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2.5 min-w-0">
-          <div id="sidebar-user-avatar" class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md shrink-0">
-            CV
+          <div id="sidebar-user-avatar" class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md shrink-0">
+            M
           </div>
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
-              <p id="sidebar-user-name" class="text-xs font-bold text-white leading-tight truncate">Mostrador Tech</p>
-              <span id="sidebar-user-role" class="text-[9px] bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 px-1.5 py-0.2 rounded font-black uppercase">Admin</span>
+              <p id="sidebar-user-name" class="text-xs font-semibold text-white leading-tight truncate">Mostrador Tech</p>
+              <span id="sidebar-user-role" class="text-[9px] bg-indigo-900 text-indigo-200 px-1.5 py-0.5 rounded font-bold uppercase">Admin</span>
             </div>
-            <p id="sidebar-cash-indicator" class="text-[10px] text-gray-400 font-bold flex items-center gap-1 mt-0.5">
+            <p id="sidebar-cash-indicator" class="text-[10px] text-gray-400 font-semibold flex items-center gap-1 mt-0.5">
               <span class="w-2 h-2 rounded-full bg-gray-500 inline-block"></span> Verificando caja...
             </p>
           </div>
         </div>
-        <button onclick="openLoginModal()" title="Cambiar Usuario / Rol" class="p-2 rounded-xl bg-gray-800 hover:bg-indigo-600 text-gray-300 hover:text-white text-xs transition-all shrink-0">
+        <button onclick="openLoginModal()" title="Cambiar Usuario / Rol" class="action-icon-btn bg-gray-800 hover:bg-indigo-600 text-gray-300 hover:text-white text-xs shrink-0">
           <i class="fa-solid fa-user-shield"></i>
         </button>
       </div>
     </div>
   </aside>
 
-  <!-- CONTENIDO PRINCIPAL -->
-  <main class="flex-1 flex flex-col overflow-hidden relative bg-gray-100">
+  <!-- ============================================================== -->
+  <!-- CONTENIDO PRINCIPAL CON TOPBAR EJECUTIVA -->
+  <!-- ============================================================== -->
+  <main class="flex-1 flex flex-col overflow-hidden relative bg-slate-50">
+
+    <!-- BARRA SUPERIOR EJECUTIVA (TOPBAR) -->
+    <header class="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 z-10 select-none">
+      <div class="flex items-center gap-3 min-w-0">
+        <h2 id="topbar-section-title" class="text-sm md:text-base font-extrabold text-slate-900 truncate">
+          Asistente Inteligente de Mostrador
+        </h2>
+        <span class="text-slate-300 hidden sm:inline">|</span>
+        <button onclick="switchTab('cash')" id="topbar-cash-badge" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200">
+          <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+          <span>Verificando turno...</span>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <div class="hidden xl:flex items-center gap-1.5 text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+          <i class="fa-regular fa-keyboard text-slate-400"></i>
+          <span>Atajos:</span>
+          <span class="kbd-shortcut bg-white border border-slate-300 text-slate-700">F1</span>
+          <span>POS</span>
+          <span class="kbd-shortcut bg-white border border-slate-300 text-slate-700 ml-1">F2</span>
+          <span>Asistente</span>
+          <span class="kbd-shortcut bg-white border border-slate-300 text-slate-700 ml-1">F4</span>
+          <span>Cobrar</span>
+        </div>
+
+        <button onclick="switchTab('repairs')" id="topbar-repairs-badge" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 flex items-center gap-1.5">
+          <i class="fa-solid fa-screwdriver-wrench text-amber-600"></i>
+          <span id="topbar-repairs-count">Taller Técnico</span>
+        </button>
+      </div>
+    </header>
 
     <!-- ============================================================== -->
     <!-- 1. ASISTENTE DE MOSTRADOR (CON BARRA DE ORDEN FLOTANTE) -->
     <!-- ============================================================== -->
-    <section id="view-assistant" class="view-section flex flex-col flex-1 w-full h-full p-6 overflow-y-auto">
+    <section id="view-assistant" class="view-section flex flex-col flex-1 w-full h-full p-6 overflow-y-auto custom-scrollbar">
       <div class="max-w-7xl mx-auto w-full space-y-6 pb-20">
         
         <!-- HEADER DEL ASISTENTE -->
         <div class="assistant-header-banner rounded-3xl p-6 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
-          <div class="space-y-1 text-center md:text-left">
-            <span class="bg-indigo-500/30 text-indigo-200 text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider border border-indigo-400/40">
-              <i class="fa-solid fa-wand-magic-sparkles mr-1 text-yellow-300"></i> Asistente de Consulta Inmediata
+          <div class="space-y-1.5 text-center md:text-left">
+            <span class="bg-indigo-900 text-indigo-200 text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider border border-indigo-700 inline-block">
+              <i class="fa-solid fa-wand-magic-sparkles mr-1 text-yellow-300"></i> Búsqueda Instantánea de Compatibilidades
             </span>
-            <h2 class="text-2xl md:text-3xl font-black tracking-tight text-white mt-2">
+            <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white mt-1">
               ¿Qué celular trae el cliente?
             </h2>
-            <p class="text-xs md:text-sm text-gray-200 max-w-xl">
-              Selecciona el modelo para descubrir al instante todas las fundas, micas 9D, cerámicas, protectores de cámara y repuestos compatibles. Puedes agregar múltiples accesorios a la orden sin salir de aquí.
+            <p class="text-xs md:text-sm text-gray-200 max-w-xl leading-relaxed">
+              Selecciona el modelo para descubrir al instante todas las fundas, micas 9D, cerámicas, protectores de cámara y repuestos compatibles sin cambiar de pantalla.
             </p>
           </div>
 
           <!-- SELECTOR RÁPIDO DE MODELO -->
-          <div class="w-full md:w-96 bg-gray-900/80 p-4 rounded-2xl border border-indigo-500/40 space-y-3 shrink-0">
+          <div class="w-full md:w-96 bg-slate-900 p-4 rounded-2xl border border-indigo-800 space-y-3 shrink-0 shadow-lg">
             <div>
-              <label class="text-[10px] font-bold text-indigo-200 uppercase block mb-1">1. Marca</label>
-              <select id="assistant-brand-select" onchange="onAssistantBrandChange()" class="assistant-select-box w-full p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-400">
+              <label class="text-[11px] font-semibold text-indigo-200 uppercase tracking-wider block mb-1">1. Marca del Equipo</label>
+              <select id="assistant-brand-select" onchange="onAssistantBrandChange()" class="assistant-select-box w-full p-2.5 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-400">
                 <option value="">-- Seleccionar Marca --</option>
               </select>
             </div>
             <div>
-              <label class="text-[10px] font-bold text-indigo-200 uppercase block mb-1">2. Modelo del Cliente</label>
-              <select id="assistant-model-select" onchange="loadAssistantModelData()" class="assistant-select-box w-full p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-400">
+              <label class="text-[11px] font-semibold text-indigo-200 uppercase tracking-wider block mb-1">2. Modelo del Cliente</label>
+              <select id="assistant-model-select" onchange="loadAssistantModelData()" class="assistant-select-box w-full p-2.5 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-400">
                 <option value="">-- Primero elija una marca --</option>
               </select>
             </div>
@@ -225,12 +446,12 @@
 
         <!-- RESULTADOS 360° DEL MODELO SELECCIONADO -->
         <div id="assistant-results-container" class="space-y-6">
-          <div class="bg-white rounded-3xl p-12 text-center border border-gray-200 shadow-sm space-y-3">
-            <div class="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl mx-auto shadow-inner">
+          <div class="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm space-y-3">
+            <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl mx-auto">
               <i class="fa-solid fa-mobile-screen"></i>
             </div>
-            <h3 class="text-lg font-black text-gray-800">Seleccione un modelo en el panel superior</h3>
-            <p class="text-xs text-gray-400 max-w-md mx-auto">
+            <h3 class="text-base font-bold text-slate-800">Seleccione un modelo en el panel superior</h3>
+            <p class="text-xs text-slate-500 max-w-md mx-auto">
               Podrá armar el combo completo (Case + Mica + Cargador) para ese teléfono con un solo clic por cada accesorio.
             </p>
           </div>
@@ -239,25 +460,25 @@
       </div>
 
       <!-- BARRA FLOTANTE INFERIOR DE ORDEN ACTIVA EN ASISTENTE -->
-      <div id="assistant-cart-bar" class="hidden fixed bottom-6 left-72 right-8 bg-gray-950/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl border border-indigo-500/40 flex items-center justify-between z-30 transition-all">
+      <div id="assistant-cart-bar" class="hidden fixed bottom-6 left-72 right-8 bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-indigo-500 flex items-center justify-between z-30 transition-all">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-base shadow-md">
-            <i class="fa-solid fa-cart-shopping"></i>
+          <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-base shadow-md">
+            <i class="fa-solid fa-bag-shopping"></i>
           </div>
           <div>
-            <p class="text-xs font-black text-white" id="assistant-cart-summary">Orden: 0 productos</p>
-            <p class="text-[10px] text-gray-300 font-medium">Accesorios seleccionados listos para cobrar</p>
+            <p class="text-sm font-bold text-white" id="assistant-cart-summary">Orden: 0 productos</p>
+            <p class="text-xs text-gray-300">Accesorios seleccionados listos para cobrar</p>
           </div>
         </div>
         <div class="flex items-center gap-3">
-          <div class="text-right">
-            <span class="text-[10px] text-gray-400 font-bold block">Total a Pagar:</span>
-            <span class="text-base font-black text-green-400" id="assistant-cart-total">S/ 0.00</span>
+          <div class="text-right mr-2">
+            <span class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold block">Total a Pagar</span>
+            <span class="text-lg font-extrabold text-green-400 font-mono-code tabular-nums" id="assistant-cart-total">S/ 0.00</span>
           </div>
-          <button onclick="switchTab('pos'); openPaymentModal();" class="bg-green-600 hover:bg-green-700 text-white font-black px-5 py-2.5 rounded-xl text-xs shadow-lg shadow-green-600/30 flex items-center gap-2">
-            <i class="fa-solid fa-money-bill-wave"></i> Cobrar Ahora
+          <button onclick="switchTab('pos'); openPaymentModal();" class="bg-green-600 hover:bg-green-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-lg flex items-center gap-2">
+            <i class="fa-solid fa-cash-register"></i> Cobrar Ahora
           </button>
-          <button onclick="switchTab('pos')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md flex items-center gap-2">
+          <button onclick="switchTab('pos')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2.5 rounded-xl text-xs shadow-md flex items-center gap-2">
             Ver en POS <i class="fa-solid fa-arrow-right"></i>
           </button>
         </div>
@@ -270,24 +491,24 @@
     <section id="view-pos" class="view-section hidden w-full h-full flex flex-row overflow-hidden">
       
       <!-- COLUMNA IZQUIERDA: CATÁLOGO Y FILTROS -->
-      <div class="flex-1 flex flex-col border-r border-gray-200 bg-white min-w-0 h-full overflow-hidden">
+      <div class="flex-1 flex flex-col border-r border-slate-200 bg-slate-50 min-w-0 h-full overflow-hidden">
         
         <!-- BARRA DE FILTROS -->
-        <div class="p-4 border-b border-gray-200 flex flex-col gap-3 shadow-sm z-10 shrink-0 bg-gray-50">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-white p-3 rounded-2xl border border-indigo-100 shadow-sm">
+        <div class="p-4 border-b border-slate-200 flex flex-col gap-3 bg-white shrink-0">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
             <div>
-              <label class="text-[10px] font-black text-indigo-900 uppercase tracking-wider block mb-1">
+              <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
                 <i class="fa-solid fa-filter text-indigo-600 mr-1"></i> Filtrar por Marca
               </label>
-              <select id="pos-brand-filter" onchange="onBrandFilterChange()" class="w-full p-2 border border-gray-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50">
+              <select id="pos-brand-filter" onchange="onBrandFilterChange()" class="w-full p-2 border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                 <option value="">-- Todas las Marcas --</option>
               </select>
             </div>
             <div>
-              <label class="text-[10px] font-black text-indigo-900 uppercase tracking-wider block mb-1">
-                <i class="fa-solid fa-mobile-retro text-indigo-600 mr-1"></i> Modelo del Cliente
+              <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
+                <i class="fa-solid fa-mobile-retro text-indigo-600 mr-1"></i> Modelo Compatible
               </label>
-              <select id="pos-model-filter" onchange="renderProducts()" class="w-full p-2 border border-gray-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50">
+              <select id="pos-model-filter" onchange="renderProducts()" class="w-full p-2 border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                 <option value="">-- Todos los Modelos --</option>
               </select>
             </div>
@@ -296,48 +517,65 @@
           <!-- BÚSQUEDA TEXTUAL -->
           <div class="flex gap-2 items-center">
             <div class="relative flex-1">
-              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-sm"></i>
-              <input type="text" id="search-input" oninput="renderProducts()" placeholder="Buscar producto, SKU, categoría o celular..." 
-                class="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold bg-white shadow-sm">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+              <input type="text" id="search-input" oninput="renderProducts()" placeholder="Buscar producto, código SKU, categoría o modelo compatible..." 
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
             </div>
-            <button onclick="clearModelFilters()" class="px-3 py-2 bg-gray-200 text-gray-700 font-bold rounded-xl text-xs hover:bg-gray-300">
+            <button onclick="clearModelFilters()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs border border-slate-200">
               <i class="fa-solid fa-rotate-left mr-1"></i> Limpiar
             </button>
           </div>
         </div>
 
         <!-- GRID DE PRODUCTOS -->
-        <div class="p-4 overflow-y-auto flex-1 bg-gray-50 custom-scrollbar">
-          <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        <div class="p-4 overflow-y-auto flex-1 bg-slate-50 custom-scrollbar">
+          <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5"></div>
         </div>
       </div>
 
       <!-- COLUMNA DERECHA: ORDEN DE VENTA (FIJA Y VISIBLE SIEMPRE) -->
-      <div class="w-80 md:w-96 lg:w-[400px] bg-white flex flex-col shrink-0 h-full border-l border-gray-200 shadow-xl z-20">
-        <div class="p-4 border-b border-gray-200 flex justify-between items-center shrink-0 bg-gray-50">
-          <h2 class="font-black text-gray-800 flex items-center gap-2 text-sm">
-            <i class="fa-solid fa-cart-shopping text-indigo-600"></i> Orden de Venta
-          </h2>
-          <button onclick="clearCart()" class="text-xs text-red-500 font-bold hover:underline bg-red-50 px-2.5 py-1.5 rounded-md">Vaciar</button>
+      <div class="w-80 md:w-96 bg-white flex flex-col shrink-0 h-full border-l border-slate-200 shadow-xl z-20">
+        <div class="p-4 border-b border-slate-200 flex justify-between items-center shrink-0 bg-white">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-bag-shopping"></i>
+            </div>
+            <div>
+              <h2 class="font-bold text-slate-900 text-sm leading-tight">Orden de Venta</h2>
+              <p class="text-[11px] text-slate-400 font-medium">Detalle de artículos</p>
+            </div>
+          </div>
+          <button onclick="clearCart()" class="text-xs text-rose-600 font-semibold hover:bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-200 flex items-center gap-1">
+            <i class="fa-solid fa-trash-can"></i> Vaciar
+          </button>
         </div>
         
         <div id="cart-items" class="flex-1 overflow-y-auto custom-scrollbar p-4 divide-y divide-gray-100"></div>
         
-        <div class="p-4 border-t border-gray-200 bg-gray-50 flex flex-col gap-3 shrink-0">
-          <div class="space-y-1.5 text-xs font-bold text-gray-500">
-            <div class="flex justify-between items-center">
-              <span>Descuento Combo (S/):</span>
-              <input type="number" step="0.50" min="0" id="cart-discount" value="0.00" oninput="renderCart()" class="w-24 p-1 border border-gray-300 rounded-lg text-right font-black text-xs text-red-600 bg-white outline-none focus:ring-2 focus:ring-indigo-500">
+        <div class="p-4 border-t border-slate-200 bg-slate-50 flex flex-col gap-3 shrink-0">
+          <div class="space-y-1.5 text-xs font-medium text-slate-600">
+            <div class="flex justify-between">
+              <span>Op. Gravada (Subtotal):</span>
+              <span id="summary-subtotal" class="text-slate-800 font-mono-code tabular-nums font-semibold">S/ 0.00</span>
             </div>
-            <div class="flex justify-between"><span>Subtotal:</span><span id="summary-subtotal" class="text-gray-800">S/ 0.00</span></div>
-            <div class="flex justify-between"><span>IGV (18%):</span><span id="summary-tax" class="text-gray-800">S/ 0.00</span></div>
-            <div class="flex justify-between text-base font-black text-gray-900 pt-2 border-t border-gray-200">
-              <span>TOTAL:</span><span id="summary-total" class="text-indigo-600 text-lg">S/ 0.00</span>
+            <div class="flex justify-between">
+              <span>IGV (18%):</span>
+              <span id="summary-tax" class="text-slate-800 font-mono-code tabular-nums font-semibold">S/ 0.00</span>
+            </div>
+            <div class="flex justify-between items-center text-rose-600 font-semibold pt-1">
+              <span><i class="fa-solid fa-tag mr-1"></i>Descuento Combo (S/):</span>
+              <input type="number" step="0.50" min="0" id="cart-discount" value="0.00" oninput="renderCart()" class="w-24 px-2 py-1 border border-rose-200 rounded-lg text-right font-mono-code tabular-nums font-bold text-xs text-rose-600 bg-white outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div class="flex justify-between items-baseline text-slate-900 pt-2.5 border-t border-slate-200">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total a Cobrar:</span>
+              <span id="summary-total" class="text-indigo-600 text-xl font-extrabold font-mono-code tabular-nums">S/ 0.00</span>
             </div>
           </div>
           <button onclick="openPaymentModal()" id="btn-pay" disabled 
-            class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-black py-3 rounded-xl text-xs shadow-lg shadow-indigo-600/30 transition-all uppercase tracking-wider">
-            <i class="fa-solid fa-money-bill-wave mr-1"></i> Cobrar y Emitir Ticket
+            class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-bold py-3.5 rounded-xl text-xs shadow-lg transition-all flex items-center justify-center gap-2">
+            <i class="fa-solid fa-cash-register"></i>
+            <span>Procesar Cobro y Ticket</span>
+            <span class="kbd-shortcut bg-indigo-800 text-indigo-100">F4</span>
           </button>
         </div>
       </div>
@@ -347,47 +585,47 @@
     <!-- ============================================================== -->
     <!-- 3. MATRIZ DE COMPATIBILIDAD & AUDITORÍA DE STOCK -->
     <!-- ============================================================== -->
-    <section id="view-compatibility" class="view-section hidden p-6 overflow-y-auto w-full h-full">
-      <div class="max-w-7xl mx-auto space-y-6 w-full">
+    <section id="view-compatibility" class="view-section hidden p-6 overflow-y-auto custom-scrollbar w-full h-full">
+      <div class="max-w-7xl mx-auto space-y-5 w-full">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h2 class="text-2xl font-black text-gray-800 flex items-center gap-2">
+            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
               <i class="fa-solid fa-layer-group text-indigo-600"></i> Matriz de Compatibilidades & Cobertura
             </h2>
-            <p class="text-xs text-gray-500 font-medium">Auditoría de abastecimiento de micas/cases y asignador rápido multimodelo.</p>
+            <p class="text-xs text-slate-500 font-medium">Auditoría de abastecimiento de micas/cases y asignador rápido multimodelo.</p>
           </div>
           <div class="flex flex-wrap gap-2">
-            <button onclick="openBulkCompatModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center gap-2">
+            <button onclick="openBulkCompatModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm flex items-center gap-2">
               <i class="fa-solid fa-link"></i> Asignador Rápido Multimodelo
             </button>
-            <button onclick="openBrandModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center gap-2">
+            <button onclick="openBrandModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm flex items-center gap-2">
               <i class="fa-solid fa-plus"></i> Nueva Marca
             </button>
-            <button onclick="openModelModal()" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center gap-2">
+            <button onclick="openModelModal()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm flex items-center gap-2">
               <i class="fa-solid fa-mobile-retro"></i> Nuevo Modelo
             </button>
           </div>
         </div>
 
         <!-- TABS DE MATRIZ -->
-        <div class="flex border-b border-gray-200 gap-4">
+        <div class="flex border-b border-slate-200 gap-6">
           <button onclick="switchCompatSubtab('coverage')" id="subtab-btn-coverage" class="font-bold text-xs pb-3 border-b-2 border-indigo-600 text-indigo-600">
             <i class="fa-solid fa-chart-simple mr-1"></i> Auditoría de Abastecimiento por Modelo
           </button>
-          <button onclick="switchCompatSubtab('catalog')" id="subtab-btn-catalog" class="font-bold text-xs pb-3 border-b-2 border-transparent text-gray-400 hover:text-gray-700">
+          <button onclick="switchCompatSubtab('catalog')" id="subtab-btn-catalog" class="font-semibold text-xs pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800">
             <i class="fa-solid fa-list-check mr-1"></i> Catálogo Completo de Marcas y Modelos
           </button>
         </div>
 
         <div id="subtab-coverage" class="space-y-4">
-          <div class="flex justify-between items-center bg-white p-3 rounded-2xl border border-gray-200">
-            <div class="flex gap-2 items-center">
-              <span class="text-xs font-bold text-gray-600">Filtro rápido:</span>
-              <button onclick="filterCoverage('all')" id="cov-filter-all" class="px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-bold">Todos</button>
-              <button onclick="filterCoverage('needsMicas')" id="cov-filter-needsMicas" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold hover:bg-red-50 hover:text-red-600">⚠️ Sin Micas</button>
-              <button onclick="filterCoverage('needsCases')" id="cov-filter-needsCases" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold hover:bg-yellow-50 hover:text-yellow-800">⚠️ Sin Cases</button>
+          <div class="flex flex-wrap justify-between items-center bg-white p-3.5 rounded-2xl border border-slate-200 gap-2">
+            <div class="flex flex-wrap gap-2 items-center">
+              <span class="text-xs font-semibold text-slate-600">Filtro rápido:</span>
+              <button onclick="filterCoverage('all')" id="cov-filter-all" class="px-3.5 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold">Todos</button>
+              <button onclick="filterCoverage('needsMicas')" id="cov-filter-needsMicas" class="px-3.5 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-rose-50 hover:text-rose-700">⚠️ Sin Micas</button>
+              <button onclick="filterCoverage('needsCases')" id="cov-filter-needsCases" class="px-3.5 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-amber-50 hover:text-amber-800">⚠️ Sin Cases</button>
             </div>
-            <span class="text-xs font-bold text-gray-400" id="cov-count-label">Cargando modelos...</span>
+            <span class="text-xs font-semibold text-slate-500" id="cov-count-label">Cargando modelos...</span>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="coverage-grid"></div>
         </div>
@@ -399,36 +637,41 @@
     <!-- ============================================================== -->
     <!-- 4. INVENTARIO & ALMACÉN -->
     <!-- ============================================================== -->
-    <section id="view-inventory" class="view-section hidden p-6 overflow-y-auto w-full h-full">
-      <div class="max-w-7xl mx-auto space-y-4 w-full">
-        <div class="flex justify-between items-center mb-2">
+    <section id="view-inventory" class="view-section hidden p-6 overflow-y-auto custom-scrollbar w-full h-full">
+      <div class="max-w-7xl mx-auto space-y-5 w-full">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 class="text-2xl font-black text-gray-800 flex items-center gap-2">
+            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
               <i class="fa-solid fa-boxes-stacked text-indigo-600"></i> Inventario de Celulares y Accesorios
             </h2>
-            <p class="text-xs text-gray-500 font-medium">Control de stock, precios y modelos compatibles asociados.</p>
+            <p class="text-xs text-slate-500 font-medium">Control de stock, costos, precios de venta y modelos compatibles asociados.</p>
           </div>
-          <button onclick="openProductModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center gap-2">
-            <i class="fa-solid fa-plus"></i> Registrar Producto / Accesorio
-          </button>
+          <div class="flex gap-2">
+            <button onclick="openImeiEntryModal()" class="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm flex items-center gap-2">
+              <i class="fa-solid fa-barcode text-indigo-600"></i> Lote IMEIs
+            </button>
+            <button onclick="openProductModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm flex items-center gap-2">
+              <i class="fa-solid fa-plus"></i> Nuevo Producto
+            </button>
+          </div>
         </div>
 
-        <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-          <div class="p-4 border-b border-gray-100 flex gap-4 items-center">
-            <div class="relative flex-1">
-              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-xs"></i>
-              <input type="text" id="inv-search" oninput="renderInventoryTable()" placeholder="Buscar en inventario..." class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-200 bg-slate-50 flex gap-4 items-center">
+            <div class="relative flex-1 max-w-md">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+              <input type="text" id="inv-search" oninput="renderInventoryTable()" placeholder="Filtrar por código SKU, nombre o categoría..." class="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-gray-600">
-              <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
+            <table class="w-full text-left text-slate-700">
+              <thead>
                 <tr>
                   <th class="p-4">SKU / Código</th>
-                  <th class="p-4">Producto</th>
+                  <th class="p-4">Producto / Descripción</th>
                   <th class="p-4">Categoría</th>
                   <th class="p-4">Compatibilidad con Celulares</th>
-                  <th class="p-4 text-right">P. Compra</th>
+                  <th class="p-4 text-right">Costo</th>
                   <th class="p-4 text-right">P. Venta</th>
                   <th class="p-4 text-center">Stock</th>
                   <th class="p-4 text-center">Acciones</th>
@@ -444,33 +687,33 @@
     <!-- ============================================================== -->
     <!-- 5. RASTREADOR Y GESTIÓN DE IMEIS -->
     <!-- ============================================================== -->
-    <section id="view-imeis" class="view-section hidden p-6 overflow-y-auto w-full h-full">
-      <div class="max-w-7xl mx-auto space-y-6 w-full">
+    <section id="view-imeis" class="view-section hidden p-6 overflow-y-auto custom-scrollbar w-full h-full">
+      <div class="max-w-7xl mx-auto space-y-5 w-full">
         <div class="flex justify-between items-center">
           <div>
-            <h2 class="text-2xl font-black text-gray-800 flex items-center gap-2">
+            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
               <i class="fa-solid fa-barcode text-indigo-600"></i> Rastreador & Trazabilidad de IMEIs
             </h2>
-            <p class="text-xs text-gray-500 font-medium">Historial completo por IMEI: ingreso, estado de venta, comprobante y cliente.</p>
+            <p class="text-xs text-slate-500 font-medium">Historial completo por IMEI: ingreso, estado en vitrina, comprobante de venta y comprador.</p>
           </div>
-          <button onclick="openImeiEntryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center gap-2">
+          <button onclick="openImeiEntryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm flex items-center gap-2">
             <i class="fa-solid fa-plus"></i> Registrar Lote de IMEIs
           </button>
         </div>
 
-        <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm space-y-4">
-          <div class="flex gap-2">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex gap-2.5">
             <div class="relative flex-1">
-              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-gray-400 text-sm"></i>
-              <input type="text" id="imei-tracker-input" onkeyup="if(event.key==='Enter') searchImeiTracker()" placeholder="Ingrese o escanee el código IMEI (15 dígitos)..." class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+              <input type="text" id="imei-tracker-input" onkeyup="if(event.key==='Enter') searchImeiTracker()" placeholder="Ingrese o escanee el código IMEI (15 dígitos)..." class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-xs font-mono-code font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
-            <button onclick="searchImeiTracker()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-bold text-xs shadow-md">
+            <button onclick="searchImeiTracker()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-semibold text-xs shadow-sm">
               Buscar IMEI
             </button>
           </div>
 
           <div id="imei-tracker-results" class="space-y-3">
-            <div class="text-center py-8 text-gray-400 font-medium text-xs">Escriba un código IMEI o busque para ver su trazabilidad.</div>
+            <div class="text-center py-8 text-slate-400 font-medium text-xs">Escriba un código IMEI o busque para ver su trazabilidad.</div>
           </div>
         </div>
       </div>
@@ -479,31 +722,31 @@
     <!-- ============================================================== -->
     <!-- 6. HISTORIAL DE VENTAS, TICKETS & ANULACIONES -->
     <!-- ============================================================== -->
-    <section id="view-sales-history" class="view-section hidden p-6 overflow-y-auto w-full h-full">
-      <div class="max-w-7xl mx-auto space-y-4 w-full">
+    <section id="view-sales-history" class="view-section hidden p-6 overflow-y-auto custom-scrollbar w-full h-full">
+      <div class="max-w-7xl mx-auto space-y-5 w-full">
         <div>
-          <h2 class="text-2xl font-black text-gray-800 flex items-center gap-2">
+          <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
             <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> Historial de Ventas & Comprobantes
           </h2>
-          <p class="text-xs text-gray-500 font-medium">Consulte comprobantes emitidos, reimprima tickets térmicos o anule ventas con liberación de stock e IMEIs.</p>
+          <p class="text-xs text-slate-500 font-medium">Consulte comprobantes emitidos, reimprima tickets térmicos o anule ventas con reversión de stock e IMEIs.</p>
         </div>
 
-        <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-          <div class="p-4 border-b border-gray-100 flex gap-4 items-center">
-            <div class="relative flex-1">
-              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-xs"></i>
-              <input type="text" id="sales-search" oninput="renderSalesHistoryTable()" placeholder="Buscar por ticket, cliente o método de pago..." class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-200 bg-slate-50 flex gap-4 items-center">
+            <div class="relative flex-1 max-w-md">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+              <input type="text" id="sales-search" oninput="renderSalesHistoryTable()" placeholder="Buscar por comprobante, cliente o método de pago..." class="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-gray-600">
-              <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
+            <table class="w-full text-left text-slate-700">
+              <thead>
                 <tr>
                   <th class="p-4">Comprobante</th>
                   <th class="p-4">Fecha / Hora</th>
                   <th class="p-4">Cliente</th>
                   <th class="p-4">Método de Pago</th>
-                  <th class="p-4">Productos / IMEIs</th>
+                  <th class="p-4">Artículos / IMEIs</th>
                   <th class="p-4 text-right">Total</th>
                   <th class="p-4 text-center">Estado</th>
                   <th class="p-4 text-center">Acciones</th>
@@ -519,14 +762,14 @@
     <!-- ============================================================== -->
     <!-- 7. CONTROL DE CAJA, ARQUEO Z & TABLA DE MOVIMIENTOS -->
     <!-- ============================================================== -->
-    <section id="view-cash" class="view-section hidden p-6 overflow-y-auto w-full h-full">
+    <section id="view-cash" class="view-section hidden p-6 overflow-y-auto custom-scrollbar w-full h-full">
       <div class="max-w-7xl mx-auto space-y-6 w-full pb-10">
         <div class="flex justify-between items-center">
           <div>
-            <h2 class="text-2xl font-black text-gray-800 flex items-center gap-2">
+            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
               <i class="fa-solid fa-vault text-indigo-600"></i> Control de Caja & Arqueo Z
             </h2>
-            <p class="text-xs text-gray-500 font-medium">Apertura de turno, movimientos de gastos/ingresos, impresión térmica de Arqueo Z e historial de cierres.</p>
+            <p class="text-xs text-slate-500 font-medium">Apertura de turno, movimientos de gastos/ingresos, impresión térmica de Arqueo Z e historial de cierres.</p>
           </div>
         </div>
 
@@ -538,33 +781,35 @@
     <!-- ============================================================== -->
     <!-- 8. CRM & CRÉDITOS (CON ABONOS, EDICIÓN Y ESTADO DE CUENTA) -->
     <!-- ============================================================== -->
-    <section id="view-fiados" class="view-section hidden p-6 overflow-y-auto w-full h-full">
-      <div class="max-w-7xl mx-auto space-y-4 w-full">
+    <section id="view-fiados" class="view-section hidden p-6 overflow-y-auto custom-scrollbar w-full h-full">
+      <div class="max-w-7xl mx-auto space-y-5 w-full">
         <div class="flex justify-between items-center">
           <div>
-            <h2 class="text-2xl font-black text-gray-800 flex items-center gap-2">
+            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
               <i class="fa-solid fa-hand-holding-dollar text-indigo-600"></i> CRM & Créditos a Clientes
             </h2>
-            <p class="text-xs text-gray-500 font-medium">Registro y edición de clientes, estado de cuenta histórico, deudas por crédito y emisión de recibos de abono.</p>
+            <p class="text-xs text-slate-500 font-medium">Registro y edición de clientes, estado de cuenta histórico, deudas por crédito y emisión de recibos de abono.</p>
           </div>
-          <button onclick="openCustomerModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center gap-2">
+          <button onclick="openCustomerModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm flex items-center gap-2">
             <i class="fa-solid fa-user-plus"></i> Registrar Cliente
           </button>
         </div>
-        <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-          <table class="w-full text-left text-xs text-gray-600">
-            <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-[10px]">
-              <tr>
-                <th class="p-4">DNI / RUC</th>
-                <th class="p-4">Cliente / Razón Social</th>
-                <th class="p-4">Teléfono</th>
-                <th class="p-4">Dirección</th>
-                <th class="p-4 text-right">Deuda Pendiente</th>
-                <th class="p-4 text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="fiados-table-body" class="divide-y divide-gray-100 font-medium"></tbody>
-          </table>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-slate-700">
+              <thead>
+                <tr>
+                  <th class="p-4">DNI / RUC</th>
+                  <th class="p-4">Cliente / Razón Social</th>
+                  <th class="p-4">Teléfono</th>
+                  <th class="p-4">Dirección</th>
+                  <th class="p-4 text-right">Deuda Pendiente</th>
+                  <th class="p-4 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="fiados-table-body" class="divide-y divide-gray-100 font-medium"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -572,37 +817,37 @@
     <!-- ============================================================== -->
     <!-- 9. SERVICIO TÉCNICO / TALLER DE REPARACIONES -->
     <!-- ============================================================== -->
-    <section id="view-repairs" class="view-section hidden p-6 overflow-y-auto w-full h-full">
-      <div class="max-w-7xl mx-auto space-y-4 w-full pb-10">
+    <section id="view-repairs" class="view-section hidden p-6 overflow-y-auto custom-scrollbar w-full h-full">
+      <div class="max-w-7xl mx-auto space-y-5 w-full pb-10">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h2 class="text-2xl font-black text-gray-800 flex items-center gap-2">
+            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
               <i class="fa-solid fa-screwdriver-wrench text-indigo-600"></i> Servicio Técnico & Taller de Reparaciones
             </h2>
-            <p class="text-xs text-gray-500 font-medium">Recepción de equipos, diagnóstico, seguimiento de estado, cobro de adelantos/saldos y ticket térmico de orden.</p>
+            <p class="text-xs text-slate-500 font-medium">Recepción de equipos, diagnóstico, seguimiento de estado, cobro de adelantos/saldos y ticket térmico de orden.</p>
           </div>
-          <button onclick="openRepairModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center gap-2">
+          <button onclick="openRepairModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm flex items-center gap-2">
             <i class="fa-solid fa-plus"></i> Nueva Orden de Servicio
           </button>
         </div>
 
-        <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-          <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row justify-between gap-3 items-center">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row justify-between gap-3 items-center">
             <div class="flex flex-wrap gap-1.5 items-center">
-              <button onclick="filterRepairs('all')" id="rep-filter-all" class="px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold">Todos</button>
-              <button onclick="filterRepairs('Recibido')" id="rep-filter-Recibido" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold">Recibidos</button>
-              <button onclick="filterRepairs('En Reparación')" id="rep-filter-En Reparación" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold">En Reparación</button>
-              <button onclick="filterRepairs('Listo')" id="rep-filter-Listo" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold">Listos p/ Entrega</button>
-              <button onclick="filterRepairs('Entregado')" id="rep-filter-Entregado" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold">Entregados</button>
+              <button onclick="filterRepairs('all')" id="rep-filter-all" class="px-3.5 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold">Todos</button>
+              <button onclick="filterRepairs('Recibido')" id="rep-filter-Recibido" class="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Recibidos</button>
+              <button onclick="filterRepairs('En Reparación')" id="rep-filter-En Reparación" class="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold">En Reparación</button>
+              <button onclick="filterRepairs('Listo')" id="rep-filter-Listo" class="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Listos p/ Entrega</button>
+              <button onclick="filterRepairs('Entregado')" id="rep-filter-Entregado" class="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Entregados</button>
             </div>
-            <div class="relative w-full md:w-72">
-              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-xs"></i>
-              <input type="text" id="repairs-search" oninput="renderRepairsTable()" placeholder="Buscar por orden, cliente, equipo o IMEI..." class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+            <div class="relative w-full md:w-80">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+              <input type="text" id="repairs-search" oninput="renderRepairsTable()" placeholder="Buscar por orden, cliente, equipo o IMEI..." class="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-gray-600">
-              <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
+            <table class="w-full text-left text-slate-700">
+              <thead>
                 <tr>
                   <th class="p-4">Orden</th>
                   <th class="p-4">Ingreso</th>
@@ -622,76 +867,80 @@
     </section>
 
     <!-- ============================================================== -->
-    <!-- 10. DASHBOARD -->
+    <!-- 10. DASHBOARD EJECUTIVO -->
     <!-- ============================================================== -->
-    <section id="view-dashboard" class="view-section hidden p-6 overflow-y-auto w-full h-full">
+    <section id="view-dashboard" class="view-section hidden p-6 overflow-y-auto custom-scrollbar w-full h-full">
       <div class="max-w-7xl mx-auto space-y-6 w-full pb-10">
-        <h2 class="text-2xl font-black text-gray-800 flex items-center gap-2">
-          <i class="fa-solid fa-chart-pie text-indigo-600"></i> Métricas del Negocio CELLVENTAS
-        </h2>
+        <div>
+          <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie text-indigo-600"></i> Dashboard Ejecutivo CELLVENTAS
+          </h2>
+          <p class="text-xs text-slate-500 font-medium">Resumen financiero diario, rentabilidad y control de reposición de inventario.</p>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-sack-dollar"></i></div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-sack-dollar"></i></div>
             <div>
-              <p class="text-[10px] font-bold text-gray-400 uppercase">Ventas de Hoy</p>
-              <p class="text-lg font-black text-gray-900" id="dash-sales">S/ 0.00</p>
+              <p class="text-[11px] font-semibold text-slate-500">Ventas de Hoy</p>
+              <p class="text-lg font-extrabold text-slate-900 font-mono-code tabular-nums" id="dash-sales">S/ 0.00</p>
             </div>
           </div>
-          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-3.5" id="dash-profit-card">
-            <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-chart-line"></i></div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5" id="dash-profit-card">
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-chart-line"></i></div>
             <div>
-              <p class="text-[10px] font-bold text-gray-400 uppercase">Ganancia Neta Hoy</p>
-              <p class="text-lg font-black text-emerald-600" id="dash-profit">S/ 0.00</p>
+              <p class="text-[11px] font-semibold text-slate-500">Utilidad Hoy</p>
+              <p class="text-lg font-extrabold text-emerald-600 font-mono-code tabular-nums" id="dash-profit">S/ 0.00</p>
             </div>
           </div>
-          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-receipt"></i></div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-receipt"></i></div>
             <div>
-              <p class="text-[10px] font-bold text-gray-400 uppercase">Tickets Emitidos</p>
-              <p class="text-lg font-black text-gray-900" id="dash-tickets">0</p>
+              <p class="text-[11px] font-semibold text-slate-500">Tickets Hoy</p>
+              <p class="text-lg font-extrabold text-slate-900 font-mono-code tabular-nums" id="dash-tickets">0</p>
             </div>
           </div>
-          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-2xl bg-yellow-100 text-yellow-800 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-hand-holding-dollar"></i></div>
             <div>
-              <p class="text-[10px] font-bold text-gray-400 uppercase">Créditos Pendientes</p>
-              <p class="text-lg font-black text-yellow-600" id="dash-total-fiado">S/ 0.00</p>
+              <p class="text-[11px] font-semibold text-slate-500">Por Cobrar</p>
+              <p class="text-lg font-extrabold text-amber-700 font-mono-code tabular-nums" id="dash-total-fiado">S/ 0.00</p>
             </div>
           </div>
-          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></div>
             <div>
-              <p class="text-[10px] font-bold text-gray-400 uppercase">Stock Crítico</p>
-              <p class="text-lg font-black text-red-600" id="dash-low-stock">0</p>
+              <p class="text-[11px] font-semibold text-slate-500">Stock Crítico</p>
+              <p class="text-lg font-extrabold text-rose-600 font-mono-code tabular-nums" id="dash-low-stock">0</p>
             </div>
           </div>
-          <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-star"></i></div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-star"></i></div>
             <div class="min-w-0">
-              <p class="text-[10px] font-bold text-gray-400 uppercase">Accesorio Top</p>
-              <p class="text-xs font-black text-gray-900 truncate" id="dash-top-product">--</p>
+              <p class="text-[11px] font-semibold text-slate-500">Top Ventas</p>
+              <p class="text-xs font-bold text-slate-900 truncate" id="dash-top-product">--</p>
             </div>
           </div>
         </div>
 
         <!-- TABLA DE ALERTAS DE REPOSICIÓN DE STOCK CRÍTICO -->
-        <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-          <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-            <h3 class="font-black text-xs text-gray-800 flex items-center gap-2">
-              <i class="fa-solid fa-boxes-packing text-red-500"></i> Alertas de Reposición: Productos con Stock Crítico (Stock &le; Mínimo)
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+            <h3 class="font-bold text-xs text-slate-800 flex items-center gap-2 uppercase tracking-wider">
+              <i class="fa-solid fa-boxes-packing text-rose-600"></i> Alertas de Reposición: Productos con Stock Crítico (Stock &le; Mínimo)
             </h3>
-            <button onclick="switchTab('inventory')" class="text-xs font-bold text-indigo-600 hover:underline">Ir a Inventario <i class="fa-solid fa-arrow-right ml-1"></i></button>
+            <button onclick="switchTab('inventory')" class="text-xs font-semibold text-indigo-600 hover:underline">Ir a Inventario <i class="fa-solid fa-arrow-right ml-1"></i></button>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-gray-600">
-              <thead class="bg-gray-50 text-gray-400 font-bold uppercase text-[10px]">
+            <table class="w-full text-left text-slate-700">
+              <thead>
                 <tr>
-                  <th class="p-3.5">SKU</th>
-                  <th class="p-3.5">Producto / Accesorio</th>
-                  <th class="p-3.5">Categoría</th>
-                  <th class="p-3.5 text-center">Stock Actual</th>
-                  <th class="p-3.5 text-center">Stock Mínimo</th>
-                  <th class="p-3.5 text-right">Precio Venta</th>
+                  <th class="p-4">SKU</th>
+                  <th class="p-4">Producto / Accesorio</th>
+                  <th class="p-4">Categoría</th>
+                  <th class="p-4 text-center">Stock Actual</th>
+                  <th class="p-4 text-center">Stock Mínimo</th>
+                  <th class="p-4 text-right">Precio Venta</th>
                 </tr>
               </thead>
               <tbody id="dash-low-stock-body" class="divide-y divide-gray-100 font-medium"></tbody>
@@ -708,155 +957,155 @@
   <!-- ============================================================== -->
 
   <!-- MODAL AVISO / APERTURA RÁPIDA DE CAJA CERRADA -->
-  <div id="modal-require-cash" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4 text-center">
-      <div class="w-16 h-16 rounded-full bg-yellow-100 text-yellow-700 flex items-center justify-center text-2xl mx-auto shadow-inner">
+  <div id="modal-require-cash" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4 text-center border border-slate-200">
+      <div class="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center text-2xl mx-auto">
         <i class="fa-solid fa-lock"></i>
       </div>
-      <h3 class="font-black text-lg text-gray-800">Caja de Turno Cerrada</h3>
-      <p class="text-xs text-gray-500">Para poder emitir ventas y registrar ingresos, debe abrir el turno de caja con su saldo inicial en efectivo.</p>
+      <h3 class="font-extrabold text-lg text-slate-900">Caja de Turno Cerrada</h3>
+      <p class="text-xs text-slate-500">Para emitir ventas y registrar ingresos en mostrador, abra el turno indicando su saldo inicial en efectivo.</p>
       
-      <div class="text-left bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-3">
+      <div class="text-left bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
         <div>
-          <label class="text-xs font-bold text-gray-700 block mb-1">Monto Inicial en Efectivo (S/):</label>
-          <input type="number" step="0.50" id="modal-fast-cash-amount" value="50.00" class="w-full p-2.5 border border-gray-300 rounded-xl text-sm font-black text-indigo-900 outline-none">
+          <label class="text-xs font-semibold text-slate-700 block mb-1">Monto Inicial en Efectivo (S/):</label>
+          <input type="number" step="0.50" id="modal-fast-cash-amount" value="50.00" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm font-mono-code font-bold text-indigo-900 bg-white outline-none">
         </div>
-        <button onclick="submitFastOpenCash()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl text-xs shadow-md uppercase">
+        <button onclick="submitFastOpenCash()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-xs shadow-md uppercase">
           <i class="fa-solid fa-key mr-1"></i> Abrir Caja y Continuar
         </button>
       </div>
-      <button onclick="closeRequireCashModal()" class="text-xs font-bold text-gray-400 hover:text-gray-600">Cancelar</button>
+      <button onclick="closeRequireCashModal()" class="text-xs font-semibold text-slate-400 hover:text-slate-600">Cancelar</button>
     </div>
   </div>
 
   <!-- MODAL SELECCIONAR IMEI -->
-  <div id="modal-select-imei" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4">
+  <div id="modal-select-imei" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4 border border-slate-200">
       <div class="flex justify-between items-start">
         <div>
-          <h3 class="font-black text-base text-gray-800 flex items-center gap-2">
-            <i class="fa-solid fa-barcode text-indigo-600"></i> Seleccionar IMEI del Teléfono
+          <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-barcode text-indigo-600"></i> Seleccionar IMEI del Equipo
           </h3>
-          <p class="text-xs text-gray-500" id="modal-imei-prod-name">Producto</p>
+          <p class="text-xs text-slate-500 font-medium" id="modal-imei-prod-name">Producto</p>
         </div>
-        <button onclick="closeImeiSelectModal()" class="text-gray-400 hover:text-gray-600 text-sm font-bold"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeImeiSelectModal()" class="action-icon-btn text-slate-400 hover:text-slate-700 hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="space-y-2">
-        <label class="text-xs font-bold text-gray-600 block">IMEIs disponibles en inventario:</label>
+        <label class="text-xs font-semibold text-slate-600 block">IMEIs disponibles en vitrina:</label>
         <div id="modal-imei-list" class="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar p-1"></div>
       </div>
     </div>
   </div>
 
   <!-- MODAL COBRAR POS & PAGOS MIXTOS -->
-  <div id="modal-payment" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl p-6 space-y-4 max-h-[92vh] flex flex-col">
-      <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-        <h3 class="font-black text-lg text-gray-800 flex items-center gap-2">
+  <div id="modal-payment" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl p-6 space-y-4 max-h-[92vh] flex flex-col border border-slate-200">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-lg text-slate-900 flex items-center gap-2">
           <i class="fa-solid fa-cash-register text-indigo-600"></i> Finalizar Venta & Cobro
         </h3>
-        <button onclick="closePaymentModal()" class="text-gray-400 hover:text-gray-600 font-bold"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closePaymentModal()" class="action-icon-btn text-slate-400 hover:text-slate-700 hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <div class="space-y-3 overflow-y-auto custom-scrollbar p-1 flex-1">
+      <div class="space-y-3.5 overflow-y-auto custom-scrollbar p-1 flex-1">
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-xs font-bold text-gray-600 block mb-1">Comprobante</label>
-            <select id="modal-doc-type" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none bg-gray-50">
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Tipo de Comprobante</label>
+            <select id="modal-doc-type" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none bg-slate-50">
               <option value="Ticket">Ticket de Venta (Térmico)</option>
               <option value="Boleta">Boleta de Venta</option>
-              <option value="Factura">Factura</option>
+              <option value="Factura">Factura Comercial</option>
             </select>
           </div>
           <div>
             <div class="flex justify-between items-center mb-1">
-              <label class="text-xs font-bold text-gray-600">Cliente</label>
-              <button type="button" onclick="openCustomerModal(null, true)" class="text-[10px] font-black text-indigo-600 hover:underline">+ Nuevo</button>
+              <label class="text-xs font-semibold text-slate-600">Cliente</label>
+              <button type="button" onclick="openCustomerModal(null, true)" class="text-[11px] font-bold text-indigo-600 hover:underline">+ Nuevo</button>
             </div>
-            <select id="modal-select-customer" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none bg-gray-50"></select>
+            <select id="modal-select-customer" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none bg-slate-50"></select>
           </div>
         </div>
 
         <div>
-          <label class="text-xs font-bold text-gray-600 block mb-1">Método de Pago</label>
+          <label class="text-xs font-semibold text-slate-600 block mb-1.5">Método de Pago</label>
           <div class="grid grid-cols-3 md:grid-cols-5 gap-1.5">
-            <button onclick="setPaymentMethod('Efectivo')" id="pay-Efectivo" class="pay-btn active bg-indigo-600 text-white font-bold py-2 rounded-xl text-xs">Efectivo</button>
-            <button onclick="setPaymentMethod('Yape/Plin')" id="pay-Yape/Plin" class="pay-btn bg-gray-100 text-gray-700 font-bold py-2 rounded-xl text-xs">Yape/Plin</button>
-            <button onclick="setPaymentMethod('Tarjeta')" id="pay-Tarjeta" class="pay-btn bg-gray-100 text-gray-700 font-bold py-2 rounded-xl text-xs">Tarjeta</button>
-            <button onclick="setPaymentMethod('Mixto')" id="pay-Mixto" class="pay-btn bg-gray-100 text-gray-700 font-bold py-2 rounded-xl text-xs">Mixto</button>
-            <button onclick="setPaymentMethod('Crédito')" id="pay-Crédito" class="pay-btn bg-yellow-100 text-yellow-800 font-bold py-2 rounded-xl text-xs">Crédito</button>
+            <button onclick="setPaymentMethod('Efectivo')" id="pay-Efectivo" class="pay-btn active bg-indigo-600 text-white font-semibold py-2 rounded-xl text-xs">Efectivo</button>
+            <button onclick="setPaymentMethod('Yape/Plin')" id="pay-Yape/Plin" class="pay-btn bg-slate-100 text-slate-700 font-semibold py-2 rounded-xl text-xs">Yape/Plin</button>
+            <button onclick="setPaymentMethod('Tarjeta')" id="pay-Tarjeta" class="pay-btn bg-slate-100 text-slate-700 font-semibold py-2 rounded-xl text-xs">Tarjeta</button>
+            <button onclick="setPaymentMethod('Mixto')" id="pay-Mixto" class="pay-btn bg-slate-100 text-slate-700 font-semibold py-2 rounded-xl text-xs">Mixto</button>
+            <button onclick="setPaymentMethod('Crédito')" id="pay-Crédito" class="pay-btn bg-amber-100 text-amber-800 font-semibold py-2 rounded-xl text-xs">Crédito</button>
           </div>
         </div>
 
         <!-- CÁLCULO DE VUELTO EN EFECTIVO PURO -->
-        <div id="cash-calculator-box" class="bg-indigo-50/70 p-3 rounded-2xl border border-indigo-100 space-y-2">
+        <div id="cash-calculator-box" class="bg-indigo-50 p-3.5 rounded-2xl border border-indigo-100 space-y-2">
           <div class="flex justify-between items-center">
-            <label class="text-xs font-bold text-indigo-950">Monto Recibido en Efectivo (S/):</label>
-            <input type="number" step="0.50" id="tendered-amount" oninput="calculateChange()" class="w-28 p-1.5 border border-indigo-200 rounded-lg text-right font-black text-sm outline-none bg-white text-indigo-900">
+            <label class="text-xs font-semibold text-indigo-900">Monto Recibido en Efectivo (S/):</label>
+            <input type="number" step="0.50" id="tendered-amount" oninput="calculateChange()" class="w-32 p-1.5 border border-indigo-200 rounded-lg text-right font-mono-code tabular-nums font-bold text-sm outline-none bg-white text-indigo-900">
           </div>
-          <div class="flex justify-between items-center text-xs font-extrabold text-indigo-900 pt-1 border-t border-indigo-100">
+          <div class="flex justify-between items-center text-xs font-bold text-indigo-900 pt-1.5 border-t border-indigo-100">
             <span>Vuelto a entregar:</span>
-            <span id="change-amount-display" class="text-green-700 text-sm font-black">S/ 0.00</span>
+            <span id="change-amount-display" class="text-emerald-700 text-sm font-extrabold font-mono-code tabular-nums">S/ 0.00</span>
           </div>
         </div>
 
         <!-- DESGLOSE DE PAGO MIXTO -->
         <div id="mixed-payment-box" class="hidden bg-purple-50 p-3.5 rounded-2xl border border-purple-200 space-y-2.5">
-          <p class="text-xs font-black text-purple-900 flex items-center gap-1">
+          <p class="text-xs font-bold text-purple-900 flex items-center gap-1">
             <i class="fa-solid fa-calculator"></i> Desglose de Pago Mixto
           </p>
           <div class="grid grid-cols-3 gap-2">
             <div>
-              <label class="text-[10px] font-bold text-gray-600 block">Efectivo (S/)</label>
-              <input type="number" step="0.50" id="mix-efectivo" oninput="calculateMixedPayment()" placeholder="0.00" class="w-full p-1.5 border border-gray-300 rounded-lg text-xs font-bold outline-none bg-white">
+              <label class="text-[10px] font-semibold text-slate-600 block mb-0.5">Efectivo (S/)</label>
+              <input type="number" step="0.50" id="mix-efectivo" oninput="calculateMixedPayment()" placeholder="0.00" class="w-full p-1.5 border border-slate-300 rounded-lg text-xs font-mono-code font-bold outline-none bg-white">
             </div>
             <div>
-              <label class="text-[10px] font-bold text-gray-600 block">Yape / Plin (S/)</label>
-              <input type="number" step="0.50" id="mix-yape" oninput="calculateMixedPayment()" placeholder="0.00" class="w-full p-1.5 border border-gray-300 rounded-lg text-xs font-bold outline-none bg-white">
+              <label class="text-[10px] font-semibold text-slate-600 block mb-0.5">Yape / Plin (S/)</label>
+              <input type="number" step="0.50" id="mix-yape" oninput="calculateMixedPayment()" placeholder="0.00" class="w-full p-1.5 border border-slate-300 rounded-lg text-xs font-mono-code font-bold outline-none bg-white">
             </div>
             <div>
-              <label class="text-[10px] font-bold text-gray-600 block">Tarjeta (S/)</label>
-              <input type="number" step="0.50" id="mix-tarjeta" oninput="calculateMixedPayment()" placeholder="0.00" class="w-full p-1.5 border border-gray-300 rounded-lg text-xs font-bold outline-none bg-white">
+              <label class="text-[10px] font-semibold text-slate-600 block mb-0.5">Tarjeta (S/)</label>
+              <input type="number" step="0.50" id="mix-tarjeta" oninput="calculateMixedPayment()" placeholder="0.00" class="w-full p-1.5 border border-slate-300 rounded-lg text-xs font-mono-code font-bold outline-none bg-white">
             </div>
           </div>
           <div class="flex justify-between items-center text-xs font-bold pt-1 border-t border-purple-100">
-            <span id="mixed-covered-label" class="text-purple-900">Cubierto: S/ 0.00</span>
-            <span id="mixed-pending-label" class="text-red-600 font-black">Falta: S/ 0.00</span>
+            <span id="mixed-covered-label" class="text-purple-900 font-mono-code">Cubierto: S/ 0.00</span>
+            <span id="mixed-pending-label" class="text-rose-600 font-extrabold font-mono-code">Falta: S/ 0.00</span>
           </div>
         </div>
 
-        <div class="bg-gray-900 text-white p-3.5 rounded-2xl flex justify-between font-black text-sm">
+        <div class="bg-slate-900 text-white p-4 rounded-2xl flex justify-between items-center font-bold text-sm">
           <span>TOTAL DE LA VENTA:</span>
-          <span id="modal-pay-total" class="text-indigo-300 text-base">S/ 0.00</span>
+          <span id="modal-pay-total" class="text-indigo-300 text-lg font-extrabold font-mono-code tabular-nums">S/ 0.00</span>
         </div>
 
-        <button onclick="processFinalSale()" class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-3 rounded-xl text-xs shadow-lg shadow-green-600/30 uppercase tracking-wider">
-          <i class="fa-solid fa-check mr-1"></i> Confirmar y Generar Ticket
+        <button onclick="processFinalSale()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl text-xs shadow-lg uppercase tracking-wider">
+          <i class="fa-solid fa-check mr-1"></i> Confirmar y Emitir Comprobante
         </button>
       </div>
     </div>
   </div>
 
   <!-- MODAL VISTA PREVIA E IMPRESIÓN DE TICKET TÉRMICO -->
-  <div id="modal-ticket" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 space-y-4 flex flex-col max-h-[90vh]">
-      <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-        <h3 class="font-black text-sm text-gray-800 flex items-center gap-1.5">
+  <div id="modal-ticket" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 space-y-4 flex flex-col max-h-[90vh] border border-slate-200">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
           <i class="fa-solid fa-receipt text-indigo-600"></i> Comprobante Térmico
         </h3>
-        <button onclick="closeTicketModal()" class="text-gray-400 hover:text-gray-600 text-sm font-bold"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeTicketModal()" class="action-icon-btn text-slate-400 hover:text-slate-700 hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <!-- VISTA PREVIA DEL TICKET -->
-      <div id="printable-ticket-area" class="thermal-ticket-style border border-gray-300 p-4 rounded-xl overflow-y-auto space-y-2">
+      <div id="printable-ticket-area" class="thermal-ticket-style border border-slate-300 p-4 rounded-xl overflow-y-auto space-y-2">
         <div id="thermal-ticket-container"></div>
       </div>
 
       <div class="flex gap-2 pt-2">
-        <button onclick="window.print()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-md flex items-center justify-center gap-2">
+        <button onclick="window.print()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl text-xs shadow-md flex items-center justify-center gap-2">
           <i class="fa-solid fa-print"></i> Imprimir Ticket
         </button>
-        <button onclick="closeTicketModal()" class="px-4 py-2.5 bg-gray-200 text-gray-700 font-bold rounded-xl text-xs hover:bg-gray-300">
+        <button onclick="closeTicketModal()" class="px-4 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl text-xs hover:bg-slate-200">
           Cerrar
         </button>
       </div>
@@ -864,32 +1113,32 @@
   </div>
 
   <!-- MODAL REGISTRAR ABONO DE CRÉDITO -->
-  <div id="modal-abono" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4">
-      <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-        <h3 class="font-black text-base text-gray-800 flex items-center gap-2">
+  <div id="modal-abono" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4 border border-slate-200">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
           <i class="fa-solid fa-hand-holding-dollar text-indigo-600"></i> Registrar Abono a Crédito
         </h3>
-        <button onclick="closeAbonoModal()" class="text-gray-400 hover:text-gray-600 font-bold"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeAbonoModal()" class="action-icon-btn text-slate-400 hover:text-slate-700 hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <div class="bg-indigo-50 p-3.5 rounded-2xl border border-indigo-100 space-y-1">
         <p class="text-xs font-bold text-indigo-900" id="abono-customer-name">Cliente</p>
         <div class="flex justify-between items-center text-xs">
-          <span class="text-gray-600">Deuda actual:</span>
-          <span class="font-black text-red-600 text-sm" id="abono-current-debt">S/ 0.00</span>
+          <span class="text-slate-600">Deuda actual:</span>
+          <span class="font-extrabold text-rose-600 text-sm font-mono-code tabular-nums" id="abono-current-debt">S/ 0.00</span>
         </div>
       </div>
 
       <form onsubmit="submitAbono(event)" class="space-y-3">
         <input type="hidden" id="abono-customer-id">
         <div>
-          <label class="text-xs font-bold text-gray-700 block mb-1">Monto a Abonar (S/) *</label>
-          <input type="number" step="0.50" id="abono-amount" required class="w-full p-2.5 border border-gray-300 rounded-xl text-sm font-black text-indigo-900 outline-none focus:ring-2 focus:ring-indigo-500">
+          <label class="text-xs font-semibold text-slate-700 block mb-1">Monto a Abonar (S/) *</label>
+          <input type="number" step="0.50" id="abono-amount" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm font-mono-code font-bold text-indigo-900 outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
         <div>
-          <label class="text-xs font-bold text-gray-700 block mb-1">Método de Pago del Abono</label>
-          <select id="abono-payment-method" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none bg-gray-50">
+          <label class="text-xs font-semibold text-slate-700 block mb-1">Método de Pago del Abono</label>
+          <select id="abono-payment-method" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none bg-slate-50">
             <option value="Efectivo">Efectivo (Ingresa a Caja física)</option>
             <option value="Yape">Yape</option>
             <option value="Plin">Plin</option>
@@ -897,8 +1146,8 @@
           </select>
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeAbonoModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
-          <button type="submit" class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white font-black rounded-xl text-xs shadow-md">
+          <button type="button" onclick="closeAbonoModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-xs shadow-md">
             <i class="fa-solid fa-receipt mr-1"></i> Registrar y Emitir Recibo
           </button>
         </div>
@@ -907,85 +1156,88 @@
   </div>
 
   <!-- MODAL ASIGNADOR MULTIMODELO -->
-  <div id="modal-bulk-compat" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl p-6 space-y-4 max-h-[90vh] flex flex-col">
+  <div id="modal-bulk-compat" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl p-6 space-y-4 max-h-[90vh] flex flex-col border border-slate-200">
       <div class="flex justify-between items-center">
         <div>
-          <h3 class="font-black text-base text-gray-800 flex items-center gap-2">
+          <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
             <i class="fa-solid fa-link text-purple-600"></i> Asignador Rápido Multimodelo
           </h3>
-          <p class="text-xs text-gray-500">Asocia una funda universal o mica a múltiples modelos en 1 solo clic.</p>
+          <p class="text-xs text-slate-500">Asocia una funda universal o mica a múltiples modelos en 1 solo clic.</p>
         </div>
-        <button onclick="closeBulkCompatModal()" class="text-gray-400 hover:text-gray-600 text-sm font-bold"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeBulkCompatModal()" class="action-icon-btn text-slate-400 hover:text-slate-700 hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <div class="space-y-3 overflow-y-auto custom-scrollbar p-1">
         <div>
-          <label class="text-xs font-bold text-gray-600 block mb-1">1. Seleccione el Accesorio / Producto:</label>
-          <select id="bulk-product-select" onchange="loadProductCurrentCompats()" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none bg-gray-50"></select>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">1. Seleccione el Accesorio / Producto:</label>
+          <select id="bulk-product-select" onchange="loadProductCurrentCompats()" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none bg-slate-50"></select>
         </div>
         <div>
           <div class="flex justify-between items-center mb-1">
-            <label class="text-xs font-bold text-gray-600">2. Marque los modelos de celular compatibles:</label>
+            <label class="text-xs font-semibold text-slate-600">2. Marque los modelos de celular compatibles:</label>
             <div class="flex gap-2">
-              <button onclick="toggleAllBulkCheckboxes(true)" class="text-[10px] text-indigo-600 font-bold hover:underline">Marcar Todos</button>
-              <button onclick="toggleAllBulkCheckboxes(false)" class="text-[10px] text-gray-400 font-bold hover:underline">Desmarcar</button>
+              <button onclick="toggleAllBulkCheckboxes(true)" class="text-[11px] text-indigo-600 font-semibold hover:underline">Marcar Todos</button>
+              <button onclick="toggleAllBulkCheckboxes(false)" class="text-[11px] text-slate-400 font-semibold hover:underline">Desmarcar</button>
             </div>
           </div>
-          <div id="bulk-models-container" class="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto custom-scrollbar p-3 border border-gray-200 rounded-2xl bg-gray-50 text-xs"></div>
+          <div id="bulk-models-container" class="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto custom-scrollbar p-3 border border-slate-200 rounded-2xl bg-slate-50 text-xs"></div>
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2 border-t border-gray-100">
-        <button onclick="closeBulkCompatModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
-        <button onclick="saveBulkCompatibilities()" class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-md">Guardar Vínculos</button>
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="closeBulkCompatModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+        <button onclick="saveBulkCompatibilities()" class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Vínculos</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL REGISTRAR LOTE DE IMEIS -->
-  <div id="modal-imei-entry" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4">
+  <div id="modal-imei-entry" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4 border border-slate-200">
       <div class="flex justify-between items-center">
-        <h3 class="font-black text-base text-gray-800 flex items-center gap-2">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
           <i class="fa-solid fa-barcode text-indigo-600"></i> Registrar Lote de IMEIs
         </h3>
-        <button onclick="closeImeiEntryModal()" class="text-gray-400 hover:text-gray-600 font-bold"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeImeiEntryModal()" class="action-icon-btn text-slate-400 hover:text-slate-700 hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <form onsubmit="saveImeiBatch(event)" class="space-y-3">
         <div>
-          <label class="text-xs font-bold text-gray-600 block mb-1">Producto / Celular *</label>
-          <select id="imei-entry-product-id" required class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none bg-gray-50 font-bold"></select>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Producto / Celular *</label>
+          <select id="imei-entry-product-id" required class="w-full p-2.5 border border-slate-300 rounded-xl text-xs outline-none bg-slate-50 font-semibold"></select>
         </div>
         <div>
-          <label class="text-xs font-bold text-gray-600 block mb-1">Códigos IMEI (1 por línea o pegados en bloque) *</label>
-          <textarea id="imei-entry-codes" required rows="5" placeholder="864201061234567&#10;864201061234568&#10;864201061234569" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-mono outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
-          <p class="text-[10px] text-gray-400">El stock del producto se sincronizará automáticamente con los IMEIs disponibles.</p>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Códigos IMEI (1 por línea o pegados en bloque) *</label>
+          <textarea id="imei-entry-codes" required rows="5" placeholder="864201061234567&#10;864201061234568&#10;864201061234569" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono-code outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+          <p class="text-[11px] text-slate-400 mt-1">El stock del equipo se sincronizará automáticamente con sus IMEIs disponibles.</p>
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeImeiEntryModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
-          <button type="submit" class="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md">Guardar IMEIs</button>
+          <button type="button" onclick="closeImeiEntryModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 text-white font-semibold rounded-xl text-xs shadow-md">Guardar IMEIs</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- MODAL NUEVO / EDITAR PRODUCTO -->
-  <div id="modal-product" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl p-6 space-y-4 max-h-[90vh] flex flex-col">
-      <h3 class="font-black text-lg text-gray-800 flex items-center gap-2">
-        <i class="fa-solid fa-box text-indigo-600"></i> <span id="modal-product-title">Registrar Producto o Accesorio</span>
-      </h3>
+  <div id="modal-product" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl p-6 space-y-4 max-h-[90vh] flex flex-col border border-slate-200">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 class="font-bold text-lg text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-box text-indigo-600"></i> <span id="modal-product-title">Registrar Producto o Accesorio</span>
+        </h3>
+        <button onclick="closeProductModal()" class="action-icon-btn text-slate-400 hover:text-slate-700 hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
+      </div>
       <form id="form-product" onsubmit="saveProduct(event)" class="space-y-3 overflow-y-auto custom-scrollbar p-1">
         <input type="hidden" id="prod-id">
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-xs font-bold text-gray-600">Código / SKU *</label>
-            <input type="text" id="prod-code" required class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Código / SKU *</label>
+            <input type="text" id="prod-code" required class="w-full p-2 border border-slate-300 rounded-xl text-xs font-mono-code font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
           </div>
           <div>
-            <label class="text-xs font-bold text-gray-600">Categoría *</label>
-            <select id="prod-category" onchange="toggleSerializedCheckbox()" class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Categoría *</label>
+            <select id="prod-category" onchange="toggleSerializedCheckbox()" class="w-full p-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-semibold">
               <option value="Cases / Fundas">Cases / Fundas</option>
               <option value="Micas / Protectores">Micas / Protectores</option>
               <option value="Cargadores">Cargadores & Cables</option>
@@ -996,143 +1248,143 @@
           </div>
         </div>
         <div>
-          <label class="text-xs font-bold text-gray-600">Nombre del Producto / Accesorio *</label>
-          <input type="text" id="prod-name" required placeholder="Ej. Case Transparente MagSafe 3D" class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Nombre del Producto / Accesorio *</label>
+          <input type="text" id="prod-name" required placeholder="Ej. Case Transparente MagSafe 3D" class="w-full p-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-semibold">
         </div>
         <div class="grid grid-cols-4 gap-2">
           <div>
-            <label class="text-[11px] font-bold text-gray-600">P. Compra (S/)</label>
-            <input type="number" step="0.50" id="prod-purchase" value="0.00" class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
+            <label class="text-[11px] font-semibold text-slate-600 block mb-1">P. Compra (S/)</label>
+            <input type="number" step="0.50" id="prod-purchase" value="0.00" class="w-full p-2 border border-slate-300 rounded-xl text-xs font-mono-code font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
           </div>
           <div>
-            <label class="text-[11px] font-bold text-gray-600">P. Venta (S/) *</label>
-            <input type="number" step="0.50" id="prod-price" required class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-700">
+            <label class="text-[11px] font-semibold text-slate-600 block mb-1">P. Venta (S/) *</label>
+            <input type="number" step="0.50" id="prod-price" required class="w-full p-2 border border-slate-300 rounded-xl text-xs font-mono-code font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500">
           </div>
           <div>
-            <label class="text-[11px] font-bold text-gray-600">Stock *</label>
-            <input type="number" id="prod-stock" value="10" required class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
+            <label class="text-[11px] font-semibold text-slate-600 block mb-1">Stock *</label>
+            <input type="number" id="prod-stock" value="10" required class="w-full p-2 border border-slate-300 rounded-xl text-xs font-mono-code font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
           </div>
           <div>
-            <label class="text-[11px] font-bold text-gray-600">Stock Mín.</label>
-            <input type="number" id="prod-min-stock" value="5" required class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
+            <label class="text-[11px] font-semibold text-slate-600 block mb-1">Stock Mín.</label>
+            <input type="number" id="prod-min-stock" value="5" required class="w-full p-2 border border-slate-300 rounded-xl text-xs font-mono-code font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
           </div>
         </div>
 
-        <div id="is-serialized-container" class="hidden bg-yellow-50 p-2.5 rounded-xl border border-yellow-200">
+        <div id="is-serialized-container" class="hidden bg-amber-50 p-2.5 rounded-xl border border-amber-200">
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" id="prod-serialized" class="rounded text-indigo-600">
-            <span class="text-xs font-bold text-yellow-900">Requiere registro obligatorio de IMEI al vender (el stock se calcula por sus IMEIs disponibles)</span>
+            <span class="text-xs font-semibold text-amber-800">Requiere registro obligatorio de IMEI al vender (stock sincronizado por IMEIs)</span>
           </label>
         </div>
 
-        <div class="border border-indigo-100 bg-indigo-50/50 p-3 rounded-2xl space-y-2">
-          <label class="text-xs font-extrabold text-indigo-900 block">
-            <i class="fa-solid fa-mobile-retro mr-1"></i> Celulares Compatibles
+        <div class="border border-indigo-100 bg-indigo-50 p-3 rounded-2xl space-y-2">
+          <label class="text-xs font-bold text-indigo-900 block">
+            <i class="fa-solid fa-mobile-retro mr-1"></i> Modelos de Celular Compatibles
           </label>
-          <div id="product-model-checkboxes" class="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto custom-scrollbar p-2 bg-white rounded-xl border border-gray-200 text-xs"></div>
+          <div id="product-model-checkboxes" class="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto custom-scrollbar p-2 bg-white rounded-xl border border-slate-200 text-xs"></div>
         </div>
 
         <div class="flex justify-end gap-2 pt-3">
-          <button type="button" onclick="closeProductModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
-          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-md">Guardar Producto</button>
+          <button type="button" onclick="closeProductModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Producto</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- MODAL NUEVA MARCA -->
-  <div id="modal-brand" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 space-y-4">
-      <h3 class="font-black text-lg text-gray-800 flex items-center gap-2"><i class="fa-solid fa-plus text-indigo-600"></i> Nueva Marca de Celular</h3>
+  <div id="modal-brand" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 space-y-4 border border-slate-200">
+      <h3 class="font-bold text-lg text-slate-900 flex items-center gap-2"><i class="fa-solid fa-plus text-indigo-600"></i> Nueva Marca de Celular</h3>
       <form onsubmit="saveBrand(event)" class="space-y-3">
         <div>
-          <label class="text-xs font-bold text-gray-600">Nombre de la Marca *</label>
-          <input type="text" id="brand-name" required placeholder="Ej. Realme, Honor, Infinix" class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Nombre de la Marca *</label>
+          <input type="text" id="brand-name" required placeholder="Ej. Realme, Honor, Infinix" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-semibold">
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeBrandModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
-          <button type="submit" class="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md">Guardar Marca</button>
+          <button type="button" onclick="closeBrandModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Marca</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- MODAL NUEVO MODELO -->
-  <div id="modal-model" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 space-y-4">
-      <h3 class="font-black text-lg text-gray-800 flex items-center gap-2"><i class="fa-solid fa-mobile-retro text-indigo-600"></i> Nuevo Modelo de Celular</h3>
+  <div id="modal-model" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 space-y-4 border border-slate-200">
+      <h3 class="font-bold text-lg text-slate-900 flex items-center gap-2"><i class="fa-solid fa-mobile-retro text-indigo-600"></i> Nuevo Modelo de Celular</h3>
       <form onsubmit="saveModel(event)" class="space-y-3">
         <div>
-          <label class="text-xs font-bold text-gray-600">Marca *</label>
-          <select id="model-brand-id" required class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold"></select>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Marca *</label>
+          <select id="model-brand-id" required class="w-full p-2.5 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"></select>
         </div>
         <div>
-          <label class="text-xs font-bold text-gray-600">Nombre del Modelo *</label>
-          <input type="text" id="model-name" required placeholder="Ej. iPhone 16 Pro Max, Galaxy A35" class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Nombre del Modelo *</label>
+          <input type="text" id="model-name" required placeholder="Ej. iPhone 16 Pro Max, Galaxy A35" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-semibold">
         </div>
         <div>
-          <label class="text-xs font-bold text-gray-600">Año de Lanzamiento</label>
-          <input type="number" id="model-year" value="2024" class="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Año de Lanzamiento</label>
+          <input type="number" id="model-year" value="2024" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono-code outline-none focus:ring-2 focus:ring-indigo-500 font-semibold">
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeModelModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
-          <button type="submit" class="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md">Guardar Modelo</button>
+          <button type="button" onclick="closeModelModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Modelo</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- MODAL REGISTRAR / EDITAR CLIENTE (CRM) -->
-  <div id="modal-customer" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4">
-      <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-        <h3 class="font-black text-base text-gray-800 flex items-center gap-2">
+  <div id="modal-customer" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4 border border-slate-200">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
           <i class="fa-solid fa-user-plus text-indigo-600"></i> <span id="modal-customer-title">Registrar Cliente</span>
         </h3>
-        <button onclick="closeCustomerModal()" class="text-gray-400 hover:text-gray-600 font-bold"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeCustomerModal()" class="action-icon-btn text-slate-400 hover:text-slate-700 hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <form onsubmit="saveCustomer(event)" class="space-y-3">
         <input type="hidden" id="cust-id">
         <input type="hidden" id="cust-from-pos" value="0">
         <div>
-          <label class="text-xs font-bold text-gray-600 block mb-1">DNI o RUC *</label>
-          <input type="text" id="cust-doc" required placeholder="Ej. 45891234 o 20601234567" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          <label class="text-xs font-semibold text-slate-600 block mb-1">DNI o RUC *</label>
+          <input type="text" id="cust-doc" required placeholder="Ej. 45891234 o 20601234567" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono-code font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
         <div>
-          <label class="text-xs font-bold text-gray-600 block mb-1">Nombre Completo o Razón Social *</label>
-          <input type="text" id="cust-name" required placeholder="Ej. María Gómez / Inversiones Móvil SAC" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Nombre Completo o Razón Social *</label>
+          <input type="text" id="cust-name" required placeholder="Ej. María Gómez / Inversiones Móvil SAC" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
         <div>
-          <label class="text-xs font-bold text-gray-600 block mb-1">Teléfono / WhatsApp</label>
-          <input type="text" id="cust-phone" placeholder="Ej. 987654321" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Teléfono / WhatsApp</label>
+          <input type="text" id="cust-phone" placeholder="Ej. 987654321" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono-code font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
         <div>
-          <label class="text-xs font-bold text-gray-600 block mb-1">Dirección</label>
-          <input type="text" id="cust-address" placeholder="Ej. Av. Los Incas 450 - Tienda 12" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Dirección</label>
+          <input type="text" id="cust-address" placeholder="Ej. Av. Los Incas 450 - Tienda 12" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeCustomerModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
-          <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-md">Guardar Cliente</button>
+          <button type="button" onclick="closeCustomerModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Cliente</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- MODAL ESTADO DE CUENTA / HISTORIAL DE CRÉDITOS DEL CLIENTE -->
-  <div id="modal-customer-history" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl p-6 space-y-4 max-h-[90vh] flex flex-col">
-      <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+  <div id="modal-customer-history" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl p-6 space-y-4 max-h-[90vh] flex flex-col border border-slate-200">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
         <div>
-          <h3 class="font-black text-base text-gray-800 flex items-center gap-2">
+          <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
             <i class="fa-solid fa-file-invoice-dollar text-indigo-600"></i> Estado de Cuenta & Historial de Créditos
           </h3>
-          <p class="text-xs text-gray-500 font-bold" id="credit-history-customer-label">Cliente</p>
+          <p class="text-xs text-slate-500 font-semibold" id="credit-history-customer-label">Cliente</p>
         </div>
-        <button onclick="closeCustomerHistoryModal()" class="text-gray-400 hover:text-gray-600 font-bold"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeCustomerHistoryModal()" class="action-icon-btn text-slate-400 hover:text-slate-700 hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <div class="overflow-y-auto custom-scrollbar flex-1 border border-gray-100 rounded-2xl">
-        <table class="w-full text-left text-xs text-gray-600">
-          <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-[10px]">
+      <div class="overflow-y-auto custom-scrollbar flex-1 border border-slate-200 rounded-2xl">
+        <table class="w-full text-left text-slate-700">
+          <thead>
             <tr>
               <th class="p-3">Fecha / Hora</th>
               <th class="p-3">Movimiento</th>
@@ -1146,71 +1398,71 @@
         </table>
       </div>
       <div class="flex justify-end pt-2">
-        <button onclick="closeCustomerHistoryModal()" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl text-xs">Cerrar</button>
+        <button onclick="closeCustomerHistoryModal()" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs">Cerrar</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL NUEVA ORDEN DE SERVICIO TÉCNICO -->
-  <div id="modal-repair" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl p-6 space-y-4 max-h-[92vh] flex flex-col">
-      <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-        <h3 class="font-black text-lg text-gray-800 flex items-center gap-2">
+  <div id="modal-repair" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl p-6 space-y-4 max-h-[92vh] flex flex-col border border-slate-200">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 class="font-bold text-lg text-slate-900 flex items-center gap-2">
           <i class="fa-solid fa-screwdriver-wrench text-indigo-600"></i> Recepción de Equipo - Servicio Técnico
         </h3>
-        <button onclick="closeRepairModal()" class="text-gray-400 hover:text-gray-600 font-bold"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeRepairModal()" class="action-icon-btn text-slate-400 hover:text-slate-700 hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <form onsubmit="saveRepairOrder(event)" class="space-y-3 overflow-y-auto custom-scrollbar p-1">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label class="text-xs font-bold text-gray-600 block mb-1">Nombre del Cliente *</label>
-            <input type="text" id="rep-customer-name" required placeholder="Nombre completo..." class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Nombre del Cliente *</label>
+            <input type="text" id="rep-customer-name" required placeholder="Nombre completo..." class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
           </div>
           <div>
-            <label class="text-xs font-bold text-gray-600 block mb-1">Teléfono / WhatsApp *</label>
-            <input type="text" id="rep-customer-phone" required placeholder="Ej. 987654321" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Teléfono / WhatsApp *</label>
+            <input type="text" id="rep-customer-phone" required placeholder="Ej. 987654321" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono-code font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label class="text-xs font-bold text-gray-600 block mb-1">Marca del Equipo *</label>
-            <input type="text" id="rep-brand" required placeholder="Ej. Samsung, Apple, Xiaomi" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Marca del Equipo *</label>
+            <input type="text" id="rep-brand" required placeholder="Ej. Samsung, Apple, Xiaomi" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
           </div>
           <div>
-            <label class="text-xs font-bold text-gray-600 block mb-1">Modelo *</label>
-            <input type="text" id="rep-model" required placeholder="Ej. Galaxy A54, iPhone 13" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Modelo *</label>
+            <input type="text" id="rep-model" required placeholder="Ej. Galaxy A54, iPhone 13" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
           </div>
           <div>
-            <label class="text-xs font-bold text-gray-600 block mb-1">IMEI / Serie</label>
-            <input type="text" id="rep-imei" placeholder="Opcional..." class="w-full p-2 border border-gray-300 rounded-xl text-xs font-mono outline-none focus:ring-2 focus:ring-indigo-500">
+            <label class="text-xs font-semibold text-slate-600 block mb-1">IMEI / Serie</label>
+            <input type="text" id="rep-imei" placeholder="Opcional..." class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono-code outline-none focus:ring-2 focus:ring-indigo-500">
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label class="text-xs font-bold text-gray-600 block mb-1">Clave / PIN / Patrón de Desbloqueo</label>
-            <input type="text" id="rep-pattern" placeholder="Ej. PIN 2580 / Patrón L" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Clave / PIN / Patrón de Desbloqueo</label>
+            <input type="text" id="rep-pattern" placeholder="Ej. PIN 2580 / Patrón L" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
           </div>
           <div>
-            <label class="text-xs font-bold text-gray-600 block mb-1">Diagnóstico / Estado Físico Inicial</label>
-            <input type="text" id="rep-diagnosis" placeholder="Ej. Tapa rayada, ingresa sin chip ni bandeja" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Diagnóstico / Estado Físico Inicial</label>
+            <input type="text" id="rep-diagnosis" placeholder="Ej. Tapa rayada, ingresa sin chip ni bandeja" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
           </div>
         </div>
         <div>
-          <label class="text-xs font-bold text-gray-600 block mb-1">Falla Reportada / Trabajo a Realizar *</label>
-          <textarea id="rep-issue" required rows="2" placeholder="Ej. Cambio de pantalla completa + mantenimiento de puerto de carga..." class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Falla Reportada / Trabajo a Realizar *</label>
+          <textarea id="rep-issue" required rows="2" placeholder="Ej. Cambio de pantalla completa + mantenimiento de puerto de carga..." class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
         </div>
-        <div class="grid grid-cols-3 gap-3 bg-indigo-50/60 p-3 rounded-2xl border border-indigo-100">
+        <div class="grid grid-cols-3 gap-3 bg-indigo-50 p-3.5 rounded-2xl border border-indigo-100">
           <div>
-            <label class="text-[11px] font-bold text-indigo-900 block mb-1">Costo Total (S/) *</label>
-            <input type="number" step="0.50" id="rep-cost" required value="0.00" class="w-full p-2 border border-indigo-200 rounded-xl text-xs font-black text-indigo-900 bg-white outline-none">
+            <label class="text-[11px] font-semibold text-indigo-900 block mb-1">Costo Total (S/) *</label>
+            <input type="number" step="0.50" id="rep-cost" required value="0.00" class="w-full p-2 border border-indigo-200 rounded-xl text-xs font-mono-code font-bold text-indigo-900 bg-white outline-none">
           </div>
           <div>
-            <label class="text-[11px] font-bold text-indigo-900 block mb-1">Adelanto (S/)</label>
-            <input type="number" step="0.50" id="rep-advance" value="0.00" class="w-full p-2 border border-indigo-200 rounded-xl text-xs font-black text-green-700 bg-white outline-none">
+            <label class="text-[11px] font-semibold text-indigo-900 block mb-1">Adelanto (S/)</label>
+            <input type="number" step="0.50" id="rep-advance" value="0.00" class="w-full p-2 border border-indigo-200 rounded-xl text-xs font-mono-code font-bold text-emerald-700 bg-white outline-none">
           </div>
           <div>
-            <label class="text-[11px] font-bold text-indigo-900 block mb-1">Medio Adelanto</label>
-            <select id="rep-payment-method" class="w-full p-2 border border-indigo-200 rounded-xl text-xs font-bold bg-white outline-none">
+            <label class="text-[11px] font-semibold text-indigo-900 block mb-1">Medio Adelanto</label>
+            <select id="rep-payment-method" class="w-full p-2 border border-indigo-200 rounded-xl text-xs font-semibold bg-white outline-none">
               <option value="Efectivo">Efectivo</option>
               <option value="Yape/Plin">Yape/Plin</option>
               <option value="Tarjeta">Tarjeta</option>
@@ -1218,8 +1470,8 @@
           </div>
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeRepairModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
-          <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-md">
+          <button type="button" onclick="closeRepairModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs shadow-md">
             <i class="fa-solid fa-print mr-1"></i> Registrar e Imprimir Orden
           </button>
         </div>
@@ -1228,19 +1480,19 @@
   </div>
 
   <!-- MODAL GESTIONAR / ENTREGAR ORDEN DE SERVICIO TÉCNICO -->
-  <div id="modal-repair-update" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4">
-      <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-        <h3 class="font-black text-base text-gray-800 flex items-center gap-2">
-          <i class="fa-solid fa-wrench text-indigo-600"></i> Actualizar Orden <span id="upd-rep-code" class="text-indigo-600"></span>
+  <div id="modal-repair-update" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4 border border-slate-200">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-wrench text-indigo-600"></i> Actualizar Orden <span id="upd-rep-code" class="text-indigo-600 font-mono-code"></span>
         </h3>
-        <button onclick="closeRepairUpdateModal()" class="text-gray-400 hover:text-gray-600 font-bold"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeRepairUpdateModal()" class="action-icon-btn text-slate-400 hover:text-slate-700 hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <form onsubmit="submitRepairUpdate(event)" class="space-y-3">
         <input type="hidden" id="upd-rep-id">
         <div>
-          <label class="text-xs font-bold text-gray-600 block mb-1">Estado de la Orden *</label>
-          <select id="upd-rep-status" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none bg-gray-50">
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Estado de la Orden *</label>
+          <select id="upd-rep-status" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none bg-slate-50">
             <option value="Recibido">Recibido</option>
             <option value="En Reparación">En Reparación</option>
             <option value="Listo">Listo para Entrega</option>
@@ -1249,63 +1501,63 @@
           </select>
         </div>
         <div>
-          <label class="text-xs font-bold text-gray-600 block mb-1">Informe Técnico / Diagnóstico</label>
-          <textarea id="upd-rep-diagnosis" rows="2" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Informe Técnico / Diagnóstico</label>
+          <textarea id="upd-rep-diagnosis" rows="2" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-xs font-bold text-gray-600 block mb-1">Costo Total (S/)</label>
-            <input type="number" step="0.50" id="upd-rep-cost" class="w-full p-2 border border-gray-300 rounded-xl text-xs font-black outline-none">
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Costo Total (S/)</label>
+            <input type="number" step="0.50" id="upd-rep-cost" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono-code font-bold outline-none">
           </div>
           <div>
-            <label class="text-xs font-bold text-gray-600 block mb-1">Saldo Pendiente</label>
-            <input type="text" id="upd-rep-pending" disabled class="w-full p-2 border border-gray-200 rounded-xl text-xs font-black text-red-600 bg-gray-100">
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Saldo Pendiente</label>
+            <input type="text" id="upd-rep-pending" disabled class="w-full p-2.5 border border-slate-200 rounded-xl text-xs font-mono-code font-bold text-rose-600 bg-slate-100">
           </div>
         </div>
-        <div id="upd-rep-collect-box" class="bg-green-50 p-3 rounded-2xl border border-green-200 space-y-2">
+        <div id="upd-rep-collect-box" class="bg-emerald-50 p-3 rounded-2xl border border-emerald-200 space-y-2">
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" id="upd-rep-collect" class="rounded text-green-600">
-            <span class="text-xs font-black text-green-900">Cobrar saldo pendiente e ingresar a Caja ahora</span>
+            <span class="text-xs font-bold text-emerald-800">Cobrar saldo pendiente e ingresar a Caja ahora</span>
           </label>
-          <select id="upd-rep-method" class="w-full p-2 border border-green-300 rounded-xl text-xs font-bold bg-white outline-none">
+          <select id="upd-rep-method" class="w-full p-2 border border-emerald-200 rounded-xl text-xs font-semibold bg-white outline-none">
             <option value="Efectivo">Efectivo</option>
             <option value="Yape/Plin">Yape/Plin</option>
             <option value="Tarjeta">Tarjeta</option>
           </select>
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeRepairUpdateModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
-          <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-md">Guardar Cambios</button>
+          <button type="button" onclick="closeRepairUpdateModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Cambios</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- MODAL INICIAR SESIÓN / CAMBIAR DE ROL -->
-  <div id="modal-login" class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 space-y-4">
-      <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-        <h3 class="font-black text-base text-gray-800 flex items-center gap-2">
+  <div id="modal-login" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 space-y-4 border border-slate-200">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
           <i class="fa-solid fa-user-shield text-indigo-600"></i> Control de Acceso & Rol
         </h3>
-        <button onclick="closeLoginModal()" class="text-gray-400 hover:text-gray-600 font-bold"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeLoginModal()" class="action-icon-btn text-slate-400 hover:text-slate-700 hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <form onsubmit="submitLogin(event)" class="space-y-3">
         <div>
-          <label class="text-xs font-bold text-gray-600 block mb-1">Usuario</label>
-          <select id="login-username" class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none bg-gray-50">
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Usuario</label>
+          <select id="login-username" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none bg-slate-50">
             <option value="admin">admin (Rol: Administrador)</option>
             <option value="vendedor">vendedor (Rol: Vendedor de Mostrador)</option>
           </select>
         </div>
         <div>
-          <label class="text-xs font-bold text-gray-600 block mb-1">Contraseña *</label>
-          <input type="password" id="login-password" required placeholder="Ingrese su contraseña..." class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
-          <p class="text-[10px] text-gray-400 mt-1">Credenciales iniciales: <b>admin123</b> o <b>vendedor123</b></p>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Contraseña *</label>
+          <input type="password" id="login-password" required placeholder="Ingrese su contraseña..." class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
+          <p class="text-[11px] text-slate-400 mt-1">Credenciales iniciales: <b>admin123</b> o <b>vendedor123</b></p>
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeLoginModal()" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl text-xs">Cancelar</button>
-          <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-md">Cambiar Sesión</button>
+          <button type="button" onclick="closeLoginModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs shadow-md">Cambiar Sesión</button>
         </div>
       </form>
     </div>
