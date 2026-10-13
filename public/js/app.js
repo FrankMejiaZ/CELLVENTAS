@@ -15,7 +15,7 @@ let pendingImeiProduct = null;
 let currentCoverageFilter = 'all';
 let currentRepairFilter = 'all';
 
-let currentUser = JSON.parse(localStorage.getItem('cellventas_user') || '{"id":1,"username":"admin","name":"Mostrador Tech","role":"Administrador"}');
+let currentUser = null;
 let authToken = localStorage.getItem('cellventas_token') || '';
 
 // Helper para cabeceras HTTP con autorización JWT
@@ -31,7 +31,20 @@ const socket = typeof io !== 'undefined' ? io() : null;
 if (socket) {
   socket.on('sale_completed', () => { loadDashboard(); loadSalesHistory(); loadCashStatus(); });
   socket.on('sale_annulled', () => { loadProducts(); loadDashboard(); loadSalesHistory(); loadCashStatus(); });
-  socket.on('product_updated', () => { loadProducts(); loadBrandsAndModels(); loadDashboard(); });
+  socket.on('product_updated', () => { 
+    loadProducts(); 
+    loadBrandsAndModels(); 
+    loadDashboard(); 
+    if (typeof refreshCurrentKardex === 'function' && document.getElementById('modal-kardex') && !document.getElementById('modal-kardex').classList.contains('hidden')) {
+      refreshCurrentKardex();
+    }
+  });
+  socket.on('inventory_movement_added', () => { 
+    loadProducts(); 
+    if (typeof refreshCurrentKardex === 'function' && document.getElementById('modal-kardex') && !document.getElementById('modal-kardex').classList.contains('hidden')) {
+      refreshCurrentKardex();
+    }
+  });
   socket.on('compatibility_updated', () => { loadBrandsAndModels(); loadCoverageData(); });
   socket.on('cash_updated', () => { loadCashStatus(); loadCashHistory(); });
   socket.on('abono_registered', () => { loadCustomers(); loadCashStatus(); loadDashboard(); });
@@ -41,6 +54,12 @@ if (socket) {
 // Inicialización
 async function init() {
   setupKeyboardShortcuts();
+  const isAuthenticated = await checkAuthSession();
+  if (!isAuthenticated) {
+    showLoginScreen();
+    return;
+  }
+  hideLoginScreen();
   updateUserSessionUI();
   await loadCashStatus();
   await loadCashHistory();
@@ -53,21 +72,70 @@ async function init() {
   await loadSalesHistory();
 }
 
-// Atajos de teclado rápidos de mostrador (F1, F2, F4, ESC)
+async function checkAuthSession() {
+  if (!authToken) return false;
+  try {
+    const res = await fetch('/api/auth/me', { headers: getAuthHeaders(false) });
+    if (!res.ok) throw new Error('Token inválido');
+    const data = await res.json();
+    if (data.authenticated && data.user) {
+      currentUser = data.user;
+      localStorage.setItem('cellventas_user', JSON.stringify(currentUser));
+      return true;
+    }
+    return false;
+  } catch (e) {
+    authToken = '';
+    currentUser = null;
+    localStorage.removeItem('cellventas_token');
+    localStorage.removeItem('cellventas_user');
+    return false;
+  }
+}
+
+function showLoginScreen() {
+  const scr = document.getElementById('login-screen');
+  if (scr) {
+    scr.classList.remove('hidden');
+    setTimeout(() => document.getElementById('login-screen-password')?.focus(), 100);
+  }
+}
+
+function hideLoginScreen() {
+  const scr = document.getElementById('login-screen');
+  if (scr) scr.classList.add('hidden');
+}
+
+// Atajos de teclado rápidos de mostrador (F1, F2, F4, Ctrl+K, ESC)
 function setupKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'F1') {
+    // Buscador global omnibox con Ctrl+K o Cmd+K
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
-      switchTab('pos');
-      setTimeout(() => document.getElementById('search-input')?.focus(), 60);
-    } else if (e.key === 'F2') {
+      const omnibox = document.getElementById('global-omnibox');
+      if (omnibox) {
+        omnibox.focus();
+        omnibox.select();
+      }
+      return;
+    }
+
+    if (e.key === 'F1') {
       e.preventDefault();
       switchTab('assistant');
       setTimeout(() => document.getElementById('assistant-brand-select')?.focus(), 60);
+    } else if (e.key === 'F2') {
+      e.preventDefault();
+      switchTab('pos');
+      setTimeout(() => document.getElementById('search-input')?.focus(), 60);
     } else if (e.key === 'F4') {
       e.preventDefault();
       if (CART.length > 0) openPaymentModal();
     } else if (e.key === 'Escape') {
+      if (isMegaMenuOpen) {
+        toggleMegaMenu(false);
+        return;
+      }
       closePaymentModal();
       closeTicketModal();
       closeProductModal();
@@ -83,6 +151,9 @@ function setupKeyboardShortcuts() {
       closeBrandModal();
       closeModelModal();
       closeRequireCashModal();
+      if (typeof closeKardexModal === 'function') closeKardexModal();
+      if (typeof closeStockAdjustmentModal === 'function') closeStockAdjustmentModal();
+      if (typeof closeUserManagementModal === 'function') closeUserManagementModal();
     }
   });
 }
@@ -129,7 +200,98 @@ const SECTION_TITLES = {
   'dashboard': 'Dashboard & Reporte Ejecutivo'
 };
 
+// ==============================================================
+// MENÚ LATERAL DESPLEGABLE COMPACTO & PURO (OVERLAY FLOTANTE)
+// ==============================================================
+let isMegaMenuOpen = false;
+
+function toggleMegaMenu(forcedState) {
+  const backdrop = document.getElementById('mega-menu-backdrop');
+  const drawer = document.getElementById('mega-menu-drawer');
+  const arrow = document.getElementById('menu-arrow-icon');
+
+  isMegaMenuOpen = forcedState !== undefined ? Boolean(forcedState) : !isMegaMenuOpen;
+
+  if (isMegaMenuOpen) {
+    if (backdrop) {
+      backdrop.classList.remove('opacity-0', 'pointer-events-none');
+      backdrop.classList.add('opacity-100', 'pointer-events-auto');
+    }
+    if (drawer) {
+      drawer.classList.remove('-translate-x-full');
+      drawer.classList.add('translate-x-0');
+    }
+    if (arrow) arrow.style.transform = 'rotate(180deg)';
+  } else {
+    if (backdrop) {
+      backdrop.classList.add('opacity-0', 'pointer-events-none');
+      backdrop.classList.remove('opacity-100', 'pointer-events-auto');
+    }
+    if (drawer) {
+      drawer.classList.add('-translate-x-full');
+      drawer.classList.remove('translate-x-0');
+    }
+    if (arrow) arrow.style.transform = 'rotate(0deg)';
+  }
+}
+
+function handleMenuNavigate(dest) {
+  toggleMegaMenu(false);
+
+  if (dest === 'kardex') {
+    switchTab('inventory');
+    if (typeof openGeneralKardexModal === 'function') {
+      setTimeout(() => openGeneralKardexModal(), 100);
+    }
+    return;
+  }
+
+  switchTab(dest);
+}
+
+// Alias de compatibilidad
+function handleMegaMenuLink(actionKey, deptKey) {
+  toggleMegaMenu(false);
+  const cleanKey = actionKey.replace('tab_', '').replace('action_', '');
+  handleMenuNavigate(cleanKey);
+}
+
+function handleGlobalOmnibox(query) {
+  const q = (query || '').trim();
+  if (!q) return;
+
+  // Si son 15 dígitos -> Rastreo directo de IMEI
+  if (/^\d{15}$/.test(q)) {
+    switchTab('imeis');
+    const imeiInput = document.getElementById('imei-search-input');
+    if (imeiInput) {
+      imeiInput.value = q;
+      searchImeiTracker();
+      showToast('Buscador IMEI', `Rastreando serie de 15 dígitos: ${q}`);
+    }
+    return;
+  }
+
+  // Filtrado rápido en POS
+  const posSearchInput = document.getElementById('search-input');
+  if (posSearchInput) {
+    if (document.getElementById('view-pos').classList.contains('hidden')) {
+      switchTab('pos');
+    }
+    posSearchInput.value = q;
+    filterProducts();
+  }
+}
+
 function switchTab(tabId) {
+  // Asegurar que el menú siempre se cierre al cambiar de vista
+  toggleMegaMenu(false);
+
+  // Sincronizar estilo activo en el menú lateral compacto
+  document.querySelectorAll('.menu-nav-item').forEach(btn => btn.classList.remove('active'));
+  const activeMenuBtn = document.getElementById('menu-btn-' + tabId);
+  if (activeMenuBtn) activeMenuBtn.classList.add('active');
+
   document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
   const target = document.getElementById('view-' + tabId);
   if (target) target.classList.remove('hidden');
@@ -689,56 +851,97 @@ function onBrandFilterChange() {
   renderProducts();
 }
 
+let currentPosCategoryFilter = 'all';
+
+function filterCategory(catKey, btn) {
+  currentPosCategoryFilter = catKey;
+  document.querySelectorAll('.category-pill').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderProducts();
+}
+
 function clearModelFilters() {
-  document.getElementById('pos-brand-filter').value = '';
-  document.getElementById('pos-model-filter').innerHTML = '<option value="">-- Todos los Modelos --</option>';
-  document.getElementById('search-input').value = '';
+  const brandFilter = document.getElementById('pos-brand-filter');
+  const modelFilter = document.getElementById('pos-model-filter');
+  const searchInput = document.getElementById('search-input');
+
+  if (brandFilter) brandFilter.value = '';
+  if (modelFilter) modelFilter.innerHTML = '<option value="">-- Todos los Modelos --</option>';
+  if (searchInput) searchInput.value = '';
+  currentPosCategoryFilter = 'all';
+
+  document.querySelectorAll('.category-pill').forEach(b => b.classList.remove('active'));
+  const allPill = document.querySelector('.category-pill');
+  if (allPill) allPill.classList.add('active');
+
   renderProducts();
 }
 
 function renderProducts() {
-  const selectedModelId = document.getElementById('pos-model-filter').value;
-  const query = (document.getElementById('search-input').value || '').toLowerCase().trim();
+  const modelFilterEl = document.getElementById('pos-model-filter');
+  const searchInputEl = document.getElementById('search-input');
   const grid = document.getElementById('product-grid');
   if (!grid) return;
 
+  const selectedModelId = modelFilterEl ? modelFilterEl.value : '';
+  const query = (searchInputEl?.value || '').toLowerCase().trim();
+
   const filtered = PRODUCTS.filter(p => {
+    let matchCat = true;
+    if (currentPosCategoryFilter && currentPosCategoryFilter !== 'all') {
+      const pCat = (p.category || '').toLowerCase();
+      matchCat = pCat.includes(currentPosCategoryFilter.toLowerCase());
+    }
     let matchModel = true;
     if (selectedModelId) {
       matchModel = p.compatible_models && p.compatible_models.some(m => String(m.model_id) === String(selectedModelId));
     }
     const matchQuery = p.name.toLowerCase().includes(query) || p.code.toLowerCase().includes(query) || (p.category || '').toLowerCase().includes(query);
-    return matchModel && matchQuery;
+    return matchCat && matchModel && matchQuery;
   });
 
+  const countBadge = document.getElementById('pos-items-count');
+  if (countBadge) countBadge.innerText = filtered.length;
+
   if (filtered.length === 0) {
-    grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 font-bold text-xs">No se encontraron productos ni accesorios compatibles.</div>`;
+    grid.innerHTML = `
+      <div class="col-span-full text-center py-12 text-slate-400 space-y-2">
+        <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-xl mx-auto">
+          <i class="fa-solid fa-boxes-stacked"></i>
+        </div>
+        <p class="font-bold text-xs text-slate-600">No se encontraron productos en esta categoría o filtro</p>
+        <p class="text-[11px] text-slate-400">Intenta seleccionar otra categoría o limpiar la búsqueda.</p>
+      </div>
+    `;
     return;
   }
 
   grid.innerHTML = filtered.map(p => {
     const isSerialized = p.is_serialized === 1;
+    const isLowStock = p.stock <= (p.min_stock || 5);
     const modelBadges = (p.compatible_models || []).slice(0, 2).map(m => `
-      <span class="bg-indigo-50 text-indigo-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-indigo-100">${m.model_name}</span>
+      <span class="bg-indigo-50 text-indigo-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-indigo-100 truncate">${m.model_name}</span>
     `).join('');
 
     return `
-      <div onclick="handleProductClick(${p.id})" class="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group">
+      <div onclick="handleProductClick(${p.id})" class="bg-white p-3.5 sm:p-4 rounded-3xl border border-slate-200/90 shadow-2xs hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group select-none">
         <div>
-          <div class="flex justify-between items-start mb-1.5">
-            <span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-md truncate max-w-[110px]">${p.category}</span>
-            ${isSerialized ? '<span class="bg-amber-100 text-amber-800 text-[9px] font-mono-code font-extrabold px-1.5 py-0.5 rounded">IMEI</span>' : `<span class="text-[10px] font-mono-code text-slate-400">#${p.code}</span>`}
+          <div class="flex justify-between items-start gap-1 mb-1.5">
+            <span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-lg truncate max-w-[110px]">${p.category || 'General'}</span>
+            ${isSerialized ? '<span class="bg-amber-100 text-amber-800 text-[9px] font-mono-code font-extrabold px-1.5 py-0.5 rounded">IMEI</span>' : `<span class="text-[10px] font-mono-code text-slate-400 font-bold">#${p.code}</span>`}
           </div>
-          <h3 class="font-bold text-slate-900 text-[13px] group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug">${p.name}</h3>
+          <h3 class="font-bold text-slate-900 text-xs sm:text-[13px] group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug">${p.name}</h3>
           <div class="mt-2 flex flex-wrap gap-1">${modelBadges}</div>
         </div>
-        <div class="mt-4 flex justify-between items-end pt-2.5 border-t border-slate-100">
+        <div class="mt-3.5 flex justify-between items-end pt-2.5 border-t border-slate-100">
           <div>
-            <p class="text-[10px] font-mono-code tabular-nums ${p.stock <= (p.min_stock || 5) ? 'text-amber-600' : 'text-slate-400'} font-bold">Stock: ${p.stock}</p>
-            <p class="text-[15px] font-mono-code tabular-nums font-black text-indigo-600">S/ ${p.price.toFixed(2)}</p>
+            <span class="text-[10px] font-mono-code font-bold ${isLowStock ? 'text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded' : 'text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded'}">
+              ${isLowStock ? `Stock: ${p.stock} (Bajo)` : `Stock: ${p.stock}`}
+            </span>
+            <p class="text-sm sm:text-base font-mono-code tabular-nums font-black text-slate-900 mt-0.5">S/ ${p.price.toFixed(2)}</p>
           </div>
-          <button class="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all">
-            <i class="fa-solid fa-plus text-xs"></i>
+          <button class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center text-xs font-bold transition-all shadow-2xs">
+            <i class="fa-solid fa-plus"></i>
           </button>
         </div>
       </div>
@@ -868,45 +1071,70 @@ function clearCart() {
 
 function renderCart() {
   const container = document.getElementById('cart-items');
+  const payBtn = document.getElementById('btn-pay');
+
   if (CART.length === 0) {
-    container.innerHTML = `<div class="text-center py-12 text-slate-400 font-bold text-xs">Carrito vacío</div>`;
-    document.getElementById('summary-subtotal').innerText = 'S/ 0.00';
-    document.getElementById('summary-tax').innerText = 'S/ 0.00';
-    document.getElementById('summary-total').innerText = 'S/ 0.00';
-    document.getElementById('btn-pay').disabled = true;
+    if (container) {
+      container.innerHTML = `
+        <div class="py-12 px-4 text-center text-slate-400 space-y-2">
+          <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-xl mx-auto shadow-2xs">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <p class="font-extrabold text-xs text-slate-700">Ticket Vacío</p>
+          <p class="text-[11px] text-slate-400 max-w-xs mx-auto">Selecciona productos a la izquierda o pistolea códigos de barra para agregarlos al ticket.</p>
+        </div>
+      `;
+    }
+    const subtotalEl = document.getElementById('summary-subtotal');
+    const taxEl = document.getElementById('summary-tax');
+    const totalEl = document.getElementById('summary-total');
+    if (subtotalEl) subtotalEl.innerText = 'S/ 0.00';
+    if (taxEl) taxEl.innerText = 'S/ 0.00';
+    if (totalEl) totalEl.innerText = 'S/ 0.00';
+    if (payBtn) {
+      payBtn.disabled = true;
+      payBtn.innerHTML = '<i class="fa-solid fa-cash-register text-sm"></i><span>COBRAR TICKET (F4)</span>';
+    }
+    updateAssistantCartBar();
     return;
   }
 
   container.innerHTML = CART.map(i => {
     const itemSub = i.product.price * i.quantity;
-    const imeiTag = i.imei ? `<p class="text-[10px] font-mono-code font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded inline-block mt-0.5">IMEI: ${i.imei}</p>` : '';
+    const imeiTag = i.imei ? `<p class="text-[9px] font-mono-code font-bold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded inline-block mt-0.5 border border-amber-200">IMEI: ${i.imei}</p>` : '';
 
     return `
-      <div class="py-2.5 flex justify-between items-center gap-2">
-        <div class="flex-1 min-w-0">
-          <p class="font-bold text-xs text-slate-800 truncate">${i.product.name}</p>
+      <div class="p-2.5 rounded-2xl bg-white hover:bg-slate-50 transition-colors flex justify-between items-center gap-2 border border-slate-100 shadow-2xs">
+        <div class="flex-1 min-w-0 pr-1">
+          <p class="font-bold text-xs text-slate-800 truncate leading-snug">${i.product.name}</p>
           ${imeiTag}
-          <p class="text-[10px] font-mono-code tabular-nums text-slate-400">S/ ${i.product.price.toFixed(2)} c/u</p>
+          <p class="text-[10px] font-mono-code tabular-nums text-slate-400 font-semibold mt-0.5">S/ ${i.product.price.toFixed(2)} c/u</p>
         </div>
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1 shrink-0">
           ${!i.imei ? `
-            <button onclick="updateCartQty(${i.product.id}, -1)" class="w-6 h-6 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors">-</button>
+            <button onclick="updateCartQty(${i.product.id}, -1)" class="w-6 h-6 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors flex items-center justify-center">-</button>
             <span class="text-xs font-mono-code tabular-nums font-bold w-5 text-center">${i.quantity}</span>
-            <button onclick="updateCartQty(${i.product.id}, 1)" class="w-6 h-6 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors">+</button>
+            <button onclick="updateCartQty(${i.product.id}, 1)" class="w-6 h-6 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors flex items-center justify-center">+</button>
           ` : `
-            <button onclick="updateCartQty(${i.product.id}, -1, '${i.imei}')" class="action-icon-btn bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-700" title="Quitar IMEI"><i class="fa-solid fa-trash text-xs"></i></button>
+            <button onclick="updateCartQty(${i.product.id}, -1, '${i.imei}')" class="w-6 h-6 bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-700 rounded-lg text-xs flex items-center justify-center transition-colors" title="Quitar IMEI"><i class="fa-solid fa-trash text-xs"></i></button>
           `}
         </div>
-        <span class="font-mono-code tabular-nums font-black text-xs text-slate-900 w-16 text-right">S/ ${itemSub.toFixed(2)}</span>
+        <span class="font-mono-code tabular-nums font-black text-xs text-slate-900 w-16 text-right shrink-0">S/ ${itemSub.toFixed(2)}</span>
       </div>
     `;
   }).join('');
 
   const { subtotal, tax, total } = getCartTotals();
-  document.getElementById('summary-subtotal').innerText = `S/ ${subtotal.toFixed(2)}`;
-  document.getElementById('summary-tax').innerText = `S/ ${tax.toFixed(2)}`;
-  document.getElementById('summary-total').innerText = `S/ ${total.toFixed(2)}`;
-  document.getElementById('btn-pay').disabled = false;
+  const subtotalEl = document.getElementById('summary-subtotal');
+  const taxEl = document.getElementById('summary-tax');
+  const totalEl = document.getElementById('summary-total');
+  if (subtotalEl) subtotalEl.innerText = `S/ ${subtotal.toFixed(2)}`;
+  if (taxEl) taxEl.innerText = `S/ ${tax.toFixed(2)}`;
+  if (totalEl) totalEl.innerText = `S/ ${total.toFixed(2)}`;
+  if (payBtn) {
+    payBtn.disabled = false;
+    payBtn.innerHTML = `<i class="fa-solid fa-cash-register text-sm"></i><span>COBRAR S/ ${total.toFixed(2)} (F4)</span>`;
+  }
   updateAssistantCartBar();
 }
 
@@ -1190,19 +1418,86 @@ async function loadSalesHistory() {
   }
 }
 
+function setSalesDatePreset(preset) {
+  const fromInput = document.getElementById('sales-filter-from');
+  const toInput = document.getElementById('sales-filter-to');
+  if (!fromInput || !toInput) return;
+
+  const now = new Date();
+  const formatYMD = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  if (preset === 'today') {
+    const todayStr = formatYMD(now);
+    fromInput.value = todayStr;
+    toInput.value = todayStr;
+  } else if (preset === 'week') {
+    const startOfWeek = new Date(now);
+    const day = startOfWeek.getDay();
+    const diff = (day === 0 ? -6 : 1) - day;
+    startOfWeek.setDate(startOfWeek.getDate() + diff);
+    fromInput.value = formatYMD(startOfWeek);
+    toInput.value = formatYMD(now);
+  } else if (preset === 'month') {
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    fromInput.value = formatYMD(startOfMonth);
+    toInput.value = formatYMD(now);
+  } else if (preset === 'all') {
+    fromInput.value = '';
+    toInput.value = '';
+  }
+
+  renderSalesHistoryTable();
+}
+
+function getFilteredSales() {
+  const query = (document.getElementById('sales-search')?.value || '').toLowerCase().trim();
+  const fromDate = document.getElementById('sales-filter-from')?.value;
+  const toDate = document.getElementById('sales-filter-to')?.value;
+
+  return SALES.filter(s => {
+    const matchesText = !query || 
+      s.receipt_code.toLowerCase().includes(query) || 
+      (s.customer_name || '').toLowerCase().includes(query) ||
+      s.payment_method.toLowerCase().includes(query);
+    if (!matchesText) return false;
+
+    if (fromDate || toDate) {
+      const saleDate = new Date(s.created_at);
+      if (fromDate) {
+        const from = new Date(fromDate + 'T00:00:00');
+        if (saleDate < from) return false;
+      }
+      if (toDate) {
+        const to = new Date(toDate + 'T23:59:59');
+        if (saleDate > to) return false;
+      }
+    }
+    return true;
+  });
+}
+
 function renderSalesHistoryTable() {
   const tbody = document.getElementById('sales-table-body');
   if (!tbody) return;
 
-  const query = (document.getElementById('sales-search')?.value || '').toLowerCase().trim();
-  const filtered = SALES.filter(s => 
-    s.receipt_code.toLowerCase().includes(query) || 
-    (s.customer_name || '').toLowerCase().includes(query) ||
-    s.payment_method.toLowerCase().includes(query)
-  );
+  const filtered = getFilteredSales();
+
+  const countEl = document.getElementById('sales-filter-count');
+  const sumEl = document.getElementById('sales-filter-sum');
+  const totalActivas = filtered
+    .filter(s => s.status !== 'anulada')
+    .reduce((acc, curr) => acc + (parseFloat(curr.total) || 0), 0);
+
+  if (countEl) countEl.innerText = `${filtered.length} venta(s) encontrada(s)`;
+  if (sumEl) sumEl.innerText = `Total activo: S/ ${totalActivas.toFixed(2)}`;
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-bold">No hay comprobantes de venta registrados.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-bold">No hay comprobantes de venta que coincidan con los filtros.</td></tr>`;
     return;
   }
 
@@ -1239,6 +1534,74 @@ function renderSalesHistoryTable() {
       </tr>
     `;
   }).join('');
+}
+
+function exportSalesToCSV() {
+  const filtered = getFilteredSales();
+
+  if (filtered.length === 0) {
+    alert('No hay ventas para exportar con los filtros seleccionados.');
+    return;
+  }
+
+  const headers = [
+    'Comprobante',
+    'Tipo Doc',
+    'Fecha y Hora',
+    'Cliente',
+    'Metodo de Pago',
+    'Detalle Items',
+    'Subtotal (S/)',
+    'IGV (S/)',
+    'Descuento (S/)',
+    'Total (S/)',
+    'Estado',
+    'Usuario / Cajero'
+  ];
+
+  const escapeCSV = (val) => {
+    if (val === null || val === undefined) return '""';
+    const str = String(val).replace(/"/g, '""');
+    return `"${str}"`;
+  };
+
+  const rows = filtered.map(s => {
+    const itemsText = (s.items || [])
+      .map(i => `${i.quantity}x ${i.product_name}${i.imei_code ? ' [IMEI: ' + i.imei_code + ']' : ''}`)
+      .join('; ');
+
+    const dateFormatted = new Date(s.created_at).toLocaleString('es-PE', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+
+    return [
+      escapeCSV(s.receipt_code),
+      escapeCSV(s.doc_type || 'Ticket'),
+      escapeCSV(dateFormatted),
+      escapeCSV(s.customer_name || 'Público General'),
+      escapeCSV(s.payment_method),
+      escapeCSV(itemsText),
+      escapeCSV(parseFloat(s.subtotal || 0).toFixed(2)),
+      escapeCSV(parseFloat(s.tax || 0).toFixed(2)),
+      escapeCSV(parseFloat(s.discount || 0).toFixed(2)),
+      escapeCSV(parseFloat(s.total || 0).toFixed(2)),
+      escapeCSV(s.status === 'anulada' ? 'ANULADA' : 'EMITIDA'),
+      escapeCSV(s.user_name || 'Administrador')
+    ].join(';');
+  });
+
+  const csvContent = '\uFEFF' + headers.map(h => escapeCSV(h)).join(';') + '\r\n' + rows.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `reporte_ventas_cellventas_${dateStr}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 async function reprintTicket(saleId) {
@@ -1981,7 +2344,9 @@ function renderInventoryTable() {
           </span>
         </td>
         <td class="p-4 text-center">
-          <div class="flex items-center justify-center gap-2">
+          <div class="flex items-center justify-center gap-1.5">
+            <button onclick="openKardexModal(${p.id})" class="action-icon-btn bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-800" title="Ver Kardex / Historial de Movimientos"><i class="fa-solid fa-clock-rotate-left text-xs"></i></button>
+            <button onclick="openStockAdjustmentModal(${p.id})" class="action-icon-btn bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-800" title="Ajustar Stock / Entrada / Merma"><i class="fa-solid fa-boxes-packing text-xs"></i></button>
             <button onclick="openProductModal(${p.id})" class="action-icon-btn bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800" title="Editar Producto"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
             <button onclick="deleteProduct(${p.id})" class="action-icon-btn bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-800" title="Eliminar Producto"><i class="fa-solid fa-trash text-xs"></i></button>
           </div>
@@ -1996,6 +2361,304 @@ async function deleteProduct(id) {
   await fetch('/api/products/' + id, { method: 'DELETE', headers: getAuthHeaders() });
   await loadProducts();
   await loadCoverageData();
+}
+
+// ==========================================
+// KARDEX DE ALMACÉN Y AJUSTES DE STOCK (ANTI-MERMA)
+// ==========================================
+let CURRENT_KARDEX_PRODUCT_ID = null;
+let RAW_KARDEX_MOVEMENTS = [];
+
+async function openGeneralKardexModal() {
+  CURRENT_KARDEX_PRODUCT_ID = null;
+  const modal = document.getElementById('modal-kardex');
+  const title = document.getElementById('modal-kardex-title');
+  const badge = document.getElementById('modal-kardex-badge');
+  const subtitle = document.getElementById('modal-kardex-subtitle');
+  const sInput = document.getElementById('kardex-search-input');
+  const tFilter = document.getElementById('kardex-type-filter');
+
+  if (sInput) sInput.value = '';
+  if (tFilter) tFilter.value = 'ALL';
+
+  if (title) title.innerText = 'Kardex de Inventario - Almacén General';
+  if (badge) {
+    badge.innerText = 'General';
+    badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700';
+  }
+  if (subtitle) subtitle.innerText = 'Historial global de movimientos y auditoría anti-merma.';
+
+  if (modal) modal.classList.remove('hidden');
+  await refreshCurrentKardex();
+}
+
+async function openKardexModal(productId) {
+  CURRENT_KARDEX_PRODUCT_ID = productId;
+  const p = PRODUCTS.find(x => x.id === productId);
+  const modal = document.getElementById('modal-kardex');
+  const title = document.getElementById('modal-kardex-title');
+  const badge = document.getElementById('modal-kardex-badge');
+  const subtitle = document.getElementById('modal-kardex-subtitle');
+  const sInput = document.getElementById('kardex-search-input');
+  const tFilter = document.getElementById('kardex-type-filter');
+
+  if (sInput) sInput.value = '';
+  if (tFilter) tFilter.value = 'ALL';
+
+  if (title) title.innerText = p ? `Kardex: ${p.name}` : 'Kardex de Producto';
+  if (badge) {
+    badge.innerText = p ? p.code : 'SKU';
+    badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-mono-code font-bold bg-amber-100 text-amber-800';
+  }
+  if (subtitle) subtitle.innerText = p ? `Categoría: ${p.category} | Stock actual: ${p.stock} und.` : '';
+
+  if (modal) modal.classList.remove('hidden');
+  await refreshCurrentKardex();
+}
+
+function closeKardexModal() {
+  const modal = document.getElementById('modal-kardex');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function refreshCurrentKardex() {
+  const tbody = document.getElementById('kardex-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Cargando movimientos del Kardex...</td></tr>`;
+
+  try {
+    const url = CURRENT_KARDEX_PRODUCT_ID 
+      ? `/api/inventory/kardex/${CURRENT_KARDEX_PRODUCT_ID}` 
+      : `/api/inventory/kardex`;
+
+    const res = await fetch(url, { headers: getAuthHeaders() });
+    const movements = await res.json();
+
+    if (!Array.isArray(movements)) {
+      tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-rose-500 font-semibold">Error al interpretar respuesta del servidor.</td></tr>`;
+      return;
+    }
+
+    RAW_KARDEX_MOVEMENTS = movements;
+    filterKardexRows();
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-rose-500 font-semibold">Error al cargar movimientos: ${err.message}</td></tr>`;
+  }
+}
+
+function filterKardexRows() {
+  const searchInput = document.getElementById('kardex-search-input');
+  const typeFilter = document.getElementById('kardex-type-filter');
+  const term = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  const filterType = typeFilter ? typeFilter.value : 'ALL';
+
+  let filtered = RAW_KARDEX_MOVEMENTS;
+
+  if (filterType !== 'ALL') {
+    filtered = filtered.filter(m => {
+      if (filterType === 'STOCK_INICIAL') return m.type === 'STOCK_INICIAL';
+      if (filterType === 'ENTRADA') return m.type === 'ENTRADA';
+      if (filterType === 'VENTA') return m.type === 'VENTA';
+      if (filterType === 'SALIDA') return m.type === 'SALIDA';
+      if (filterType === 'ANULACION') return m.type === 'ANULACION';
+      return m.type === filterType;
+    });
+  }
+
+  if (term) {
+    filtered = filtered.filter(m => {
+      const pName = (m.product_name || '').toLowerCase();
+      const pCode = (m.product_code || '').toLowerCase();
+      const reason = (m.reason || '').toLowerCase();
+      const ref = (m.reference_code || '').toLowerCase();
+      const user = (m.user_name || '').toLowerCase();
+      return pName.includes(term) || pCode.includes(term) || reason.includes(term) || ref.includes(term) || user.includes(term);
+    });
+  }
+
+  renderKardexRows(filtered);
+}
+
+function renderKardexRows(movements) {
+  const tbody = document.getElementById('kardex-table-body');
+  if (!tbody) return;
+
+  const statEnt = document.getElementById('kardex-stat-entradas');
+  const statSal = document.getElementById('kardex-stat-salidas');
+  const statStk = document.getElementById('kardex-stat-stock');
+  const totalRec = document.getElementById('kardex-total-records');
+
+  if (!Array.isArray(movements) || movements.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 font-semibold"><i class="fa-solid fa-folder-open text-2xl mb-2 block text-slate-300"></i> No se encontraron movimientos con los filtros aplicados.</td></tr>`;
+    if (statEnt) statEnt.innerText = '0 und.';
+    if (statSal) statSal.innerText = '0 und.';
+    if (statStk) statStk.innerText = CURRENT_KARDEX_PRODUCT_ID ? `${PRODUCTS.find(x => x.id === CURRENT_KARDEX_PRODUCT_ID)?.stock || 0} und.` : '-';
+    if (totalRec) totalRec.innerText = '0 movimientos mostrados';
+    return;
+  }
+
+  let totalEntradas = 0;
+  let totalSalidas = 0;
+
+  tbody.innerHTML = movements.map(m => {
+    const isEntry = m.type === 'ENTRADA' || m.type === 'STOCK_INICIAL' || m.type === 'ANULACION';
+    const isExit = m.type === 'SALIDA' || m.type === 'VENTA';
+
+    if (isEntry) totalEntradas += Number(m.quantity || 0);
+    if (isExit) totalSalidas += Number(m.quantity || 0);
+
+    let typeBadge = '';
+    if (m.type === 'STOCK_INICIAL') {
+      typeBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 inline-flex items-center gap-1"><i class="fa-solid fa-box text-[9px]"></i> INICIAL</span>`;
+    } else if (m.type === 'ENTRADA') {
+      typeBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 inline-flex items-center gap-1"><i class="fa-solid fa-arrow-down text-[9px]"></i> ENTRADA</span>`;
+    } else if (m.type === 'VENTA') {
+      typeBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 inline-flex items-center gap-1"><i class="fa-solid fa-cart-shopping text-[9px]"></i> VENTA</span>`;
+    } else if (m.type === 'SALIDA') {
+      typeBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 inline-flex items-center gap-1"><i class="fa-solid fa-arrow-up text-[9px]"></i> MERMA/SALIDA</span>`;
+    } else if (m.type === 'ANULACION') {
+      typeBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-700 inline-flex items-center gap-1"><i class="fa-solid fa-rotate-left text-[9px]"></i> ANULACIÓN</span>`;
+    } else {
+      typeBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 inline-flex items-center gap-1">${m.type}</span>`;
+    }
+
+    const qtySign = isEntry ? `+${m.quantity}` : (isExit ? `-${m.quantity}` : `${m.quantity}`);
+    const qtyClass = isEntry ? 'text-emerald-600 font-black' : (isExit ? 'text-rose-600 font-black' : 'text-amber-600 font-black');
+
+    const dateStr = new Date(m.created_at).toLocaleString('es-PE', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    return `
+      <tr class="hover:bg-slate-50/90 transition-colors">
+        <td class="p-3 text-slate-500 font-mono-code text-[11px] whitespace-nowrap">${dateStr}</td>
+        <td class="p-3">
+          <div class="font-bold text-slate-800 text-xs">${m.product_name || 'Producto #' + m.product_id}</div>
+          <div class="text-[10px] font-mono-code text-indigo-600 font-bold mt-0.5">${m.product_code || ''}</div>
+        </td>
+        <td class="p-3 text-center whitespace-nowrap">${typeBadge}</td>
+        <td class="p-3 text-right font-mono-code ${qtyClass} text-xs tabular-nums">${qtySign}</td>
+        <td class="p-3 text-center font-mono-code text-xs text-slate-600 tabular-nums">
+          <span class="text-slate-400 font-medium">${m.previous_stock}</span> <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 mx-1"></i> <span class="font-bold text-slate-900">${m.new_stock}</span>
+        </td>
+        <td class="p-3 text-xs text-slate-600">
+          <div class="font-medium text-slate-800">${m.reason || '-'}</div>
+          ${m.reference_code ? `<span class="inline-block mt-0.5 text-[10px] font-mono-code text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-bold">Ref: ${m.reference_code}</span>` : ''}
+        </td>
+        <td class="p-3 text-slate-500 text-[11px] whitespace-nowrap">
+          <span class="inline-flex items-center gap-1 font-medium"><i class="fa-solid fa-user-shield text-[10px] text-slate-400"></i>${m.user_name || 'Sistema'}</span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  if (statEnt) statEnt.innerText = `${totalEntradas} und.`;
+  if (statSal) statSal.innerText = `${totalSalidas} und.`;
+  if (statStk) {
+    if (CURRENT_KARDEX_PRODUCT_ID) {
+      const currProd = PRODUCTS.find(x => x.id === CURRENT_KARDEX_PRODUCT_ID);
+      statStk.innerText = currProd ? `${currProd.stock} und.` : '-';
+    } else {
+      statStk.innerText = 'General';
+    }
+  }
+  if (totalRec) totalRec.innerText = `${movements.length} movimientos mostrados (de ${RAW_KARDEX_MOVEMENTS.length})`;
+}
+
+function openStockAdjustmentModal(productId = null) {
+  const modal = document.getElementById('modal-stock-adjustment');
+  const select = document.getElementById('adjust-product-id');
+  const qtyInput = document.getElementById('adjust-quantity');
+  const reasonInput = document.getElementById('adjust-reason');
+  const refInput = document.getElementById('adjust-reference');
+  const typeSelect = document.getElementById('adjust-type');
+
+  if (select) {
+    select.innerHTML = '<option value="">-- Seleccionar Producto --</option>' + 
+      PRODUCTS.map(p => `<option value="${p.id}" ${productId === p.id ? 'selected' : ''}>${p.code} - ${p.name} (Stock: ${p.stock})</option>`).join('');
+  }
+
+  if (qtyInput) qtyInput.value = '';
+  if (reasonInput) reasonInput.value = '';
+  if (refInput) refInput.value = '';
+  if (typeSelect) typeSelect.value = 'ENTRADA';
+
+  onAdjustProductChange();
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeStockAdjustmentModal() {
+  const modal = document.getElementById('modal-stock-adjustment');
+  if (modal) modal.classList.add('hidden');
+}
+
+function onAdjustProductChange() {
+  const select = document.getElementById('adjust-product-id');
+  const stockEl = document.getElementById('adjust-current-stock');
+  if (!select || !stockEl) return;
+
+  const pid = parseInt(select.value, 10);
+  const p = PRODUCTS.find(x => x.id === pid);
+  if (p) {
+    stockEl.innerText = `${p.stock} und.`;
+  } else {
+    stockEl.innerText = '0 und.';
+  }
+}
+
+async function handleStockAdjustmentSubmit(e) {
+  e.preventDefault();
+  const pid = parseInt(document.getElementById('adjust-product-id')?.value, 10);
+  const type = document.getElementById('adjust-type')?.value;
+  const quantity = parseInt(document.getElementById('adjust-quantity')?.value, 10);
+  const reason = document.getElementById('adjust-reason')?.value?.trim();
+  const reference_code = document.getElementById('adjust-reference')?.value?.trim();
+
+  if (!pid) {
+    alert('Debe seleccionar un producto.');
+    return;
+  }
+  if (!quantity || quantity <= 0) {
+    alert('La cantidad debe ser mayor a 0.');
+    return;
+  }
+  if (!reason) {
+    alert('El motivo o justificación del ajuste es obligatorio.');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/inventory/adjustment', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({
+        product_id: pid,
+        type,
+        quantity,
+        reason,
+        reference_code
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Error al procesar el ajuste de inventario.');
+    }
+
+    alert(`✅ Movimiento registrado con éxito.\n${data.message}`);
+    closeStockAdjustmentModal();
+    await loadProducts();
+    if (document.getElementById('modal-kardex') && !document.getElementById('modal-kardex').classList.contains('hidden')) {
+      await refreshCurrentKardex();
+    }
+  } catch (err) {
+    alert(`⚠️ Error: ${err.message}`);
+  }
 }
 
 function renderFiadosTable() {
@@ -2592,6 +3255,7 @@ function updateUserSessionUI() {
   const avatarEl = document.getElementById('sidebar-user-avatar');
   const profitCard = document.getElementById('dash-profit-card');
 
+  if (!currentUser) return;
   if (nameEl) nameEl.innerText = currentUser.name || 'Usuario';
   if (roleEl) roleEl.innerText = (currentUser.role || 'admin').toUpperCase();
   if (avatarEl) avatarEl.innerText = (currentUser.name || 'A').charAt(0).toUpperCase();
@@ -2607,7 +3271,7 @@ function updateUserSessionUI() {
 }
 
 function openLoginModal() {
-  document.getElementById('login-username').value = currentUser.username || 'admin';
+  document.getElementById('login-username').value = currentUser?.username || 'admin';
   document.getElementById('login-password').value = '';
   document.getElementById('modal-login').classList.remove('hidden');
 }
@@ -2638,6 +3302,312 @@ async function submitLogin(e) {
     updateUserSessionUI();
     closeLoginModal();
     showToast('Sesión Iniciada', `Bienvenido, ${currentUser.name} (${currentUser.role.toUpperCase()})`);
+  } catch (err) {
+    alert('❌ ' + err.message);
+  }
+}
+
+async function handleScreenLogin(e) {
+  e.preventDefault();
+  const username = document.getElementById('login-screen-username').value.trim();
+  const password = document.getElementById('login-screen-password').value;
+  const errorEl = document.getElementById('login-screen-error');
+  const errorMsg = document.getElementById('login-screen-error-msg');
+  const btn = document.getElementById('login-screen-btn');
+
+  if (errorEl) errorEl.classList.add('hidden');
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Credenciales incorrectas');
+
+    authToken = data.token;
+    currentUser = data.user;
+    localStorage.setItem('cellventas_token', authToken);
+    localStorage.setItem('cellventas_user', JSON.stringify(currentUser));
+
+    hideLoginScreen();
+    updateUserSessionUI();
+    showToast('Sesión Iniciada', `Bienvenido, ${currentUser.name} (${currentUser.role.toUpperCase()})`);
+
+    await loadCashStatus();
+    await loadCashHistory();
+    await loadBrandsAndModels();
+    await loadProducts();
+    await loadCustomers();
+    await loadRepairs();
+    await loadDashboard();
+    await loadCoverageData();
+    await loadSalesHistory();
+  } catch (err) {
+    if (errorEl && errorMsg) {
+      errorMsg.innerText = err.message;
+      errorEl.classList.remove('hidden');
+    } else {
+      alert('❌ ' + err.message);
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function logout() {
+  if (!confirm('¿Desea cerrar la sesión de mostrador actual?')) return;
+  authToken = '';
+  currentUser = null;
+  localStorage.removeItem('cellventas_token');
+  localStorage.removeItem('cellventas_user');
+  showLoginScreen();
+  showToast('Sesión Cerrada', 'Hasta pronto.', 'warning');
+}
+
+function setQuickLogin(username, password) {
+  const uInput = document.getElementById('login-screen-username');
+  const pInput = document.getElementById('login-screen-password');
+  if (uInput) uInput.value = username;
+  if (pInput) {
+    pInput.value = password;
+    pInput.focus();
+  }
+}
+
+// ==========================================
+// GESTIÓN DE USUARIOS Y SEGURIDAD DE ACCESO
+// ==========================================
+
+function openUserManagementModal() {
+  const modal = document.getElementById('modal-user-management');
+  if (!modal) return;
+
+  const userDisplay = document.getElementById('modal-curr-user-display');
+  const userAvatar = document.getElementById('modal-curr-user-avatar');
+  if (currentUser) {
+    if (userDisplay) userDisplay.innerText = `Usuario en sesión: ${currentUser.name} (@${currentUser.username}) - Rol: ${currentUser.role}`;
+    if (userAvatar) userAvatar.innerText = (currentUser.name || 'U').charAt(0).toUpperCase();
+  }
+
+  const currP = document.getElementById('chg-curr-password');
+  const newP = document.getElementById('chg-new-password');
+  const confP = document.getElementById('chg-confirm-password');
+  if (currP) currP.value = '';
+  if (newP) newP.value = '';
+  if (confP) confP.value = '';
+
+  switchUserModalTab('my-security');
+  modal.classList.remove('hidden');
+}
+
+function closeUserManagementModal() {
+  const modal = document.getElementById('modal-user-management');
+  if (modal) modal.classList.add('hidden');
+}
+
+function switchUserModalTab(tab) {
+  const tabSec = document.getElementById('user-tab-my-security');
+  const tabTeam = document.getElementById('user-tab-team-manage');
+  const btnSec = document.getElementById('tab-btn-my-security');
+  const btnTeam = document.getElementById('tab-btn-team-manage');
+
+  if (tab === 'my-security') {
+    if (tabSec) tabSec.classList.remove('hidden');
+    if (tabTeam) tabTeam.classList.add('hidden');
+    if (btnSec) {
+      btnSec.className = 'px-4 py-2.5 border-b-2 border-indigo-600 text-indigo-600 transition-colors flex items-center gap-1.5 font-bold';
+    }
+    if (btnTeam) {
+      btnTeam.className = 'px-4 py-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-1.5 font-bold';
+    }
+  } else if (tab === 'team-manage') {
+    if (tabSec) tabSec.classList.add('hidden');
+    if (tabTeam) tabTeam.classList.remove('hidden');
+    if (btnTeam) {
+      btnTeam.className = 'px-4 py-2.5 border-b-2 border-indigo-600 text-indigo-600 transition-colors flex items-center gap-1.5 font-bold';
+    }
+    if (btnSec) {
+      btnSec.className = 'px-4 py-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-1.5 font-bold';
+    }
+    loadUsersList();
+  }
+}
+
+function toggleNewUserForm() {
+  const box = document.getElementById('box-new-user-form');
+  if (box) box.classList.toggle('hidden');
+}
+
+async function loadUsersList() {
+  const tbody = document.getElementById('users-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Cargando usuarios...</td></tr>`;
+
+  try {
+    const res = await fetch('/api/users', { headers: getAuthHeaders() });
+    const users = await res.json();
+
+    if (!Array.isArray(users) || users.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">No hay usuarios registrados.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = users.map(u => {
+      const isCurrent = currentUser && currentUser.id === u.id;
+      const isAdmin = u.role === 'Administrador';
+      const roleBadge = isAdmin
+        ? `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[10px] font-black">ADMIN</span>`
+        : `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-black">VENDEDOR</span>`;
+
+      return `
+        <tr class="hover:bg-slate-50/80 transition-colors">
+          <td class="p-3">
+            <span class="font-bold text-slate-900">${u.name}</span>
+            ${isCurrent ? '<span class="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded ml-1.5">Tú</span>' : ''}
+          </td>
+          <td class="p-3 font-mono-code text-slate-600 text-xs font-semibold">@${u.username}</td>
+          <td class="p-3">${roleBadge}</td>
+          <td class="p-3 text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="handleResetPassword(${u.id}, '${u.username}')" class="action-icon-btn bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-800" title="Restablecer Clave"><i class="fa-solid fa-key text-xs"></i></button>
+              ${u.username !== 'admin' && !isCurrent ? `
+                <button onclick="handleDeleteUser(${u.id}, '${u.username}')" class="action-icon-btn bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-800" title="Eliminar Usuario"><i class="fa-solid fa-trash text-xs"></i></button>
+              ` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-rose-500">Error al cargar usuarios: ${err.message}</td></tr>`;
+  }
+}
+
+async function handleChangePassword(e) {
+  e.preventDefault();
+  const currentPassword = document.getElementById('chg-curr-password')?.value;
+  const newPassword = document.getElementById('chg-new-password')?.value;
+  const confirmPassword = document.getElementById('chg-confirm-password')?.value;
+
+  if (!currentPassword || !newPassword) {
+    alert('⚠️ Ingrese su contraseña actual y la nueva contraseña.');
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    alert('⚠️ La confirmación de contraseña no coincide con la nueva contraseña.');
+    return;
+  }
+
+  if (newPassword.length < 4) {
+    alert('⚠️ La nueva contraseña debe tener como mínimo 4 caracteres.');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al actualizar contraseña.');
+
+    alert('✅ Contraseña actualizada con éxito. Por seguridad, utilícela en su próximo inicio de sesión.');
+    document.getElementById('chg-curr-password').value = '';
+    document.getElementById('chg-new-password').value = '';
+    document.getElementById('chg-confirm-password').value = '';
+    closeUserManagementModal();
+  } catch (err) {
+    alert('❌ ' + err.message);
+  }
+}
+
+async function handleCreateUser(e) {
+  e.preventDefault();
+  const name = document.getElementById('new-user-name')?.value?.trim();
+  const username = document.getElementById('new-user-username')?.value?.trim();
+  const role = document.getElementById('new-user-role')?.value;
+  const password = document.getElementById('new-user-password')?.value;
+
+  if (!name || !username || !password) {
+    alert('⚠️ Todos los campos son obligatorios.');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({ name, username, role, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al crear usuario.');
+
+    alert(`✅ Colaborador "@${username}" creado correctamente con rol ${role}.`);
+    document.getElementById('new-user-name').value = '';
+    document.getElementById('new-user-username').value = '';
+    document.getElementById('new-user-password').value = '';
+    toggleNewUserForm();
+    await loadUsersList();
+  } catch (err) {
+    alert('❌ ' + err.message);
+  }
+}
+
+async function handleResetPassword(userId, username) {
+  const newPass = prompt(`Ingrese la nueva contraseña para el usuario "@${username}":`, '');
+  if (!newPass) return;
+
+  if (newPass.length < 4) {
+    alert('⚠️ La nueva contraseña debe tener mínimo 4 caracteres.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/users/${userId}/password`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({ newPassword: newPass })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al resetear contraseña.');
+
+    alert(`✅ Contraseña de "@${username}" actualizada con éxito.`);
+  } catch (err) {
+    alert('❌ ' + err.message);
+  }
+}
+
+async function handleDeleteUser(userId, username) {
+  if (!confirm(`¿Está seguro de eliminar al usuario "@${username}"? Ya no podrá acceder al sistema.`)) return;
+
+  try {
+    const res = await fetch(`/api/users/${userId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al eliminar usuario.');
+
+    alert(`✅ Usuario "@${username}" eliminado con éxito.`);
+    await loadUsersList();
   } catch (err) {
     alert('❌ ' + err.message);
   }

@@ -117,10 +117,7 @@ app.get('/api/auth/me', (req, res) => {
   if (req.user) {
     return res.json({ authenticated: true, user: req.user });
   }
-  return res.json({
-    authenticated: false,
-    user: { id: 1, username: 'admin', name: 'Mostrador Tech', role: 'Administrador' }
-  });
+  return res.status(401).json({ authenticated: false, user: null, error: 'Sesión no iniciada o token expirado.' });
 });
 
 app.get('/api/users', async (req, res) => {
@@ -129,6 +126,130 @@ app.get('/api/users', async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     sendSafeError(res, req, 'GET_USERS', err, 'Error al consultar usuarios.');
+  }
+});
+
+app.put('/api/auth/change-password', async (req, res) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Debe iniciar sesión para cambiar su contraseña.' });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Debe ingresar su contraseña actual y la nueva contraseña.' });
+    }
+
+    if (String(newPassword).length < 4) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 4 caracteres.' });
+    }
+
+    const userRes = await db.query(`SELECT id, password_hash FROM users WHERE id = ?`, [req.user.id]);
+    const user = userRes.rows[0];
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    const isValid = bcrypt.compareSync(String(currentPassword), user.password_hash);
+    if (!isValid) {
+      return res.status(400).json({ error: 'La contraseña actual no es correcta.' });
+    }
+
+    const newHash = bcrypt.hashSync(String(newPassword), 10);
+    await db.query(`UPDATE users SET password_hash = ? WHERE id = ?`, [newHash, req.user.id]);
+
+    res.json({ success: true, message: 'Contraseña actualizada correctamente.' });
+  } catch (err) {
+    sendSafeError(res, req, 'CHANGE_PASSWORD', err, 'No se pudo actualizar la contraseña.');
+  }
+});
+
+app.post('/api/users', async (req, res) => {
+  try {
+    const { username, name, role, password } = req.body;
+    const cleanUser = String(username || '').trim().toLowerCase();
+    const cleanName = String(name || '').trim();
+    const cleanRole = String(role || 'Vendedor').trim();
+    const cleanPass = String(password || '').trim();
+
+    if (!cleanUser || !cleanName || !cleanPass) {
+      return res.status(400).json({ error: 'Nombre, usuario y contraseña son obligatorios.' });
+    }
+
+    if (cleanPass.length < 4) {
+      return res.status(400).json({ error: 'La contraseña debe tener mínimo 4 caracteres.' });
+    }
+
+    const existingRes = await db.query(`SELECT id FROM users WHERE LOWER(username) = ?`, [cleanUser]);
+    if (existingRes.rows.length > 0) {
+      return res.status(400).json({ error: 'Ya existe un usuario con ese nombre de usuario.' });
+    }
+
+    const passHash = bcrypt.hashSync(cleanPass, 10);
+    const insertRes = await db.query(`
+      INSERT INTO users (username, name, role, password_hash)
+      VALUES (?, ?, ?, ?)
+      RETURNING id
+    `, [cleanUser, cleanName, cleanRole, passHash]);
+
+    const newId = insertRes.lastID || (insertRes.rows && insertRes.rows[0] ? insertRes.rows[0].id : null);
+
+    res.json({
+      success: true,
+      message: `Usuario "${cleanUser}" creado con éxito.`,
+      user: { id: newId, username: cleanUser, name: cleanName, role: cleanRole }
+    });
+  } catch (err) {
+    sendSafeError(res, req, 'CREATE_USER', err, 'No se pudo registrar el usuario.');
+  }
+});
+
+app.put('/api/users/:id/password', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+    const cleanPass = String(newPassword || '').trim();
+
+    if (!cleanPass || cleanPass.length < 4) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 4 caracteres.' });
+    }
+
+    const userRes = await db.query(`SELECT id, username FROM users WHERE id = ?`, [id]);
+    const user = userRes.rows[0];
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    const newHash = bcrypt.hashSync(cleanPass, 10);
+    await db.query(`UPDATE users SET password_hash = ? WHERE id = ?`, [newHash, id]);
+
+    res.json({ success: true, message: `Contraseña de "${user.username}" restablecida con éxito.` });
+  } catch (err) {
+    sendSafeError(res, req, 'RESET_PASSWORD', err, 'No se pudo restablecer la contraseña.');
+  }
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userRes = await db.query(`SELECT id, username FROM users WHERE id = ?`, [id]);
+    const user = userRes.rows[0];
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    if (user.username === 'admin') {
+      return res.status(400).json({ error: 'No se puede eliminar el usuario administrador principal del sistema.' });
+    }
+
+    if (req.user && parseInt(req.user.id, 10) === parseInt(id, 10)) {
+      return res.status(400).json({ error: 'No puede eliminar su propio usuario en sesión activa.' });
+    }
+
+    await db.query(`DELETE FROM users WHERE id = ?`, [id]);
+    res.json({ success: true, message: `Usuario "${user.username}" eliminado del sistema.` });
+  } catch (err) {
+    sendSafeError(res, req, 'DELETE_USER', err, 'No se pudo eliminar el usuario.');
   }
 });
 
@@ -374,6 +495,13 @@ app.post('/api/products', async (req, res) => {
           await tx(`INSERT INTO product_compatibilities (product_id, phone_model_id) VALUES (?, ?)`, [newId, mId]);
         }
       }
+
+      if (newId && initialStock > 0) {
+        await tx(`
+          INSERT INTO inventory_movements (product_id, type, quantity, previous_stock, new_stock, reason, reference_code, user_name)
+          VALUES (?, 'STOCK_INICIAL', ?, 0, ?, 'Stock inicial al registrar producto', 'REGISTRO', ?)
+        `, [newId, initialStock, initialStock, req.user?.name || 'Administrador']);
+      }
       return newId;
     });
 
@@ -434,6 +562,149 @@ app.delete('/api/products/:id', async (req, res) => {
     res.json({ success: true, message: 'Producto eliminado.' });
   } catch (err) {
     sendSafeError(res, req, 'DELETE_PRODUCT', err, 'No se pudo eliminar el producto.');
+  }
+});
+
+// ==========================================
+// 2.5 KARDEX Y MOVIMIENTOS DE INVENTARIO
+// ==========================================
+
+app.get('/api/inventory/kardex', async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT im.*, p.name as product_name, p.code as product_code
+      FROM inventory_movements im
+      INNER JOIN products p ON im.product_id = p.id
+      ORDER BY im.id DESC
+      LIMIT 200
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    sendSafeError(res, req, 'GET_INVENTORY_KARDEX_ALL', err, 'Error al consultar movimientos del Kardex.');
+  }
+});
+
+app.get('/api/inventory/kardex/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const result = await db.query(`
+      SELECT im.*, p.name as product_name, p.code as product_code
+      FROM inventory_movements im
+      INNER JOIN products p ON im.product_id = p.id
+      WHERE im.product_id = ?
+      ORDER BY im.id DESC
+    `, [productId]);
+    res.json(result.rows);
+  } catch (err) {
+    sendSafeError(res, req, 'GET_INVENTORY_KARDEX_PRODUCT', err, 'Error al consultar el Kardex del producto.');
+  }
+});
+
+app.post('/api/inventory/adjustment', async (req, res) => {
+  try {
+    const { product_id, type, quantity, reason, reference_code, new_stock_target } = req.body;
+    const pid = parseInt(product_id, 10);
+    const qty = parseInt(quantity, 10);
+    const cleanReason = String(reason || '').trim();
+    const cleanType = String(type || '').trim().toUpperCase();
+
+    if (!pid || isNaN(pid)) {
+      return res.status(400).json({ error: 'Debe especificar un producto válido.' });
+    }
+    if (!cleanReason) {
+      return res.status(400).json({ error: 'El motivo del ajuste o movimiento es obligatorio (ej. Factura compra #123, merma por rotura, inventario físico).' });
+    }
+
+    const prodRes = await db.query(`SELECT id, name, stock, is_serialized FROM products WHERE id = ?`, [pid]);
+    const product = prodRes.rows[0];
+    if (!product) {
+      return res.status(404).json({ error: 'Producto no encontrado.' });
+    }
+
+    const prevStock = parseInt(product.stock, 10) || 0;
+    let newStock = prevStock;
+    let movementType = cleanType;
+    let movementQty = qty;
+
+    if (cleanType === 'ENTRADA' || cleanType === 'ENTRADA_COMPRA') {
+      if (isNaN(qty) || qty <= 0) {
+        return res.status(400).json({ error: 'La cantidad a ingresar debe ser mayor a 0.' });
+      }
+      movementType = 'ENTRADA';
+      movementQty = qty;
+      newStock = prevStock + qty;
+    } else if (cleanType === 'SALIDA' || cleanType === 'SALIDA_MERMA') {
+      if (isNaN(qty) || qty <= 0) {
+        return res.status(400).json({ error: 'La cantidad a retirar debe ser mayor a 0.' });
+      }
+      movementType = 'SALIDA';
+      movementQty = qty;
+      if (prevStock < qty) {
+        return res.status(400).json({ 
+          error: `Stock insuficiente. Stock actual: ${prevStock}, cantidad a retirar: ${qty}.` 
+        });
+      }
+      newStock = prevStock - qty;
+    } else if (cleanType === 'AJUSTE') {
+      movementType = 'AJUSTE';
+      if (new_stock_target !== undefined && new_stock_target !== null && new_stock_target !== '') {
+        const target = Math.max(0, parseInt(new_stock_target, 10) || 0);
+        movementQty = Math.abs(target - prevStock);
+        newStock = target;
+      } else if (!isNaN(qty) && qty > 0) {
+        movementQty = qty;
+        newStock = qty;
+      } else {
+        return res.status(400).json({ error: 'Debe especificar la nueva cantidad real del inventario.' });
+      }
+    } else {
+      return res.status(400).json({ error: 'Tipo de movimiento inválido. Use ENTRADA, SALIDA o AJUSTE.' });
+    }
+
+    const movement = await db.withTransaction(async (tx) => {
+      await tx(`UPDATE products SET stock = ? WHERE id = ?`, [newStock, pid]);
+
+      const insertRes = await tx(`
+        INSERT INTO inventory_movements (product_id, type, quantity, previous_stock, new_stock, reason, reference_code, user_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        RETURNING id
+      `, [
+        pid,
+        movementType,
+        movementQty,
+        prevStock,
+        newStock,
+        cleanReason,
+        reference_code || 'AJUSTE-MANUAL',
+        req.user?.name || 'Administrador'
+      ]);
+
+      const movId = insertRes.lastID || (insertRes.rows && insertRes.rows[0] ? insertRes.rows[0].id : null);
+      return {
+        id: movId,
+        product_id: pid,
+        product_name: product.name,
+        type: movementType,
+        quantity: movementQty,
+        previous_stock: prevStock,
+        new_stock: newStock,
+        reason: cleanReason,
+        reference_code: reference_code || 'AJUSTE-MANUAL',
+        user_name: req.user?.name || 'Administrador',
+        created_at: new Date().toISOString()
+      };
+    });
+
+    io.emit('product_updated', { action: 'stock_adjusted', productId: pid, newStock });
+    io.emit('inventory_movement_added', movement);
+
+    res.json({
+      success: true,
+      message: `Stock de "${product.name}" actualizado con éxito de ${prevStock} a ${newStock}.`,
+      movement
+    });
+  } catch (err) {
+    sendSafeError(res, req, 'STOCK_ADJUSTMENT', err, 'No se pudo registrar el movimiento de inventario.');
   }
 });
 
@@ -511,7 +782,32 @@ app.get('/api/imeis/search/:query', async (req, res) => {
 
 app.get('/api/sales', async (req, res) => {
   try {
-    const salesRes = await db.query(`SELECT * FROM sales ORDER BY id DESC LIMIT 150`);
+    const { from, to, limit } = req.query;
+    let queryStr = `SELECT * FROM sales`;
+    const params = [];
+    const conditions = [];
+
+    if (from) {
+      conditions.push(`created_at >= ?`);
+      params.push(`${from} 00:00:00`);
+    }
+    if (to) {
+      conditions.push(`created_at <= ?`);
+      params.push(`${to} 23:59:59`);
+    }
+
+    if (conditions.length > 0) {
+      queryStr += ` WHERE ` + conditions.join(' AND ');
+    }
+
+    queryStr += ` ORDER BY id DESC`;
+
+    if (!from && !to) {
+      const lim = parseInt(limit, 10) || 200;
+      queryStr += ` LIMIT ${lim}`;
+    }
+
+    const salesRes = await db.query(queryStr, params);
     const itemsRes = await db.query(`SELECT * FROM sale_items ORDER BY id ASC`);
 
     const salesWithItems = salesRes.rows.map(s => ({
@@ -638,11 +934,31 @@ app.post('/api/sales', async (req, res) => {
         }
 
         if (item.product_id) {
+          const prodCheck = await tx(`SELECT stock FROM products WHERE id = ?`, [item.product_id]);
+          const prevStock = prodCheck.rows[0] ? parseInt(prodCheck.rows[0].stock, 10) : 0;
+          let newStock = prevStock;
+
           if (imeiCode) {
             await db.syncSerializedProductStock(item.product_id, tx);
+            const updatedProd = await tx(`SELECT stock FROM products WHERE id = ?`, [item.product_id]);
+            newStock = updatedProd.rows[0] ? parseInt(updatedProd.rows[0].stock, 10) : prevStock;
           } else {
-            await tx(`UPDATE products SET stock = stock - ? WHERE id = ?`, [item.quantity, item.product_id]);
+            newStock = Math.max(0, prevStock - parseInt(item.quantity, 10));
+            await tx(`UPDATE products SET stock = ? WHERE id = ?`, [newStock, item.product_id]);
           }
+
+          await tx(`
+            INSERT INTO inventory_movements (product_id, type, quantity, previous_stock, new_stock, reason, reference_code, user_name)
+            VALUES (?, 'VENTA', ?, ?, ?, ?, ?, ?)
+          `, [
+            item.product_id,
+            parseInt(item.quantity, 10),
+            prevStock,
+            newStock,
+            `Venta en mostrador #${receipt_code}`,
+            receipt_code,
+            req.user?.name || 'Administrador'
+          ]);
         }
       }
 
@@ -712,11 +1028,31 @@ app.put('/api/sales/:id/anular', async (req, res) => {
           `, [item.imei_code]);
         }
         if (item.product_id) {
+          const prodCheck = await tx(`SELECT stock FROM products WHERE id = ?`, [item.product_id]);
+          const prevStock = prodCheck.rows[0] ? parseInt(prodCheck.rows[0].stock, 10) : 0;
+          let newStock = prevStock;
+
           if (item.imei_code) {
             await db.syncSerializedProductStock(item.product_id, tx);
+            const updatedProd = await tx(`SELECT stock FROM products WHERE id = ?`, [item.product_id]);
+            newStock = updatedProd.rows[0] ? parseInt(updatedProd.rows[0].stock, 10) : prevStock;
           } else {
-            await tx(`UPDATE products SET stock = stock + ? WHERE id = ?`, [item.quantity, item.product_id]);
+            newStock = prevStock + parseInt(item.quantity, 10);
+            await tx(`UPDATE products SET stock = ? WHERE id = ?`, [newStock, item.product_id]);
           }
+
+          await tx(`
+            INSERT INTO inventory_movements (product_id, type, quantity, previous_stock, new_stock, reason, reference_code, user_name)
+            VALUES (?, 'ANULACION', ?, ?, ?, ?, ?, ?)
+          `, [
+            item.product_id,
+            parseInt(item.quantity, 10),
+            prevStock,
+            newStock,
+            `Anulación de venta #${sale.receipt_code}`,
+            sale.receipt_code,
+            req.user?.name || 'Administrador'
+          ]);
         }
       }
 

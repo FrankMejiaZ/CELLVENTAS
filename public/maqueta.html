@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CELLVENTAS | Maqueta Interactiva - Nuevo Diseño Minimalista & Mega-Menú</title>
+  <link rel="stylesheet" href="/css/tailwind.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-300: #cbd5e1;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
+      --indigo-600: #4f46e5;
+      --indigo-700: #4338ca;
+      --emerald-500: #10b981;
+      --emerald-600: #059669;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      background-color: #f8fafc !important;
+      color: #1e293b !important;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace !important;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Scrollbars ultra finos y limpios */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Micro-interacciones táctiles */
+    button, .interactive-card {
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    button:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    /* Mega-Menú Flyout Animation */
+    .mega-menu-enter {
+      animation: megaMenuSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes megaMenuSlide {
+      from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.99);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Píldoras de Categorías estilo Falabella / Saga */
+    .category-pill {
+      white-space: nowrap;
+      padding: 0.5rem 1.1rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      color: #475569;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s ease;
+    }
+    .category-pill:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #cbd5e1;
+    }
+    .category-pill.active {
+      background: #0f172a;
+      color: #ffffff;
+      border-color: #0f172a;
+      box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.25);
+    }
+
+    /* Modal Backdrop */
+    .modal-backdrop {
+      background-color: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+    }
+
+    /* Tarjeta de Producto en POS */
+    .pos-product-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 1.25rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+    .pos-product-card:hover {
+      border-color: #818cf8;
+      box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.1), 0 8px 10px -6px rgba(79, 70, 229, 0.05);
+      transform: translateY(-2px);
+    }
+
+    /* Badges de departamento en el Mega-Menú */
+    .dept-nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1rem;
+      border-radius: 1rem;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .dept-nav-item:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    .dept-nav-item.active {
+      background: #eef2ff;
+      color: #4338ca;
+      border-left: 4px solid #4f46e5;
+    }
+
+    /* Toast Notification */
+    #mock-toast {
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+
+  <!-- ============================================================== -->
+  <!-- 1. TOP HEADER EJECUTIVO (ESTILO FALABELLA / OECHSLE)          -->
+  <!-- ============================================================== -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-sm transition-all">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3 sm:gap-6">
+
+      <!-- LADO IZQUIERDO: LOGO & BOTÓN MEGA-MENÚ -->
+      <div class="flex items-center gap-3 shrink-0">
+        <!-- Logo de Marca -->
+        <a href="javascript:void(0)" onclick="navigateTo('pos')" class="flex items-center gap-2 group">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-700 via-indigo-600 to-indigo-500 text-white flex items-center justify-center text-lg font-black shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+            <i class="fa-solid fa-bolt"></i>
+          </div>
+          <div class="hidden sm:block">
+            <h1 class="text-base font-black tracking-tight text-slate-900 leading-none">
+              CELL<span class="text-indigo-600">VENTAS</span>
+            </h1>
+            <span class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">Pro POS & Taller</span>
+          </div>
+        </a>
+
+        <!-- BOTÓN MEGA-MENÚ POR CLIC (INSPIRACIÓN FALABELLA) -->
+        <button id="btn-mega-menu" onclick="toggleMegaMenu()" class="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-slate-900 hover:bg-indigo-600 text-white text-xs font-bold shadow-md shadow-slate-900/10 hover:shadow-indigo-600/25 transition-all">
+          <i class="fa-solid fa-bars text-sm"></i>
+          <span class="tracking-wide">Menú</span>
+          <i class="fa-solid fa-chevron-down text-[10px] text-slate-300 transition-transform" id="menu-arrow-icon"></i>
+        </button>
+      </div>
+
+      <!-- CENTRO: BUSCADOR GLOBAL OMNIBOX (ESTILO FALABELLA) -->
+      <div class="flex-1 max-w-xl relative">
+        <div class="relative flex items-center">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 text-slate-400 text-xs"></i>
+          <input 
+            type="text" 
+            id="global-omnibox" 
+            oninput="handleGlobalSearch(this.value)" 
+            placeholder="Buscar por producto, pistolear código de barras, IMEI (15 dígitos), cliente o ticket..." 
+            class="w-full pl-9 pr-20 py-2.5 bg-slate-100 hover:bg-slate-100/80 focus:bg-white border border-slate-200 focus:border-indigo-500 rounded-2xl text-xs font-medium outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all text-slate-800 placeholder-slate-400"
+          >
+          <div class="absolute right-3 flex items-center gap-1.5 pointer-events-none">
+            <span class="px-1.5 py-0.5 rounded-md bg-white border border-slate-200 text-[10px] font-mono-code font-bold text-slate-400 shadow-2xs">Ctrl K</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LADO DERECHO: ESTADO DE CAJA, USUARIO & VENTA ACTIVA -->
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        
+        <!-- Píldora Estado de Caja -->
+        <button onclick="navigateTo('cash')" class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold hover:bg-emerald-100 transition-colors" title="Ver Estado de Caja">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Caja Abierta</span>
+        </button>
+
+        <!-- Notificaciones / Stock Crítico -->
+        <button onclick="navigateTo('inventory')" class="relative w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xs transition-colors" title="2 Productos con Stock Bajo">
+          <i class="fa-solid fa-bell"></i>
+          <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-white font-mono-code font-bold text-[9px] flex items-center justify-center border-2 border-white">2</span>
+        </button>
+
+        <!-- Perfil Usuario & Seguridad -->
+        <button onclick="navigateTo('security')" class="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-xl hover:bg-slate-100 text-slate-700 transition-colors" title="Configurar Perfil & Personal">
+          <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+            A
+          </div>
+          <div class="hidden lg:block text-left text-xs leading-none">
+            <div class="font-bold text-slate-900">Admin</div>
+            <span class="text-[10px] text-indigo-600 font-semibold">Mostrador</span>
+          </div>
+        </button>
+
+        <!-- Botón Venta Rápida / Carrito Flotante -->
+        <button onclick="navigateTo('pos')" class="relative flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span class="hidden sm:inline">Venta</span>
+          <span id="header-cart-badge" class="px-1.5 py-0.5 rounded-full bg-white text-indigo-700 font-mono-code font-black text-[10px]">3</span>
+        </button>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================== -->
+  <!-- 2. MEGA-MENÚ FLYOUT DESPLEGABLE (ESTILO SAGA FALABELLA)       -->
+  <!-- ============================================================== -->
+  <div id="mega-menu-overlay" class="fixed inset-0 z-50 hidden modal-backdrop flex items-start justify-center pt-16 px-4">
+    <div id="mega-menu-container" class="bg-white rounded-3xl w-full max-w-5xl shadow-2xl border border-slate-200 overflow-hidden mega-menu-enter flex flex-col max-h-[85vh]">
+      
+      <!-- Barra Superior del Menú -->
+      <div class="p-4 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-compass"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-slate-900">Navegador del Sistema CELLVENTAS</h3>
+            <p class="text-xs text-slate-500">Seleccione un departamento para ver todos sus submódulos y accesos rápidos.</p>
+          </div>
+        </div>
+        <button onclick="toggleMegaMenu(false)" class="w-8 h-8 rounded-xl bg-slate-200/70 hover:bg-slate-300 text-slate-700 flex items-center justify-center text-xs transition-colors" title="Cerrar Menú (ESC)">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Cuerpo del Mega-Menú: 2 Columnas Sincronizadas -->
+      <div class="flex-1 flex flex-col sm:flex-row overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+        
+        <!-- COLUMNA IZQUIERDA: DEPARTAMENTOS MAESTROS -->
+        <div class="w-full sm:w-72 p-3 bg-slate-50/70 overflow-y-auto space-y-1 shrink-0">
+          <div class="text-[10px] font-black uppercase tracking-wider text-slate-400 px-3 py-1">Departamentos</div>
+          
+          <div class="dept-nav-item active" onclick="selectDepartment('pos')" id="dept-btn-pos">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-cash-register text-indigo-600 w-4 text-center"></i>
+              <span>Ventas & Mostrador</span>
+            </div>
+            <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+          </div>
+
+          <div class="dept-nav-item" onclick="selectDepartment('inventory')" id="dept-btn-inventory">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-boxes-stacked text-amber-600 w-4 text-center"></i>
+              <span>Almacén & Kardex</span>
+            </div>
+            <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+          </div>
+
+          <div class="dept-nav-item" onclick="selectDepartment('repairs')" id="dept-btn-repairs">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-screwdriver-wrench text-blue-600 w-4 text-center"></i>
+              <span>Taller & Servicio Técnico</span>
+            </div>
+            <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+          </div>
+
+          <div class="dept-nav-item" onclick="selectDepartment('cash')" id="dept-btn-cash">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-wallet text-emerald-600 w-4 text-center"></i>
+              <span>Caja & Finanzas</span>
+            </div>
+            <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+          </div>
+
+          <div class="dept-nav-item" onclick="selectDepartment('crm')" id="dept-btn-crm">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-users text-teal-600 w-4 text-center"></i>
+              <span>Clientes & Fiados</span>
+            </div>
+            <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+          </div>
+
+          <div class="dept-nav-item" onclick="selectDepartment('sales')" id="dept-btn-sales">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-file-invoice-dollar text-purple-600 w-4 text-center"></i>
+              <span>Comprobantes & Reportes</span>
+            </div>
+            <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+          </div>
+
+          <div class="dept-nav-item" onclick="selectDepartment('security')" id="dept-btn-security">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-user-shield text-rose-600 w-4 text-center"></i>
+              <span>Seguridad & Personal</span>
+            </div>
+            <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+          </div>
+        </div>
+
+        <!-- PANEL DERECHO: SUBMÓDULOS EN COLUMNAS (CONTENIDO DINÁMICO) -->
+        <div id="dept-details-container" class="flex-1 p-6 overflow-y-auto bg-white">
+          <!-- Inyectado dinámicamente según el departamento seleccionado -->
+        </div>
+
+      </div>
+
+      <!-- Pie del Mega-Menú -->
+      <div class="p-3.5 bg-slate-50 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500">
+        <span class="flex items-center gap-1.5">
+          <i class="fa-solid fa-keyboard text-slate-400"></i> Tip: Presiona <kbd class="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-mono-code font-bold text-[10px]">ESC</kbd> para cerrar el menú en cualquier momento.
+        </span>
+        <button onclick="toggleMegaMenu(false)" class="px-4 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 font-bold text-slate-700 transition-colors">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- 3. ÁREA DE TRABAJO PRINCIPAL (VISTAS DINÁMICAS Y LIMPIAS)     -->
+  <!-- ============================================================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col">
+
+    <!-- ============================================================ -->
+    <!-- VISTA 1: POS - SPLIT SCREEN 50/50 LIMPIO                    -->
+    <!-- ============================================================ -->
+    <section id="view-pos" class="view-panel space-y-4 flex-1 flex flex-col">
+      
+      <!-- Carrusel Horizontal de Píldoras de Categorías (Estilo Saga Falabella) -->
+      <div class="flex items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+          <button class="category-pill active" onclick="filterCategory('all', this)"><i class="fa-solid fa-grid-2"></i> Todo el Catálogo</button>
+          <button class="category-pill" onclick="filterCategory('cases', this)"><i class="fa-solid fa-shield-halved text-indigo-500"></i> Cases & Fundas</button>
+          <button class="category-pill" onclick="filterCategory('micas', this)"><i class="fa-solid fa-mobile text-cyan-500"></i> Micas Templadas 9D</button>
+          <button class="category-pill" onclick="filterCategory('cargadores', this)"><i class="fa-solid fa-bolt text-amber-500"></i> Cargadores & Cables</button>
+          <button class="category-pill" onclick="filterCategory('audio', this)"><i class="fa-solid fa-headphones text-purple-500"></i> Audífonos Bluetooth</button>
+          <button class="category-pill" onclick="filterCategory('repuestos', this)"><i class="fa-solid fa-screwdriver text-rose-500"></i> Repuestos OLED</button>
+        </div>
+        <div class="text-xs text-slate-400 font-semibold shrink-0 hidden sm:block">
+          Mostrando <span class="font-bold text-slate-800" id="pos-items-count">8</span> productos
+        </div>
+      </div>
+
+      <!-- LAYOUT SPLIT SCREEN: CATÁLOGO 50% vs TICKET 50% -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 items-start">
+        
+        <!-- MITAD IZQUIERDA: GRILLA DE PRODUCTOS (7 COLUMNAS) -->
+        <div class="lg:col-span-7 space-y-3">
+          
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold text-slate-700 flex items-center gap-1.5">
+              <i class="fa-solid fa-box-open text-indigo-600"></i> Productos Disponibles
+            </span>
+            <span class="text-slate-400">Clic en un producto para agregarlo al ticket</span>
+          </div>
+
+          <!-- Matriz de Productos Limpia y Futurista -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3" id="pos-products-grid">
+            
+            <!-- Producto 1 -->
+            <div class="pos-product-card" onclick="addToCart('Case Silicona MagSafe iPhone 15 Pro Max', 35.00, 'CAS-101', 'Cases')">
+              <div class="space-y-1.5">
+                <div class="flex justify-between items-start">
+                  <span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-mono-code font-bold text-[10px]">CAS-101</span>
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Stock: 18</span>
+                </div>
+                <h4 class="font-bold text-xs text-slate-900 leading-tight">Case Silicona MagSafe c/ Gamuza</h4>
+                <p class="text-[11px] text-slate-500">iPhone 15 Pro Max</p>
+              </div>
+              <div class="flex justify-between items-center pt-3 border-t border-slate-100 mt-2">
+                <span class="text-sm font-black font-mono-code text-slate-900">S/ 35.00</span>
+                <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white flex items-center justify-center text-xs transition-colors"><i class="fa-solid fa-plus"></i></span>
+              </div>
+            </div>
+
+            <!-- Producto 2 -->
+            <div class="pos-product-card" onclick="addToCart('Mica Vidrio Templado 9D HD', 15.00, 'MIC-201', 'Micas')">
+              <div class="space-y-1.5">
+                <div class="flex justify-between items-start">
+                  <span class="px-2 py-0.5 rounded-md bg-cyan-50 text-cyan-700 font-mono-code font-bold text-[10px]">MIC-201</span>
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Stock: 65</span>
+                </div>
+                <h4 class="font-bold text-xs text-slate-900 leading-tight">Mica Vidrio Templado 9D HD</h4>
+                <p class="text-[11px] text-slate-500">Xiaomi / Samsung 6.67"</p>
+              </div>
+              <div class="flex justify-between items-center pt-3 border-t border-slate-100 mt-2">
+                <span class="text-sm font-black font-mono-code text-slate-900">S/ 15.00</span>
+                <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white flex items-center justify-center text-xs transition-colors"><i class="fa-solid fa-plus"></i></span>
+              </div>
+            </div>
+
+            <!-- Producto 3 -->
+            <div class="pos-product-card" onclick="addToCart('Cubo Cargador Apple 20W Original', 85.00, 'CAR-302', 'Cargadores')">
+              <div class="space-y-1.5">
+                <div class="flex justify-between items-start">
+                  <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 font-mono-code font-bold text-[10px]">CAR-302</span>
+                  <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold text-[10px]">Stock: 2 (Bajo)</span>
+                </div>
+                <h4 class="font-bold text-xs text-slate-900 leading-tight">Cubo Cargador Apple 20W Type-C</h4>
+                <p class="text-[11px] text-slate-500">Carga Rápida Original</p>
+              </div>
+              <div class="flex justify-between items-center pt-3 border-t border-slate-100 mt-2">
+                <span class="text-sm font-black font-mono-code text-slate-900">S/ 85.00</span>
+                <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white flex items-center justify-center text-xs transition-colors"><i class="fa-solid fa-plus"></i></span>
+              </div>
+            </div>
+
+            <!-- Producto 4 -->
+            <div class="pos-product-card" onclick="addToCart('Cable Tipo C a Tipo C 60W Baseus', 22.00, 'CAB-304', 'Cargadores')">
+              <div class="space-y-1.5">
+                <div class="flex justify-between items-start">
+                  <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 font-mono-code font-bold text-[10px]">CAB-304</span>
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Stock: 40</span>
+                </div>
+                <h4 class="font-bold text-xs text-slate-900 leading-tight">Cable Trenzado Baseus 60W</h4>
+                <p class="text-[11px] text-slate-500">1 Metro Carga Rápida</p>
+              </div>
+              <div class="flex justify-between items-center pt-3 border-t border-slate-100 mt-2">
+                <span class="text-sm font-black font-mono-code text-slate-900">S/ 22.00</span>
+                <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white flex items-center justify-center text-xs transition-colors"><i class="fa-solid fa-plus"></i></span>
+              </div>
+            </div>
+
+            <!-- Producto 5 -->
+            <div class="pos-product-card" onclick="addToCart('Redmi Buds 6 Play Bluetooth 5.4', 65.00, 'AUD-401', 'Audio')">
+              <div class="space-y-1.5">
+                <div class="flex justify-between items-start">
+                  <span class="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-mono-code font-bold text-[10px]">AUD-401</span>
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Stock: 14</span>
+                </div>
+                <h4 class="font-bold text-xs text-slate-900 leading-tight">Audífonos Redmi Buds 6 Play</h4>
+                <p class="text-[11px] text-slate-500">Bluetooth 5.4 Xiaomi</p>
+              </div>
+              <div class="flex justify-between items-center pt-3 border-t border-slate-100 mt-2">
+                <span class="text-sm font-black font-mono-code text-slate-900">S/ 65.00</span>
+                <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white flex items-center justify-center text-xs transition-colors"><i class="fa-solid fa-plus"></i></span>
+              </div>
+            </div>
+
+            <!-- Producto 6 -->
+            <div class="pos-product-card" onclick="addToCart('Pantalla OLED Galaxy A54/A55 5G', 180.00, 'REP-501', 'Repuestos')">
+              <div class="space-y-1.5">
+                <div class="flex justify-between items-start">
+                  <span class="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 font-mono-code font-bold text-[10px]">REP-501</span>
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Stock: 3</span>
+                </div>
+                <h4 class="font-bold text-xs text-slate-900 leading-tight">Pantalla OLED Calidad Original</h4>
+                <p class="text-[11px] text-slate-500">Samsung Galaxy A54 / A55</p>
+              </div>
+              <div class="flex justify-between items-center pt-3 border-t border-slate-100 mt-2">
+                <span class="text-sm font-black font-mono-code text-slate-900">S/ 180.00</span>
+                <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white flex items-center justify-center text-xs transition-colors"><i class="fa-solid fa-plus"></i></span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- MITAD DERECHA: TICKET DE VENTA EN VIVO (5 COLUMNAS) -->
+        <div class="lg:col-span-5 bg-white rounded-3xl border border-slate-200 shadow-sm p-5 space-y-4 sticky top-24">
+          
+          <!-- Encabezado del Ticket -->
+          <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+            <div>
+              <span class="text-xs font-mono-code font-bold text-indigo-600">Ticket #T001-000002</span>
+              <h3 class="font-extrabold text-sm text-slate-900">Venta de Mostrador</h3>
+            </div>
+            <div class="flex gap-1.5">
+              <select class="px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold outline-none">
+                <option>Ticket</option>
+                <option>Boleta</option>
+                <option>Factura</option>
+              </select>
+              <button onclick="clearCart()" class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center text-xs transition-colors" title="Vaciar Ticket">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Selector de Cliente -->
+          <div class="flex gap-2 items-center bg-slate-50 p-2.5 rounded-2xl border border-slate-200/80">
+            <i class="fa-solid fa-user text-slate-400 text-xs ml-1"></i>
+            <input type="text" value="Público General" class="bg-transparent text-xs font-bold text-slate-800 outline-none flex-1">
+            <span class="text-[10px] font-bold text-indigo-600 hover:underline cursor-pointer">+ Cliente</span>
+          </div>
+
+          <!-- Lista de Items en el Ticket -->
+          <div class="space-y-2 max-h-60 overflow-y-auto pr-1" id="cart-items-container">
+            
+            <div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 text-xs border border-transparent hover:border-slate-100">
+              <div class="flex-1 min-w-0 pr-2">
+                <p class="font-bold text-slate-800 truncate">Case Silicona MagSafe iPhone 15 Pro Max</p>
+                <span class="text-[10px] text-slate-400 font-mono-code">S/ 35.00 c/u</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold font-mono-code text-slate-700">1x</span>
+                <span class="font-black font-mono-code text-slate-900">S/ 35.00</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 text-xs border border-transparent hover:border-slate-100">
+              <div class="flex-1 min-w-0 pr-2">
+                <p class="font-bold text-slate-800 truncate">Mica Vidrio Templado 9D HD</p>
+                <span class="text-[10px] text-slate-400 font-mono-code">S/ 15.00 c/u</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold font-mono-code text-slate-700">2x</span>
+                <span class="font-black font-mono-code text-slate-900">S/ 30.00</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Totales y Métricas Contables -->
+          <div class="bg-slate-50/80 p-4 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
+            <div class="flex justify-between text-slate-500">
+              <span>Subtotal:</span>
+              <span class="font-mono-code font-semibold" id="cart-subtotal">S/ 55.08</span>
+            </div>
+            <div class="flex justify-between text-slate-500">
+              <span>IGV (18%):</span>
+              <span class="font-mono-code font-semibold" id="cart-igv">S/ 9.92</span>
+            </div>
+            <div class="flex justify-between text-slate-500">
+              <span>Descuento:</span>
+              <span class="font-mono-code font-semibold text-rose-500">- S/ 0.00</span>
+            </div>
+            <div class="flex justify-between items-center pt-2 border-t border-slate-200 text-sm font-bold">
+              <span class="text-slate-900 font-black">TOTAL A COBRAR:</span>
+              <span class="text-lg font-black font-mono-code text-emerald-600" id="cart-total">S/ 65.00</span>
+            </div>
+          </div>
+
+          <!-- Botones de Acción y Cobro -->
+          <div class="space-y-2 pt-1">
+            <button onclick="triggerCheckout()" class="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all">
+              <i class="fa-solid fa-cash-register text-sm"></i>
+              <span>COBRAR S/ 65.00 (F4)</span>
+            </button>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <button onclick="showToast('Pago Mixto', 'Iniciando cobro combinado efectivo + Yape')" class="py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-credit-card text-slate-500"></i> Mixto
+              </button>
+              <button onclick="showToast('Crédito / Fiado', 'Registrando venta al libro de deudas del cliente')" class="py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-hand-holding-dollar text-slate-500"></i> Fiado
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- VISTA 2: ALMACÉN & KARDEX                                   -->
+    <!-- ============================================================ -->
+    <section id="view-inventory" class="view-panel space-y-5 hidden flex-1">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-boxes-stacked text-amber-600"></i> Almacén & Kardex de Inventario
+          </h2>
+          <p class="text-xs text-slate-500">Auditoría anti-merma, trazabilidad de entradas, salidas y existencias.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="openModalKardexDemo()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-md shadow-amber-500/20 flex items-center gap-1.5">
+            <i class="fa-solid fa-clock-rotate-left"></i> Ver Kardex General
+          </button>
+          <button onclick="showToast('Ajuste de Stock', 'Abriendo formulario de entrada / merma')" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5">
+            <i class="fa-solid fa-boxes-packing"></i> Ajustar Stock
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjetas Métricas de Almacén -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs text-slate-500 font-medium">Total Productos</span>
+            <p class="text-xl font-black text-slate-900 font-mono-code">24 SKUs</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg"><i class="fa-solid fa-boxes-stacked"></i></div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs text-slate-500 font-medium">Unidades en Stock</span>
+            <p class="text-xl font-black text-emerald-600 font-mono-code">342 und.</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg"><i class="fa-solid fa-cubes"></i></div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs text-slate-500 font-medium">Stock Bajo / Crítico</span>
+            <p class="text-xl font-black text-rose-600 font-mono-code">2 alertas</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        </div>
+      </div>
+
+      <!-- Tabla Limpia de Almacén -->
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+          <span class="text-xs font-bold text-slate-700">Listado de Artículos</span>
+          <span class="text-xs text-slate-400">Total valorizado: S/ 4,890.00</span>
+        </div>
+        <table class="w-full text-left text-xs text-slate-700">
+          <thead class="bg-slate-100 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200">
+            <tr>
+              <th class="p-3">SKU</th>
+              <th class="p-3">Producto</th>
+              <th class="p-3">Categoría</th>
+              <th class="p-3 text-right">P. Compra</th>
+              <th class="p-3 text-right">P. Venta</th>
+              <th class="p-3 text-center">Stock</th>
+              <th class="p-3 text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-3 font-mono-code font-bold text-slate-500">CAS-101</td>
+              <td class="p-3 font-bold text-slate-900">Case Silicona MagSafe iPhone 15 Pro Max</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-[10px]">Cases</span></td>
+              <td class="p-3 text-right font-mono-code">S/ 12.00</td>
+              <td class="p-3 text-right font-mono-code font-black text-slate-900">S/ 35.00</td>
+              <td class="p-3 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black font-mono-code text-[11px]">18 und.</span></td>
+              <td class="p-3 text-center">
+                <button onclick="openModalKardexDemo('CAS-101')" class="px-2 py-1 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 font-bold text-[10px]"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Kardex</button>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-3 font-mono-code font-bold text-slate-500">CAR-302</td>
+              <td class="p-3 font-bold text-slate-900">Cubo Cargador Apple 20W Type-C Original</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 font-bold text-[10px]">Cargadores</span></td>
+              <td class="p-3 text-right font-mono-code">S/ 48.00</td>
+              <td class="p-3 text-right font-mono-code font-black text-slate-900">S/ 85.00</td>
+              <td class="p-3 text-center"><span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-black font-mono-code text-[11px]">2 und.</span></td>
+              <td class="p-3 text-center">
+                <button onclick="openModalKardexDemo('CAR-302')" class="px-2 py-1 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 font-bold text-[10px]"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Kardex</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- VISTA 3: TALLER & SERVICIO TÉCNICO                          -->
+    <!-- ============================================================ -->
+    <section id="view-repairs" class="view-panel space-y-5 hidden flex-1">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-screwdriver-wrench text-blue-600"></i> Taller & Servicio Técnico (Trazabilidad IMEI)
+          </h2>
+          <p class="text-xs text-slate-500">Historial clínico de equipos, diagnósticos y validación estricta de garantías.</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="showToast('Nueva Orden', 'Abriendo formulario de recepción técnica')" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 flex items-center gap-1.5">
+            <i class="fa-solid fa-plus"></i> Recibir Equipo
+          </button>
+        </div>
+      </div>
+
+      <!-- Buscador de Garantía por IMEI Rápido -->
+      <div class="bg-blue-50/70 p-4 rounded-3xl border border-blue-200/80 flex flex-col sm:flex-row items-center gap-3">
+        <div class="flex items-center gap-2 text-blue-900 font-bold text-xs shrink-0">
+          <i class="fa-solid fa-fingerprint text-base text-blue-600"></i>
+          <span>Consultar IMEI / Serie:</span>
+        </div>
+        <input type="text" id="imei-lookup-input" placeholder="Ingrese o escanee el IMEI de 15 dígitos para consultar antecedentes..." class="flex-1 w-full bg-white px-3.5 py-2 border border-blue-300 rounded-xl text-xs font-mono-code font-bold outline-none focus:ring-2 focus:ring-blue-500">
+        <button onclick="searchImeiWarranty()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shrink-0">
+          Verificar Historial
+        </button>
+      </div>
+
+      <!-- Lista de Órdenes en Reparación -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black">EN REVISIÓN</span>
+              <h4 class="font-bold text-sm text-slate-900 mt-1">Samsung Galaxy A55 5G</h4>
+            </div>
+            <span class="font-mono-code text-xs text-slate-400">ORD-0003</span>
+          </div>
+          <p class="text-xs text-slate-600"><b>Falla:</b> Pantalla rota y puerto de carga flojo.</p>
+          <div class="p-2.5 bg-slate-50 rounded-xl font-mono-code text-[11px] text-slate-500 flex justify-between">
+            <span>IMEI: <b>867451069283741</b></span>
+            <span>Abono: <b>S/ 30.00</b></span>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">LISTO P/ ENTREGA</span>
+              <h4 class="font-bold text-sm text-slate-900 mt-1">Moto G84 5G</h4>
+            </div>
+            <span class="font-mono-code text-xs text-slate-400">ORD-0004</span>
+          </div>
+          <p class="text-xs text-slate-600"><b>Trabajo:</b> Cambio de cristal visor (glass) OCA.</p>
+          <div class="p-2.5 bg-slate-50 rounded-xl font-mono-code text-[11px] text-slate-500 flex justify-between">
+            <span>IMEI: <b>358910293847561</b></span>
+            <span>Total: <b>S/ 120.00 (Pagado)</b></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- VISTA 4: CAJA & FINANZAS                                    -->
+    <!-- ============================================================ -->
+    <section id="view-cash" class="view-panel space-y-5 hidden flex-1">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-wallet text-emerald-600"></i> Control de Caja & Arqueo Z
+          </h2>
+          <p class="text-xs text-slate-500">Cuadre de turno en tiempo real por métodos de pago.</p>
+        </div>
+        <button onclick="showToast('Cierre de Turno', 'Iniciando formulario de Arqueo Z')" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold">
+          Cerrar Turno (Arqueo Z)
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200">
+          <span class="text-xs text-slate-500 font-medium">Apertura Efectivo</span>
+          <p class="text-xl font-black text-slate-900 font-mono-code">S/ 50.00</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200">
+          <span class="text-xs text-slate-500 font-medium">Ventas Efectivo</span>
+          <p class="text-xl font-black text-emerald-600 font-mono-code">S/ 65.00</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200">
+          <span class="text-xs text-slate-500 font-medium">Yape / Plin Digital</span>
+          <p class="text-xl font-black text-purple-600 font-mono-code">S/ 140.00</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200">
+          <span class="text-xs text-slate-500 font-medium">Efectivo en Gaveta</span>
+          <p class="text-xl font-black text-slate-900 font-mono-code">S/ 115.00</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- VISTA 5: COMPROBANTES & REPORTES                            -->
+    <!-- ============================================================ -->
+    <section id="view-sales" class="view-panel space-y-5 hidden flex-1">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-file-invoice-dollar text-purple-600"></i> Historial de Ventas & Comprobantes
+          </h2>
+          <p class="text-xs text-slate-500">Filtrado por rango de fechas y exportación contable a Excel.</p>
+        </div>
+        <button onclick="showToast('Exportación CSV', 'Descargando reporte_ventas_cellventas.csv con UTF-8 BOM')" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2">
+          <i class="fa-solid fa-file-excel"></i> Exportar a Excel (CSV)
+        </button>
+      </div>
+
+      <div class="bg-white rounded-3xl border border-slate-200 p-4 space-y-3">
+        <div class="flex flex-wrap gap-2 items-center text-xs">
+          <span class="font-bold text-slate-600">Filtro rápido:</span>
+          <button class="px-2.5 py-1 bg-slate-900 text-white rounded-lg font-bold">Hoy</button>
+          <button class="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg font-bold">Semana</button>
+          <button class="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg font-bold">Mes</button>
+          <button class="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg font-bold">Todo</button>
+        </div>
+        <p class="text-xs text-slate-400">Total en el período seleccionado: <b class="text-slate-900 font-mono-code">S/ 205.00</b> (3 comprobantes)</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- VISTA 6: CLIENTES & FIADOS                                  -->
+    <!-- ============================================================ -->
+    <section id="view-crm" class="view-panel space-y-5 hidden flex-1">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-users text-teal-600"></i> Clientes & Libro de Créditos
+          </h2>
+          <p class="text-xs text-slate-500">Gestión de cuentas por cobrar y abonos parciales.</p>
+        </div>
+        <button onclick="showToast('Nuevo Cliente', 'Abriendo formulario CRM')" class="px-3.5 py-2 rounded-xl bg-teal-600 text-white font-bold text-xs">
+          + Registrar Cliente
+        </button>
+      </div>
+
+      <div class="bg-white rounded-3xl border border-slate-200 p-6 text-center text-xs text-slate-500">
+        <i class="fa-solid fa-address-book text-3xl text-teal-500 mb-2 block"></i>
+        Módulo CRM 100% integrado al punto de venta y taller.
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- VISTA 7: SEGURIDAD & PERSONAL                               -->
+    <!-- ============================================================ -->
+    <section id="view-security" class="view-panel space-y-5 hidden flex-1">
+      <div>
+        <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-user-shield text-rose-600"></i> Seguridad & Gestión de Personal
+        </h2>
+        <p class="text-xs text-slate-500">Cambio de contraseñas de colaboradores y administración de roles.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Cambio de clave -->
+        <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+          <h4 class="font-bold text-sm text-slate-900 flex items-center gap-2"><i class="fa-solid fa-key text-indigo-600"></i> Mi Contraseña</h4>
+          <p class="text-xs text-slate-500">Actualice su clave personal de acceso.</p>
+          <div class="space-y-2">
+            <input type="password" placeholder="Contraseña actual..." class="w-full p-2.5 border border-slate-200 rounded-xl text-xs outline-none">
+            <input type="password" placeholder="Nueva contraseña (mínimo 4 caracteres)..." class="w-full p-2.5 border border-slate-200 rounded-xl text-xs outline-none">
+            <button onclick="showToast('Seguridad', 'Contraseña actualizada con éxito')" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold">Guardar Clave</button>
+          </div>
+        </div>
+
+        <!-- Colaboradores -->
+        <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+          <h4 class="font-bold text-sm text-slate-900 flex items-center gap-2"><i class="fa-solid fa-users-gear text-emerald-600"></i> Equipo</h4>
+          <p class="text-xs text-slate-500">Colaboradores con acceso activo:</p>
+          <ul class="text-xs divide-y divide-slate-100">
+            <li class="py-2 flex justify-between"><span><b>admin</b> (Administrador Total)</span> <span class="text-indigo-600 font-bold">Activo</span></li>
+            <li class="py-2 flex justify-between"><span><b>vendedor</b> (Vendedor Mostrador)</span> <span class="text-emerald-600 font-bold">Activo</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================== -->
+  <!-- MODAL DE KARDEX INTERACTIVO (DEMO EN VIVO)                    -->
+  <!-- ============================================================== -->
+  <div id="modal-kardex-demo" class="fixed inset-0 z-50 hidden modal-backdrop flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[85vh]">
+      <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg"><i class="fa-solid fa-clock-rotate-left"></i></div>
+          <div>
+            <h3 class="font-bold text-base text-slate-900" id="kardex-demo-title">Kardex de Inventario</h3>
+            <p class="text-xs text-slate-500">Historial auditable de movimientos en almacén.</p>
+          </div>
+        </div>
+        <button onclick="closeModalKardexDemo()" class="w-8 h-8 rounded-xl bg-slate-200/70 hover:bg-slate-300 text-slate-700 flex items-center justify-center text-xs"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="p-4 overflow-y-auto flex-1">
+        <table class="w-full text-left text-xs text-slate-700">
+          <thead class="bg-slate-100 text-[11px] uppercase tracking-wider text-slate-500">
+            <tr>
+              <th class="p-2.5">Fecha</th>
+              <th class="p-2.5">Tipo</th>
+              <th class="p-2.5 text-right">Cant.</th>
+              <th class="p-2.5 text-center">Previo &rarr; Nuevo</th>
+              <th class="p-2.5">Motivo</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 font-medium">
+            <tr>
+              <td class="p-2.5 text-slate-500 font-mono-code text-[11px]">Hoy 10:15</td>
+              <td class="p-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-700">VENTA</span></td>
+              <td class="p-2.5 text-right font-mono-code font-black text-rose-600">-1</td>
+              <td class="p-2.5 text-center font-mono-code">30 &rarr; <b>29</b></td>
+              <td class="p-2.5 text-slate-600">Venta mostrador #T001-000001</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 text-slate-500 font-mono-code text-[11px]">Ayer 16:30</td>
+              <td class="p-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700">ENTRADA</span></td>
+              <td class="p-2.5 text-right font-mono-code font-black text-emerald-600">+5</td>
+              <td class="p-2.5 text-center font-mono-code">25 &rarr; <b>30</b></td>
+              <td class="p-2.5 text-slate-600">Factura proveedor FAC-9021</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 text-slate-500 font-mono-code text-[11px]">Inicial</td>
+              <td class="p-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-700">INICIAL</span></td>
+              <td class="p-2.5 text-right font-mono-code font-black text-blue-600">+25</td>
+              <td class="p-2.5 text-center font-mono-code">0 &rarr; <b>25</b></td>
+              <td class="p-2.5 text-slate-600">Apertura inicial de tienda</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="p-3.5 bg-slate-50 border-t border-slate-100 flex justify-end">
+        <button onclick="closeModalKardexDemo()" class="px-4 py-2 bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- TOAST FLOTANTE INFORMATIVO                                    -->
+  <!-- ============================================================== -->
+  <div id="mock-toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 pointer-events-none bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-3 text-xs max-w-sm">
+    <div id="toast-icon-box" class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white shrink-0">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <div>
+      <h5 id="toast-title" class="font-bold text-white text-xs">Acción completada</h5>
+      <p id="toast-desc" class="text-slate-400 text-[11px] leading-tight mt-0.5">La operación se realizó exitosamente.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- JAVASCRIPT: LÓGICA DE NAVEGACIÓN 100% OPERATIVA               -->
+  <!-- ============================================================== -->
+  <script>
+    // Catálogo de Datos del Mega-Menú por Departamento
+    const DEPARTMENTS_DATA = {
+      pos: {
+        title: "Ventas & Mostrador (POS)",
+        subtitle: "Cobro rápido, armado de combos con Asistente 360° y emisión de comprobantes.",
+        icon: "fa-cash-register",
+        color: "text-indigo-600",
+        badgeColor: "bg-indigo-100 text-indigo-700",
+        targetView: "pos",
+        columns: [
+          {
+            title: "Operaciones Rápidas",
+            links: [
+              { label: "Punto de Venta Directo (POS)", action: () => navigateTo('pos'), icon: "fa-desktop", badge: "F2" },
+              { label: "Asistente 360° (Combos)", action: () => navigateTo('pos'), icon: "fa-wand-magic-sparkles", badge: "Funda+Mica" },
+              { label: "Venta a Crédito / Fiado", action: () => navigateTo('pos'), icon: "fa-handshake", badge: "" }
+            ]
+          },
+          {
+            title: "Comprobantes & Cobros",
+            links: [
+              { label: "Historial de Ventas Emitidas", action: () => navigateTo('sales'), icon: "fa-clock-rotate-left", badge: "" },
+              { label: "Reimpresión de Tickets", action: () => navigateTo('sales'), icon: "fa-print", badge: "Térmico" },
+              { label: "Anulaciones y Devoluciones", action: () => navigateTo('sales'), icon: "fa-ban", badge: "Restituir" }
+            ]
+          },
+          {
+            title: "Reportes de Venta",
+            links: [
+              { label: "Exportar a Excel (CSV)", action: () => navigateTo('sales'), icon: "fa-file-excel", badge: "Contable" },
+              { label: "Ventas por Turno de Caja", action: () => navigateTo('cash'), icon: "fa-receipt", badge: "" }
+            ]
+          }
+        ]
+      },
+      inventory: {
+        title: "Almacén & Kardex de Inventario",
+        subtitle: "Control de existencias, auditoría anti-merma, costos y trazabilidad.",
+        icon: "fa-boxes-stacked",
+        color: "text-amber-600",
+        badgeColor: "bg-amber-100 text-amber-800",
+        targetView: "inventory",
+        columns: [
+          {
+            title: "Gestión de Stock",
+            links: [
+              { label: "Catálogo de Productos", action: () => navigateTo('inventory'), icon: "fa-box-open", badge: "24 SKUs" },
+              { label: "Registrar Nuevo Producto", action: () => { navigateTo('inventory'); showToast('Nuevo Producto', 'Abriendo formulario de alta'); }, icon: "fa-circle-plus", badge: "" },
+              { label: "Alertas de Stock Crítico", action: () => navigateTo('inventory'), icon: "fa-triangle-exclamation", badge: "2 alertas" }
+            ]
+          },
+          {
+            title: "Auditoría & Kardex",
+            links: [
+              { label: "Kardex General de Movimientos", action: () => openModalKardexDemo(), icon: "fa-timeline", badge: "Auditable" },
+              { label: "Ajuste de Stock / Merma / Rotura", action: () => { navigateTo('inventory'); showToast('Ajuste de Stock', 'Registrando movimiento de salida o entrada'); }, icon: "fa-boxes-packing", badge: "" },
+              { label: "Inventario Físico Semanal", action: () => navigateTo('inventory'), icon: "fa-clipboard-check", badge: "" }
+            ]
+          },
+          {
+            title: "Modelos & Compatibilidad",
+            links: [
+              { label: "Lote de IMEIs Registrados", action: () => navigateTo('inventory'), icon: "fa-barcode", badge: "" },
+              { label: "Matriz Multimodelo de Celulares", action: () => navigateTo('inventory'), icon: "fa-mobile-retro", badge: "" }
+            ]
+          }
+        ]
+      },
+      repairs: {
+        title: "Taller & Servicio Técnico",
+        subtitle: "Recepción de celulares, trazabilidad de IMEIs y control contra reclamos falsos.",
+        icon: "fa-screwdriver-wrench",
+        color: "text-blue-600",
+        badgeColor: "bg-blue-100 text-blue-800",
+        targetView: "repairs",
+        columns: [
+          {
+            title: "Recepción & Taller",
+            links: [
+              { label: "Recibir Nuevo Celular", action: () => { navigateTo('repairs'); showToast('Recepción', 'Creando orden de servicio técnico'); }, icon: "fa-mobile-screen-button", badge: "OS-001" },
+              { label: "Órdenes Activas en Taller", action: () => navigateTo('repairs'), icon: "fa-list-check", badge: "2 equipos" },
+              { label: "Entrega y Cobro de Saldo", action: () => navigateTo('repairs'), icon: "fa-handshake-simple", badge: "" }
+            ]
+          },
+          {
+            title: "Garantías & Trazabilidad",
+            links: [
+              { label: "Consultar Historial por IMEI", action: () => { navigateTo('repairs'); document.getElementById('imei-lookup-input').focus(); }, icon: "fa-fingerprint", badge: "15 dígitos" },
+              { label: "Validación de Garantías Previas", action: () => navigateTo('repairs'), icon: "fa-shield-check", badge: "Anti-fraude" }
+            ]
+          },
+          {
+            title: "Repuestos Utilizados",
+            links: [
+              { label: "Pantallas OLED y Glass", action: () => navigateTo('inventory'), icon: "fa-display", badge: "" },
+              { label: "Baterías & Flex de Carga", action: () => navigateTo('inventory'), icon: "fa-battery-three-quarters", badge: "" }
+            ]
+          }
+        ]
+      },
+      cash: {
+        title: "Caja & Finanzas de Tienda",
+        subtitle: "Apertura de turno, control de efectivo, ingresos, retiros y cuadre Arqueo Z.",
+        icon: "fa-wallet",
+        color: "text-emerald-600",
+        badgeColor: "bg-emerald-100 text-emerald-800",
+        targetView: "cash",
+        columns: [
+          {
+            title: "Turno Actual",
+            links: [
+              { label: "Estado del Turno de Caja", action: () => navigateTo('cash'), icon: "fa-cash-register", badge: "Abierta" },
+              { label: "Arqueo Z & Cierre de Caja", action: () => { navigateTo('cash'); showToast('Arqueo Z', 'Cuadre y cierre formal del turno'); }, icon: "fa-lock", badge: "Fin de turno" }
+            ]
+          },
+          {
+            title: "Movimientos de Dinero",
+            links: [
+              { label: "Registrar Ingreso de Efectivo", action: () => { navigateTo('cash'); showToast('Ingreso', 'Entrada extra de efectivo a caja'); }, icon: "fa-arrow-down-long", badge: "" },
+              { label: "Registrar Retiro / Gasto Menor", action: () => { navigateTo('cash'); showToast('Retiro', 'Salida de dinero (almuerzo, insumos)'); }, icon: "fa-arrow-up-long", badge: "" }
+            ]
+          },
+          {
+            title: "Historial Contable",
+            links: [
+              { label: "Historial de Cierres de Turno", action: () => navigateTo('cash'), icon: "fa-receipt", badge: "" }
+            ]
+          }
+        ]
+      },
+      crm: {
+        title: "Clientes & Libro de Fiados (CRM)",
+        subtitle: "Directorio de clientes, cuentas corrientes deudoras y amortización de pagos.",
+        icon: "fa-users",
+        color: "text-teal-600",
+        badgeColor: "bg-teal-100 text-teal-800",
+        targetView: "crm",
+        columns: [
+          {
+            title: "Cartera de Clientes",
+            links: [
+              { label: "Directorio de Clientes", action: () => navigateTo('crm'), icon: "fa-address-book", badge: "" },
+              { label: "Registrar Nuevo Cliente", action: () => { navigateTo('crm'); showToast('CRM', 'Formulario de cliente'); }, icon: "fa-user-plus", badge: "" }
+            ]
+          },
+          {
+            title: "Libro de Fiados & Deudas",
+            links: [
+              { label: "Cuentas por Cobrar Activas", action: () => navigateTo('crm'), icon: "fa-file-invoice-dollar", badge: "" },
+              { label: "Registrar Abono Parcial", action: () => { navigateTo('crm'); showToast('Abono', 'Amortización de deuda'); }, icon: "fa-hand-holding-dollar", badge: "" }
+            ]
+          }
+        ]
+      },
+      sales: {
+        title: "Comprobantes & Reportes",
+        subtitle: "Auditoría de ventas, filtros de fechas y exportación contable a Excel/CSV.",
+        icon: "fa-file-invoice-dollar",
+        color: "text-purple-600",
+        badgeColor: "bg-purple-100 text-purple-800",
+        targetView: "sales",
+        columns: [
+          {
+            title: "Consulta de Comprobantes",
+            links: [
+              { label: "Historial General de Ventas", action: () => navigateTo('sales'), icon: "fa-table-list", badge: "Hoy" },
+              { label: "Filtro por Rango de Fechas", action: () => navigateTo('sales'), icon: "fa-calendar-days", badge: "" },
+              { label: "Comprobantes Anulados", action: () => navigateTo('sales'), icon: "fa-file-circle-xmark", badge: "" }
+            ]
+          },
+          {
+            title: "Descarga de Reportes",
+            links: [
+              { label: "Descargar a Excel (CSV)", action: () => { navigateTo('sales'); showToast('Descarga', 'Exportando reporte con UTF-8 BOM'); }, icon: "fa-file-csv", badge: "Excel" },
+              { label: "Resumen Contable del Mes", action: () => navigateTo('sales'), icon: "fa-chart-pie", badge: "" }
+            ]
+          }
+        ]
+      },
+      security: {
+        title: "Seguridad & Gestión de Personal",
+        subtitle: "Cambio de contraseñas personales, nuevos colaboradores y roles.",
+        icon: "fa-user-shield",
+        color: "text-rose-600",
+        badgeColor: "bg-rose-100 text-rose-800",
+        targetView: "security",
+        columns: [
+          {
+            title: "Mi Cuenta",
+            links: [
+              { label: "Cambiar mi Contraseña", action: () => navigateTo('security'), icon: "fa-key", badge: "Seguro" }
+            ]
+          },
+          {
+            title: "Gestión de Equipo",
+            links: [
+              { label: "Lista de Colaboradores", action: () => navigateTo('security'), icon: "fa-users-gear", badge: "Admin" },
+              { label: "Dar de Alta Nuevo Usuario", action: () => { navigateTo('security'); showToast('Personal', 'Creando nuevo acceso'); }, icon: "fa-user-plus", badge: "" }
+            ]
+          }
+        ]
+      }
+    };
+
+    // Estado activo
+    let CURRENT_VIEW = 'pos';
+    let IS_MEGA_MENU_OPEN = false;
+    let CART_ITEMS = [
+      { name: "Case Silicona MagSafe iPhone 15 Pro Max", price: 35.00, qty: 1 },
+      { name: "Mica Vidrio Templado 9D HD", price: 15.00, qty: 2 }
+    ];
+
+    // Alternar Mega-Menú (Por Clic)
+    function toggleMegaMenu(forcedState) {
+      const overlay = document.getElementById('mega-menu-overlay');
+      const arrow = document.getElementById('menu-arrow-icon');
+      
+      IS_MEGA_MENU_OPEN = forcedState !== undefined ? forcedState : !IS_MEGA_MENU_OPEN;
+
+      if (IS_MEGA_MENU_OPEN) {
+        overlay.classList.remove('hidden');
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+        selectDepartment('pos'); // Por defecto abre ventas
+      } else {
+        overlay.classList.add('hidden');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    // Seleccionar Departamento en el Mega-Menú
+    function selectDepartment(deptKey) {
+      document.querySelectorAll('.dept-nav-item').forEach(el => el.classList.remove('active'));
+      const activeBtn = document.getElementById(`dept-btn-${deptKey}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const data = DEPARTMENTS_DATA[deptKey];
+      if (!data) return;
+
+      const container = document.getElementById('dept-details-container');
+      
+      const columnsHtml = data.columns.map(col => `
+        <div class="space-y-3">
+          <h4 class="text-xs font-black uppercase tracking-wider text-slate-400 pb-1 border-b border-slate-100">${col.title}</h4>
+          <div class="space-y-1.5">
+            ${col.links.map(link => `
+              <div 
+                onclick="handleMegaMenuLinkClick('${deptKey}', '${link.label}')" 
+                class="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-xs font-bold text-slate-700 hover:text-indigo-600 cursor-pointer transition-colors group"
+              >
+                <div class="flex items-center gap-2.5">
+                  <i class="fa-solid ${link.icon} text-slate-400 group-hover:text-indigo-600 transition-colors w-4 text-center"></i>
+                  <span>${link.label}</span>
+                </div>
+                ${link.badge ? `<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">${link.badge}</span>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      container.innerHTML = `
+        <div class="space-y-6">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-4 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-indigo-50 ${data.color} flex items-center justify-center text-lg">
+                <i class="fa-solid ${data.icon}"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="font-extrabold text-base text-slate-900">${data.title}</h3>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${data.badgeColor}">Activo</span>
+                </div>
+                <p class="text-xs text-slate-500">${data.subtitle}</p>
+              </div>
+            </div>
+            <button onclick="navigateTo('${data.targetView}')" class="px-3.5 py-1.5 bg-slate-900 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition-colors">
+              Ir a la Vista &rarr;
+            </button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-${Math.min(3, data.columns.length)} gap-6">
+            ${columnsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    // Al hacer clic en un submódulo dentro del Mega-Menú
+    function handleMegaMenuLinkClick(deptKey, linkLabel) {
+      toggleMegaMenu(false);
+      const data = DEPARTMENTS_DATA[deptKey];
+      if (data) {
+        navigateTo(data.targetView);
+        showToast(`Navegando a: ${linkLabel}`, `Módulo ${data.title} cargado con éxito.`);
+      }
+    }
+
+    // Navegación entre vistas principales (100% Despejado)
+    function navigateTo(viewId) {
+      CURRENT_VIEW = viewId;
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.add('hidden'));
+      const activePanel = document.getElementById(`view-${viewId}`);
+      if (activePanel) {
+        activePanel.classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      toggleMegaMenu(false);
+    }
+
+    // Filtrar categorías en la barra de píldoras del POS
+    function filterCategory(catKey, btn) {
+      document.querySelectorAll('.category-pill').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      showToast('Filtro de Categoría', `Mostrando productos de la categoría seleccionada.`);
+    }
+
+    // Agregar producto al ticket
+    function addToCart(name, price, sku, category) {
+      const existing = CART_ITEMS.find(i => i.name === name);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        CART_ITEMS.push({ name, price, qty: 1 });
+      }
+      renderCart();
+      showToast('Agregado al Ticket', `+1 ${name} (S/ ${price.toFixed(2)})`);
+    }
+
+    // Renderizar carrito / ticket
+    function renderCart() {
+      const container = document.getElementById('cart-items-container');
+      const badge = document.getElementById('header-cart-badge');
+      const subtotalEl = document.getElementById('cart-subtotal');
+      const igvEl = document.getElementById('cart-igv');
+      const totalEl = document.getElementById('cart-total');
+
+      if (!container) return;
+
+      if (CART_ITEMS.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-slate-400">
+            <i class="fa-solid fa-basket-shopping text-3xl mb-2 text-slate-300 block"></i>
+            El ticket está vacío. Seleccione productos a la izquierda.
+          </div>
+        `;
+        if (badge) badge.innerText = '0';
+        if (subtotalEl) subtotalEl.innerText = 'S/ 0.00';
+        if (igvEl) igvEl.innerText = 'S/ 0.00';
+        if (totalEl) totalEl.innerText = 'S/ 0.00';
+        return;
+      }
+
+      let totalGross = 0;
+      let totalQty = 0;
+
+      container.innerHTML = CART_ITEMS.map((item, idx) => {
+        const itemTotal = item.price * item.qty;
+        totalGross += itemTotal;
+        totalQty += item.qty;
+
+        return `
+          <div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 text-xs border border-transparent hover:border-slate-100">
+            <div class="flex-1 min-w-0 pr-2">
+              <p class="font-bold text-slate-800 truncate">${item.name}</p>
+              <span class="text-[10px] text-slate-400 font-mono-code">S/ ${item.price.toFixed(2)} c/u</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold font-mono-code text-slate-700">${item.qty}x</span>
+              <span class="font-black font-mono-code text-slate-900">S/ ${itemTotal.toFixed(2)}</span>
+              <button onclick="removeCartItem(${idx})" class="w-6 h-6 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center text-[10px] transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const subtotal = totalGross / 1.18;
+      const igv = totalGross - subtotal;
+
+      if (badge) badge.innerText = totalQty;
+      if (subtotalEl) subtotalEl.innerText = `S/ ${subtotal.toFixed(2)}`;
+      if (igvEl) igvEl.innerText = `S/ ${igv.toFixed(2)}`;
+      if (totalEl) totalEl.innerText = `S/ ${totalGross.toFixed(2)}`;
+    }
+
+    function removeCartItem(idx) {
+      CART_ITEMS.splice(idx, 1);
+      renderCart();
+    }
+
+    function clearCart() {
+      if (!confirm('¿Desea limpiar todos los productos de este ticket?')) return;
+      CART_ITEMS = [];
+      renderCart();
+      showToast('Ticket Limpio', 'Se vació el carrito correctamente.');
+    }
+
+    function triggerCheckout() {
+      if (CART_ITEMS.length === 0) {
+        alert('El ticket está vacío.');
+        return;
+      }
+      showToast('Cobro Realizado', 'Venta registrada con éxito. Ticket térmico generado.', 'success');
+      CART_ITEMS = [];
+      renderCart();
+    }
+
+    // Consulta de garantía por IMEI en taller
+    function searchImeiWarranty() {
+      const imei = document.getElementById('imei-lookup-input')?.value?.trim();
+      if (!imei) {
+        alert('Ingrese o escanee un número de IMEI de 15 dígitos.');
+        return;
+      }
+      showToast(`IMEI: ${imei}`, `Equipo encontrado: Samsung A55 - Última reparación: 04/Oct/2026. Garantía vigente.`);
+    }
+
+    // Modal Kardex Demo
+    function openModalKardexDemo(sku) {
+      const modal = document.getElementById('modal-kardex-demo');
+      const title = document.getElementById('kardex-demo-title');
+      if (title) title.innerText = sku ? `Kardex: ${sku}` : 'Kardex General de Almacén';
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeModalKardexDemo() {
+      const modal = document.getElementById('modal-kardex-demo');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    // Toast interactivo
+    let toastTimeout = null;
+    function showToast(title, desc, type = 'info') {
+      const toast = document.getElementById('mock-toast');
+      const tTitle = document.getElementById('toast-title');
+      const tDesc = document.getElementById('toast-desc');
+      const iconBox = document.getElementById('toast-icon-box');
+
+      if (!toast) return;
+
+      if (tTitle) tTitle.innerText = title;
+      if (tDesc) tDesc.innerText = desc;
+
+      if (type === 'success' && iconBox) {
+        iconBox.className = 'w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center text-white shrink-0';
+      } else if (iconBox) {
+        iconBox.className = 'w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white shrink-0';
+      }
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+
+    // Buscador global omnibox
+    function handleGlobalSearch(val) {
+      if (!val || val.length < 2) return;
+      if (/^\d{15}$/.test(val)) {
+        navigateTo('repairs');
+        document.getElementById('imei-lookup-input').value = val;
+        showToast('IMEI Detectado', `Buscando antecedentes técnicos del IMEI ${val}`);
+      }
+    }
+
+    // Atajos de teclado (ESC y Ctrl+K)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        toggleMegaMenu(false);
+        closeModalKardexDemo();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const box = document.getElementById('global-omnibox');
+        if (box) box.focus();
+      }
+      if (e.key === 'F2') {
+        e.preventDefault();
+        navigateTo('pos');
+      }
+    });
+
+    // Cerrar al hacer clic en el backdrop
+    document.getElementById('mega-menu-overlay').addEventListener('click', (e) => {
+      if (e.target.id === 'mega-menu-overlay') {
+        toggleMegaMenu(false);
+      }
+    });
+
+    // Inicializar
+    window.onload = () => {
+      renderCart();
+      selectDepartment('pos');
+    };
+  </script>
+</body>
+</html>

@@ -245,6 +245,23 @@ async function initDb() {
       )
     `);
 
+    // 5.0 KARDEX Y MOVIMIENTOS HISTÓRICOS DE INVENTARIO
+    await query(`
+      CREATE TABLE IF NOT EXISTS inventory_movements (
+        id ${pkType},
+        product_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        previous_stock INTEGER NOT NULL,
+        new_stock INTEGER NOT NULL,
+        reason TEXT NOT NULL,
+        reference_code TEXT DEFAULT '',
+        user_name TEXT DEFAULT 'Administrador',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+      )
+    `);
+
     // 5.1 CONTROL DE CAJA Y ARQUEO
     await query(`
       CREATE TABLE IF NOT EXISTS cash_registers (
@@ -763,6 +780,18 @@ async function seedRealMarketData() {
     // Asegurar que el correlativo de OrdenServicio y ReciboAbono no colisione con los datos sembrados
     await query(`UPDATE counters SET last_number = 4 WHERE doc_type = 'OrdenServicio' AND last_number < 4`);
     await query(`UPDATE counters SET last_number = 2 WHERE doc_type = 'ReciboAbono' AND last_number < 2`);
+
+    // Inicializar Kardex con stock inicial para productos existentes si la tabla está vacía
+    const movCount = await query(`SELECT COUNT(*) as total FROM inventory_movements`);
+    if (parseInt(movCount.rows[0]?.total || 0, 10) === 0) {
+      const prodsToSeed = await query(`SELECT id, stock FROM products WHERE stock > 0`);
+      for (const p of prodsToSeed.rows) {
+        await query(`
+          INSERT INTO inventory_movements (product_id, type, quantity, previous_stock, new_stock, reason, reference_code, user_name)
+          VALUES (?, 'STOCK_INICIAL', ?, 0, ?, 'Inventario inicial de apertura de tienda', 'APERTURA', 'Sistema')
+        `, [p.id, p.stock, p.stock]);
+      }
+    }
 
   } catch (err) {
     console.warn('⚠️ Aviso al sembrar datos comerciales reales:', err.message);
