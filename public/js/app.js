@@ -693,7 +693,7 @@ function renderCompatibilityMatrix() {
             <span class="font-bold text-slate-800"><i class="fa-solid fa-angle-right text-indigo-400 mr-1.5"></i>${m.model_name}</span>
             <div class="flex items-center gap-2">
               <span class="font-mono-code text-slate-400 text-[11px]">${m.release_year || 2024}</span>
-              <button onclick="deleteModel(${m.id})" class="action-icon-btn bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-700" title="Eliminar Modelo"><i class="fa-solid fa-trash text-xs"></i></button>
+              <button onclick="deleteModel(${m.id})" class="action-icon-btn bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100 hover:text-rose-900" title="Eliminar Modelo"><i class="fa-solid fa-trash text-xs"></i></button>
             </div>
           </div>
         `).join('')}
@@ -924,23 +924,23 @@ function renderProducts() {
     `).join('');
 
     return `
-      <div onclick="handleProductClick(${p.id})" class="bg-white p-3.5 sm:p-4 rounded-3xl border border-slate-200/90 shadow-2xs hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group select-none">
+      <div onclick="handleProductClick(${p.id})" class="bg-white p-3.5 sm:p-4 rounded-3xl border border-slate-300 shadow-xs hover:border-indigo-500 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group select-none">
         <div>
           <div class="flex justify-between items-start gap-1 mb-1.5">
-            <span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-lg truncate max-w-[110px]">${p.category || 'General'}</span>
-            ${isSerialized ? '<span class="bg-amber-100 text-amber-800 text-[9px] font-mono-code font-extrabold px-1.5 py-0.5 rounded">IMEI</span>' : `<span class="text-[10px] font-mono-code text-slate-400 font-bold">#${p.code}</span>`}
+            <span class="bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-lg truncate max-w-[110px]">${p.category || 'General'}</span>
+            ${isSerialized ? '<span class="bg-amber-100 border border-amber-300 text-amber-800 text-[9px] font-mono-code font-extrabold px-1.5 py-0.5 rounded">IMEI</span>' : `<span class="text-[10px] font-mono-code text-slate-500 font-bold">#${p.code}</span>`}
           </div>
           <h3 class="font-bold text-slate-900 text-xs sm:text-[13px] group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug">${p.name}</h3>
           <div class="mt-2 flex flex-wrap gap-1">${modelBadges}</div>
         </div>
         <div class="mt-3.5 flex justify-between items-end pt-2.5 border-t border-slate-100">
           <div>
-            <span class="text-[10px] font-mono-code font-bold ${isLowStock ? 'text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded' : 'text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded'}">
+            <span class="text-[10px] font-mono-code font-bold ${isLowStock ? 'text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded' : 'text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded'}">
               ${isLowStock ? `Stock: ${p.stock} (Bajo)` : `Stock: ${p.stock}`}
             </span>
             <p class="text-sm sm:text-base font-mono-code tabular-nums font-black text-slate-900 mt-0.5">S/ ${p.price.toFixed(2)}</p>
           </div>
-          <button class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center text-xs font-bold transition-all shadow-2xs">
+          <button class="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 flex items-center justify-center text-xs font-black transition-all shadow-xs" title="Agregar al ticket">
             <i class="fa-solid fa-plus"></i>
           </button>
         </div>
@@ -1525,9 +1525,9 @@ function renderSalesHistoryTable() {
         </td>
         <td class="p-4 text-center">
           <div class="flex items-center justify-center gap-2">
-            <button onclick="reprintTicket(${s.id})" class="action-icon-btn bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800" title="Ver / Imprimir Ticket"><i class="fa-solid fa-print text-xs"></i></button>
+            <button onclick="reprintTicket(${s.id})" class="action-icon-btn bg-indigo-50 border-indigo-300 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900" title="Ver / Imprimir Ticket"><i class="fa-solid fa-print text-xs"></i></button>
             ${!isAnulada ? `
-              <button onclick="anularSale(${s.id}, '${s.receipt_code}')" class="action-icon-btn bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-800" title="Anular Venta"><i class="fa-solid fa-ban text-xs"></i></button>
+              <button onclick="anularSale(${s.id}, '${s.receipt_code}')" class="action-icon-btn bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100 hover:text-rose-900" title="Anular Venta"><i class="fa-solid fa-ban text-xs"></i></button>
             ` : ''}
           </div>
         </td>
@@ -2345,10 +2345,10 @@ function renderInventoryTable() {
         </td>
         <td class="p-4 text-center">
           <div class="flex items-center justify-center gap-1.5">
-            <button onclick="openKardexModal(${p.id})" class="action-icon-btn bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-800" title="Ver Kardex / Historial de Movimientos"><i class="fa-solid fa-clock-rotate-left text-xs"></i></button>
-            <button onclick="openStockAdjustmentModal(${p.id})" class="action-icon-btn bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-800" title="Ajustar Stock / Entrada / Merma"><i class="fa-solid fa-boxes-packing text-xs"></i></button>
-            <button onclick="openProductModal(${p.id})" class="action-icon-btn bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800" title="Editar Producto"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
-            <button onclick="deleteProduct(${p.id})" class="action-icon-btn bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-800" title="Eliminar Producto"><i class="fa-solid fa-trash text-xs"></i></button>
+            <button onclick="openKardexModal(${p.id})" class="action-icon-btn bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100 hover:text-amber-900" title="Ver Kardex / Historial de Movimientos"><i class="fa-solid fa-clock-rotate-left text-xs"></i></button>
+            <button onclick="openStockAdjustmentModal(${p.id})" class="action-icon-btn bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-900" title="Ajustar Stock / Entrada / Merma"><i class="fa-solid fa-boxes-packing text-xs"></i></button>
+            <button onclick="openProductModal(${p.id})" class="action-icon-btn bg-indigo-50 border-indigo-300 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900" title="Editar Producto"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
+            <button onclick="deleteProduct(${p.id})" class="action-icon-btn bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100 hover:text-rose-900" title="Eliminar Producto"><i class="fa-solid fa-trash text-xs"></i></button>
           </div>
         </td>
       </tr>
@@ -2683,13 +2683,13 @@ function renderFiadosTable() {
         </td>
         <td class="p-4 text-center">
           <div class="flex items-center justify-center gap-1.5">
-            <button onclick="handleAbonoClick(${c.id})" class="btn-tactile bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-sm" title="Registrar Abono">
-              <i class="fa-solid fa-hand-holding-dollar mr-1"></i> Abonar
+            <button onclick="handleAbonoClick(${c.id})" class="btn-tactile bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-xs flex items-center gap-1.5" title="Registrar Abono">
+              <i class="fa-solid fa-hand-holding-dollar"></i> Abonar
             </button>
-            <button onclick="openCustomerHistoryModal(${c.id})" class="action-icon-btn bg-slate-100 hover:bg-slate-200 text-slate-700" title="Ver Estado de Cuenta">
+            <button onclick="openCustomerHistoryModal(${c.id})" class="action-icon-btn bg-white hover:bg-slate-100 text-slate-700 border border-slate-300" title="Ver Estado de Cuenta / Historial">
               <i class="fa-solid fa-clock-rotate-left text-xs"></i>
             </button>
-            <button onclick="openCustomerModal(${c.id})" class="action-icon-btn bg-indigo-50 hover:bg-indigo-100 text-indigo-600" title="Editar Cliente">
+            <button onclick="openCustomerModal(${c.id})" class="action-icon-btn bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700" title="Editar Cliente">
               <i class="fa-solid fa-pen text-xs"></i>
             </button>
           </div>
@@ -2926,7 +2926,7 @@ async function openCustomerHistoryModal(customerId) {
           <td class="p-3 text-right font-mono-code tabular-nums font-bold text-slate-700">S/ ${balanceAfter.toFixed(2)}</td>
           <td class="p-3 text-center">
             ${isAbono ? `
-              <button onclick="reprintAbonoFromRecord(${r.id})" class="action-icon-btn bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800" title="Reimprimir Recibo de Abono">
+              <button onclick="reprintAbonoFromRecord(${r.id})" class="action-icon-btn bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900" title="Reimprimir Recibo de Abono">
                 <i class="fa-solid fa-print text-xs"></i>
               </button>
             ` : '-'}
@@ -2984,8 +2984,8 @@ function filterRepairs(status) {
     const btn = document.getElementById(`rep-filter-${st}`);
     if (btn) {
       btn.className = st === status
-        ? 'btn-tactile px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold'
-        : 'btn-tactile px-3 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200';
+        ? 'btn-tactile px-3.5 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-xs'
+        : 'btn-tactile px-3.5 py-1.5 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold shadow-2xs';
     }
   });
   renderRepairsTable();
@@ -3053,10 +3053,10 @@ function renderRepairsTable() {
         </td>
         <td class="p-4 text-center">
           <div class="flex items-center justify-center gap-2">
-            <button onclick="openRepairUpdateModal(${r.id})" class="btn-tactile bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-2.5 py-1.5 rounded-xl text-xs" title="Actualizar Estado / Cobrar">
+            <button onclick="openRepairUpdateModal(${r.id})" class="btn-tactile bg-indigo-50 border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 text-indigo-700 font-bold px-2.5 py-1.5 rounded-xl text-xs transition-colors shadow-2xs" title="Actualizar Estado / Cobrar">
               <i class="fa-solid fa-pen-to-square mr-1"></i> Estado
             </button>
-            <button onclick="reprintRepairTicket(${r.id})" class="action-icon-btn bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700" title="Imprimir Orden de Servicio">
+            <button onclick="reprintRepairTicket(${r.id})" class="action-icon-btn bg-white border border-slate-300 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700" title="Imprimir Orden de Servicio">
               <i class="fa-solid fa-print text-xs"></i>
             </button>
           </div>
@@ -3472,9 +3472,9 @@ async function loadUsersList() {
           <td class="p-3">${roleBadge}</td>
           <td class="p-3 text-center">
             <div class="flex items-center justify-center gap-1.5">
-              <button onclick="handleResetPassword(${u.id}, '${u.username}')" class="action-icon-btn bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-800" title="Restablecer Clave"><i class="fa-solid fa-key text-xs"></i></button>
+              <button onclick="handleResetPassword(${u.id}, '${u.username}')" class="action-icon-btn bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100 hover:text-amber-900" title="Restablecer Clave"><i class="fa-solid fa-key text-xs"></i></button>
               ${u.username !== 'admin' && !isCurrent ? `
-                <button onclick="handleDeleteUser(${u.id}, '${u.username}')" class="action-icon-btn bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-800" title="Eliminar Usuario"><i class="fa-solid fa-trash text-xs"></i></button>
+                <button onclick="handleDeleteUser(${u.id}, '${u.username}')" class="action-icon-btn bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100 hover:text-rose-900" title="Eliminar Usuario"><i class="fa-solid fa-trash text-xs"></i></button>
               ` : ''}
             </div>
           </td>

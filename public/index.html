@@ -56,15 +56,37 @@
       transform: scale(0.97);
     }
 
-    /* Botones de acción en tablas (34x34px para evitar clics erróneos) */
+    /* Botones de acción en tablas (Con relieve táctil, bordes nítidos y alto contraste) */
     .action-icon-btn {
       width: 32px;
       height: 32px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border-radius: 0.5rem;
+      border-radius: 0.625rem;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
       transition: all 0.15s ease;
+      font-weight: 700;
+    }
+    .action-icon-btn:hover {
+      box-shadow: 0 2px 5px -1px rgba(0, 0, 0, 0.1);
+      transform: translateY(-1px);
+    }
+    /* Botón secundario estándar con relieve y contraste nítido (Cancelar, Cerrar, etc.) */
+    .btn-secondary, button.btn-secondary {
+      background-color: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #334155 !important;
+      font-weight: 700 !important;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+      transition: all 0.15s ease;
+    }
+    .btn-secondary:hover, button.btn-secondary:hover {
+      background-color: #f1f5f9 !important;
+      border-color: #94a3b8 !important;
+      color: #0f172a !important;
+      box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.08);
     }
 
     /* Etiquetas de atajos de teclado */
@@ -137,25 +159,127 @@
     .border-slate-300 { border-color: #cbd5e1 !important; }
     .border-slate-800 { border-color: #1e293b !important; }
 
+    /* EMERALD */
     .bg-emerald-50 { background-color: #ecfdf5 !important; }
     .bg-emerald-100 { background-color: #d1fae5 !important; }
+    .bg-emerald-500 { background-color: #10b981 !important; }
+    .bg-emerald-600 { background-color: #059669 !important; }
+    .bg-emerald-700 { background-color: #047857 !important; }
+    .hover\:bg-emerald-700:hover { background-color: #047857 !important; }
+    .text-emerald-400 { color: #34d399 !important; }
     .text-emerald-600 { color: #059669 !important; }
     .text-emerald-700 { color: #047857 !important; }
     .text-emerald-800 { color: #065f46 !important; }
+    .text-emerald-900 { color: #064e3b !important; }
+    .border-emerald-100 { border-color: #d1fae5 !important; }
     .border-emerald-200 { border-color: #a7f3d0 !important; }
+    .border-emerald-300 { border-color: #6ee7b7 !important; }
 
+    /* AMBER */
     .bg-amber-50 { background-color: #fffbeb !important; }
     .bg-amber-100 { background-color: #fef3c7 !important; }
+    .bg-amber-500 { background-color: #f59e0b !important; }
+    .text-amber-500 { color: #f59e0b !important; }
     .text-amber-600 { color: #d97706 !important; }
     .text-amber-700 { color: #b45309 !important; }
     .text-amber-800 { color: #92400e !important; }
+    .text-amber-900 { color: #78350f !important; }
     .border-amber-200 { border-color: #fde68a !important; }
+    .border-amber-300 { border-color: #fcd34d !important; }
 
+    /* ROSE */
     .bg-rose-50 { background-color: #fff1f2 !important; }
     .bg-rose-100 { background-color: #ffe4e6 !important; }
+    .bg-rose-500 { background-color: #f43f5e !important; }
+    .bg-rose-600 { background-color: #e11d48 !important; }
+    .bg-rose-700 { background-color: #be123c !important; }
+    .hover\:bg-rose-700:hover { background-color: #be123c !important; }
+    .text-rose-300 { color: #fda4af !important; }
+    .text-rose-400 { color: #fb7185 !important; }
+    .text-rose-500 { color: #f43f5e !important; }
     .text-rose-600 { color: #e11d48 !important; }
     .text-rose-700 { color: #be123c !important; }
+    .text-rose-800 { color: #9f1239 !important; }
+    .text-rose-900 { color: #881337 !important; }
+    .border-rose-100 { border-color: #ffe4e6 !important; }
     .border-rose-200 { border-color: #fecdd3 !important; }
+    .border-rose-300 { border-color: #fda4af !important; }
+    .border-rose-500 { border-color: #f43f5e !important; }
+
+    /* SLATE ADICIONALES */
+    .bg-slate-200 { background-color: #e2e8f0 !important; }
+    .bg-slate-300 { background-color: #cbd5e1 !important; }
+    .bg-slate-700 { background-color: #334155 !important; }
+    .text-slate-300 { color: #cbd5e1 !important; }
+    .border-slate-700 { border-color: #334155 !important; }
+
+    /* TEAL */
+    .bg-teal-50 { background-color: #f0fdfa !important; }
+    .bg-teal-100 { background-color: #ccfbf1 !important; }
+    .bg-teal-600 { background-color: #0d9488 !important; }
+    .text-teal-600 { color: #0d9488 !important; }
+    .text-teal-700 { color: #0f766e !important; }
+
+    /* CYAN */
+    .bg-cyan-50 { background-color: #ecfeff !important; }
+    .bg-cyan-600 { background-color: #0891b2 !important; }
+    .text-cyan-500 { color: #06b6d4 !important; }
+    .text-cyan-600 { color: #0891b2 !important; }
+
+    /* ORANGE */
+    .bg-orange-50 { background-color: #fff7ed !important; }
+    .bg-orange-500 { background-color: #f97316 !important; }
+    .text-orange-600 { color: #ea580c !important; }
+
+    /* ESTADOS HOVER PARA ALTO CONTRASTE */
+    .hover\:bg-slate-50:hover { background-color: #f8fafc !important; }
+    .hover\:bg-slate-100:hover { background-color: #f1f5f9 !important; }
+    .hover\:bg-slate-200:hover { background-color: #e2e8f0 !important; }
+    .hover\:bg-slate-300:hover { background-color: #cbd5e1 !important; }
+    .hover\:bg-slate-700:hover { background-color: #334155 !important; }
+    .hover\:bg-slate-900:hover { background-color: #0f172a !important; }
+    .hover\:text-slate-600:hover { color: #475569 !important; }
+    .hover\:text-slate-700:hover { color: #334155 !important; }
+    .hover\:text-slate-800:hover { color: #1e293b !important; }
+    .hover\:text-slate-900:hover { color: #0f172a !important; }
+
+    .hover\:bg-emerald-50:hover { background-color: #ecfdf5 !important; }
+    .hover\:bg-emerald-100:hover { background-color: #d1fae5 !important; }
+    .hover\:text-emerald-900:hover { color: #064e3b !important; }
+
+    .hover\:bg-amber-50:hover { background-color: #fffbeb !important; }
+    .hover\:bg-amber-100:hover { background-color: #fef3c7 !important; }
+    .hover\:text-amber-800:hover { color: #92400e !important; }
+    .hover\:text-amber-900:hover { color: #78350f !important; }
+
+    .hover\:bg-rose-50:hover { background-color: #fff1f2 !important; }
+    .hover\:bg-rose-100:hover { background-color: #ffe4e6 !important; }
+    .hover\:bg-rose-600:hover { background-color: #e11d48 !important; }
+    .hover\:text-rose-600:hover { color: #e11d48 !important; }
+    .hover\:text-rose-700:hover { color: #be123c !important; }
+    .hover\:text-rose-800:hover { color: #9f1239 !important; }
+    .hover\:text-rose-900:hover { color: #881337 !important; }
+    .hover\:bg-slate-50\/80:hover { background-color: rgba(248, 250, 252, 0.8) !important; }
+    .hover\:bg-slate-50\/90:hover { background-color: rgba(248, 250, 252, 0.9) !important; }
+    .hover\:bg-slate-100\/90:hover { background-color: rgba(241, 245, 249, 0.9) !important; }
+    .hover\:bg-rose-50\/40:hover { background-color: rgba(255, 241, 242, 0.4) !important; }
+    .hover\:shadow-indigo-600\/25:hover { box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.25), 0 4px 6px -4px rgba(79, 70, 229, 0.25) !important; }
+
+    /* UTILIDADES DE OPACIDAD */
+    .bg-slate-50\/80 { background-color: rgba(248, 250, 252, 0.8) !important; }
+    .bg-slate-50\/50 { background-color: rgba(248, 250, 252, 0.5) !important; }
+    .bg-slate-50\/40 { background-color: rgba(248, 250, 252, 0.4) !important; }
+    .bg-slate-100\/50 { background-color: rgba(241, 245, 249, 0.5) !important; }
+    .bg-slate-200\/80 { background-color: rgba(226, 232, 240, 0.8) !important; }
+    .bg-slate-200\/70 { background-color: rgba(226, 232, 240, 0.7) !important; }
+    .bg-slate-950\/45 { background-color: rgba(2, 6, 23, 0.45) !important; }
+    .bg-indigo-600\/30 { background-color: rgba(79, 70, 229, 0.3) !important; }
+    .bg-purple-600\/20 { background-color: rgba(147, 51, 234, 0.2) !important; }
+    .bg-rose-500\/10 { background-color: rgba(244, 63, 94, 0.1) !important; }
+    .bg-white\/95 { background-color: rgba(255, 255, 255, 0.95) !important; }
+    .border-rose-500\/30 { border-color: rgba(244, 63, 94, 0.3) !important; }
+    .border-slate-200\/90 { border-color: rgba(226, 232, 240, 0.9) !important; }
+    .border-indigo-500\/80 { border-color: rgba(99, 102, 241, 0.8) !important; }
 
     .rounded-2xl { border-radius: 1rem !important; }
     .rounded-3xl { border-radius: 1.25rem !important; }
@@ -1199,11 +1323,11 @@
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row justify-between gap-3 items-center">
             <div class="flex flex-wrap gap-1.5 items-center">
-              <button onclick="filterRepairs('all')" id="rep-filter-all" class="px-3.5 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold">Todos</button>
-              <button onclick="filterRepairs('Recibido')" id="rep-filter-Recibido" class="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Recibidos</button>
-              <button onclick="filterRepairs('En Reparación')" id="rep-filter-En Reparación" class="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold">En Reparación</button>
-              <button onclick="filterRepairs('Listo')" id="rep-filter-Listo" class="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Listos p/ Entrega</button>
-              <button onclick="filterRepairs('Entregado')" id="rep-filter-Entregado" class="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Entregados</button>
+              <button onclick="filterRepairs('all')" id="rep-filter-all" class="btn-tactile px-3.5 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-xs">Todos</button>
+              <button onclick="filterRepairs('Recibido')" id="rep-filter-Recibido" class="btn-tactile px-3.5 py-1.5 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold shadow-2xs">Recibidos</button>
+              <button onclick="filterRepairs('En Reparación')" id="rep-filter-En Reparación" class="btn-tactile px-3.5 py-1.5 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold shadow-2xs">En Reparación</button>
+              <button onclick="filterRepairs('Listo')" id="rep-filter-Listo" class="btn-tactile px-3.5 py-1.5 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold shadow-2xs">Listos p/ Entrega</button>
+              <button onclick="filterRepairs('Entregado')" id="rep-filter-Entregado" class="btn-tactile px-3.5 py-1.5 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold shadow-2xs">Entregados</button>
             </div>
             <div class="relative w-full md:w-80">
               <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
@@ -1511,7 +1635,7 @@
           </select>
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeAbonoModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="button" onclick="closeAbonoModal()" class="btn-secondary px-4 py-2 rounded-xl text-xs">Cancelar</button>
           <button type="submit" class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-xs shadow-md">
             <i class="fa-solid fa-receipt mr-1"></i> Registrar y Emitir Recibo
           </button>
@@ -1551,7 +1675,7 @@
       </div>
 
       <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
-        <button onclick="closeBulkCompatModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+        <button onclick="closeBulkCompatModal()" class="btn-secondary px-4 py-2 rounded-xl text-xs">Cancelar</button>
         <button onclick="saveBulkCompatibilities()" class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Vínculos</button>
       </div>
     </div>
@@ -1577,7 +1701,7 @@
           <p class="text-[11px] text-slate-400 mt-1">El stock del equipo se sincronizará automáticamente con sus IMEIs disponibles.</p>
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeImeiEntryModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="button" onclick="closeImeiEntryModal()" class="btn-secondary px-4 py-2 rounded-xl text-xs">Cancelar</button>
           <button type="submit" class="px-5 py-2 bg-indigo-600 text-white font-semibold rounded-xl text-xs shadow-md">Guardar IMEIs</button>
         </div>
       </form>
@@ -1650,7 +1774,7 @@
         </div>
 
         <div class="flex justify-end gap-2 pt-3">
-          <button type="button" onclick="closeProductModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="button" onclick="closeProductModal()" class="btn-secondary px-4 py-2 rounded-xl text-xs">Cancelar</button>
           <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Producto</button>
         </div>
       </form>
@@ -1745,7 +1869,7 @@
           <button type="button" onclick="openStockAdjustmentModal(CURRENT_KARDEX_PRODUCT_ID)" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all">
             <i class="fa-solid fa-plus"></i> Registrar Movimiento
           </button>
-          <button type="button" onclick="closeKardexModal()" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl text-xs transition-all">
+          <button type="button" onclick="closeKardexModal()" class="btn-secondary px-5 py-2 rounded-xl text-xs">
             Cerrar
           </button>
         </div>
@@ -1802,7 +1926,7 @@
         </div>
 
         <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-          <button type="button" onclick="closeStockAdjustmentModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="button" onclick="closeStockAdjustmentModal()" class="btn-secondary px-4 py-2 rounded-xl text-xs">Cancelar</button>
           <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs shadow-md flex items-center gap-1.5">
             <i class="fa-solid fa-check"></i> Registrar Movimiento
           </button>
@@ -1821,7 +1945,7 @@
           <input type="text" id="brand-name" required placeholder="Ej. Realme, Honor, Infinix" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-semibold">
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeBrandModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="button" onclick="closeBrandModal()" class="btn-secondary px-4 py-2 rounded-xl text-xs">Cancelar</button>
           <button type="submit" class="px-5 py-2 bg-indigo-600 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Marca</button>
         </div>
       </form>
@@ -1846,7 +1970,7 @@
           <input type="number" id="model-year" value="2024" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono-code outline-none focus:ring-2 focus:ring-indigo-500 font-semibold">
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeModelModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="button" onclick="closeModelModal()" class="btn-secondary px-4 py-2 rounded-xl text-xs">Cancelar</button>
           <button type="submit" class="px-5 py-2 bg-indigo-600 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Modelo</button>
         </div>
       </form>
@@ -1882,7 +2006,7 @@
           <input type="text" id="cust-address" placeholder="Ej. Av. Los Incas 450 - Tienda 12" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeCustomerModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="button" onclick="closeCustomerModal()" class="btn-secondary px-4 py-2 rounded-xl text-xs">Cancelar</button>
           <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Cliente</button>
         </div>
       </form>
@@ -1989,7 +2113,7 @@
           </div>
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeRepairModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="button" onclick="closeRepairModal()" class="btn-secondary px-4 py-2 rounded-xl text-xs">Cancelar</button>
           <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs shadow-md">
             <i class="fa-solid fa-print mr-1"></i> Registrar e Imprimir Orden
           </button>
@@ -2045,7 +2169,7 @@
           </select>
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeRepairUpdateModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="button" onclick="closeRepairUpdateModal()" class="btn-secondary px-4 py-2 rounded-xl text-xs">Cancelar</button>
           <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Cambios</button>
         </div>
       </form>
@@ -2187,7 +2311,7 @@
         <button type="button" onclick="openLoginModal(); closeUserManagementModal();" class="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1">
           <i class="fa-solid fa-arrows-rotate"></i> Cambiar de Sesión Activa
         </button>
-        <button type="button" onclick="closeUserManagementModal()" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl text-xs">
+        <button type="button" onclick="closeUserManagementModal()" class="btn-secondary px-5 py-2 rounded-xl text-xs">
           Cerrar
         </button>
       </div>
@@ -2217,7 +2341,7 @@
           <p class="text-[11px] text-slate-400 mt-1">Credenciales iniciales: <b>admin123</b> o <b>vendedor123</b></p>
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeLoginModal()" class="px-4 py-2 text-slate-500 font-semibold hover:bg-slate-100 rounded-xl text-xs">Cancelar</button>
+          <button type="button" onclick="closeLoginModal()" class="btn-secondary px-4 py-2 rounded-xl text-xs">Cancelar</button>
           <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs shadow-md">Cambiar Sesión</button>
         </div>
       </form>
