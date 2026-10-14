@@ -476,6 +476,18 @@
       font-weight: 700 !important;
     }
   </style>
+  <script>
+    // Inicialización de vista previa ultra-rápida para evitar saltos visuales al recargar (F5)
+    try {
+      var _hash = (window.location.hash || '').replace('#', '').trim();
+      var _saved = sessionStorage.getItem('cellventas_active_tab');
+      var _active = _hash || _saved || 'assistant';
+      document.addEventListener('DOMContentLoaded', function() {
+        var el = document.getElementById('view-' + _active);
+        if (el) el.classList.remove('hidden');
+      });
+    } catch(e) {}
+  </script>
 </head>
 <body class="bg-slate-50 font-sans h-screen flex flex-col overflow-hidden text-slate-800">
 
@@ -809,7 +821,7 @@
     <!-- ============================================================== -->
     <!-- 1. ASISTENTE DE MOSTRADOR (CON BARRA DE ORDEN FLOTANTE) -->
     <!-- ============================================================== -->
-    <section id="view-assistant" class="view-section flex flex-col flex-1 w-full h-full p-6 overflow-y-auto custom-scrollbar">
+    <section id="view-assistant" class="view-section hidden flex flex-col flex-1 w-full h-full p-6 overflow-y-auto custom-scrollbar">
       <div class="max-w-7xl mx-auto w-full space-y-6 pb-20">
         
         <!-- HEADER DEL ASISTENTE -->

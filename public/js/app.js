@@ -54,6 +54,11 @@ if (socket) {
 // Inicialización
 async function init() {
   setupKeyboardShortcuts();
+
+  // Restaurar vista previa de inmediato para evitar cualquier salto visual
+  const initialTab = getInitialTab();
+  switchTab(initialTab);
+
   const isAuthenticated = await checkAuthSession();
   if (!isAuthenticated) {
     showLoginScreen();
@@ -70,6 +75,9 @@ async function init() {
   await loadDashboard();
   await loadCoverageData();
   await loadSalesHistory();
+
+  // Asegurar refresco de datos en la vista restaurada
+  switchTab(initialTab);
 }
 
 async function checkAuthSession() {
@@ -200,6 +208,20 @@ const SECTION_TITLES = {
   'dashboard': 'Dashboard & Reporte Ejecutivo'
 };
 
+let currentActiveTab = 'assistant';
+
+function getInitialTab() {
+  const hash = (window.location.hash || '').replace('#', '').trim();
+  if (hash && SECTION_TITLES[hash]) return hash;
+
+  try {
+    const saved = sessionStorage.getItem('cellventas_active_tab');
+    if (saved && SECTION_TITLES[saved]) return saved;
+  } catch (e) {}
+
+  return 'assistant';
+}
+
 // ==============================================================
 // MENÚ LATERAL DESPLEGABLE COMPACTO & PURO (OVERLAY FLOTANTE)
 // ==============================================================
@@ -284,6 +306,9 @@ function handleGlobalOmnibox(query) {
 }
 
 function switchTab(tabId) {
+  if (!SECTION_TITLES[tabId]) tabId = 'assistant';
+  currentActiveTab = tabId;
+
   // Asegurar que el menú siempre se cierre al cambiar de vista
   toggleMegaMenu(false);
 
@@ -309,6 +334,14 @@ function switchTab(tabId) {
     topbarTitle.innerText = SECTION_TITLES[tabId];
   }
 
+  // Persistir vista activa en URL hash y sessionStorage para recargas (F5 / Ctrl+Shift+R)
+  try {
+    sessionStorage.setItem('cellventas_active_tab', tabId);
+    if (window.location.hash !== '#' + tabId) {
+      history.replaceState(null, '', '#' + tabId);
+    }
+  } catch (e) {}
+
   if (tabId === 'assistant') { populateAssistantBrandDropdown(); updateAssistantCartBar(); }
   if (tabId === 'pos') { populateBrandFilters(); renderProducts(); renderCart(); }
   if (tabId === 'compatibility') { loadCoverageData(); renderCompatibilityMatrix(); }
@@ -320,6 +353,21 @@ function switchTab(tabId) {
   if (tabId === 'repairs') loadRepairs();
   if (tabId === 'dashboard') loadDashboard();
 }
+
+// Navegación fluida con botones atrás/adelante del navegador
+window.addEventListener('popstate', () => {
+  const hash = (window.location.hash || '').replace('#', '').trim();
+  if (hash && SECTION_TITLES[hash] && hash !== currentActiveTab) {
+    switchTab(hash);
+  }
+});
+
+window.addEventListener('hashchange', () => {
+  const hash = (window.location.hash || '').replace('#', '').trim();
+  if (hash && SECTION_TITLES[hash] && hash !== currentActiveTab) {
+    switchTab(hash);
+  }
+});
 
 // ==============================================================
 // 1. CARGADORES DE DATOS BASE
@@ -3336,6 +3384,9 @@ async function handleScreenLogin(e) {
     updateUserSessionUI();
     showToast('Sesión Iniciada', `Bienvenido, ${currentUser.name} (${currentUser.role.toUpperCase()})`);
 
+    const initialTab = getInitialTab();
+    switchTab(initialTab);
+
     await loadCashStatus();
     await loadCashHistory();
     await loadBrandsAndModels();
@@ -3345,6 +3396,8 @@ async function handleScreenLogin(e) {
     await loadDashboard();
     await loadCoverageData();
     await loadSalesHistory();
+
+    switchTab(initialTab);
   } catch (err) {
     if (errorEl && errorMsg) {
       errorMsg.innerText = err.message;
@@ -3363,6 +3416,10 @@ function logout() {
   currentUser = null;
   localStorage.removeItem('cellventas_token');
   localStorage.removeItem('cellventas_user');
+  try {
+    sessionStorage.removeItem('cellventas_active_tab');
+    history.replaceState(null, '', ' ');
+  } catch (e) {}
   showLoginScreen();
   showToast('Sesión Cerrada', 'Hasta pronto.', 'warning');
 }
@@ -3613,5 +3670,9 @@ async function handleDeleteUser(userId, username) {
   }
 }
 
-window.onload = init;
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 
