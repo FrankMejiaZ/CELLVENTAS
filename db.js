@@ -408,6 +408,30 @@ async function initDb() {
       )
     `);
 
+    // 13. CONFIGURACIÓN DE TIENDA Y COMPROBANTES TÉRMICOS
+    await query(`
+      CREATE TABLE IF NOT EXISTS store_settings (
+        id INTEGER PRIMARY KEY,
+        store_name TEXT NOT NULL DEFAULT 'CELLVENTAS',
+        store_subheading TEXT DEFAULT 'ACCESORIOS Y CELULARES',
+        store_legal_name TEXT DEFAULT 'VT VALETEC',
+        store_ruc TEXT DEFAULT '20601234567',
+        store_address TEXT DEFAULT 'Av. Comercial 450 - Tienda 12',
+        store_phone TEXT DEFAULT '987 654 321',
+        ticket_footer TEXT DEFAULT '¡Gracias por su preferencia! Revise su producto antes de retirarse. Garantía válida con su ticket.',
+        ticket_width TEXT DEFAULT '80mm',
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    const settingsCheck = await query(`SELECT id FROM store_settings WHERE id = 1`);
+    if (settingsCheck.rows.length === 0) {
+      await query(`
+        INSERT INTO store_settings (id, store_name, store_subheading, store_legal_name, store_ruc, store_address, store_phone, ticket_footer, ticket_width)
+        VALUES (1, 'CELLVENTAS', 'ACCESORIOS Y CELULARES', 'VT VALETEC', '20601234567', 'Av. Comercial 450 - Tienda 12', '987 654 321', '¡Gracias por su preferencia! Revise su producto antes de retirarse. Garantía válida con su ticket.', '80mm')
+      `);
+    }
+
     // Asegurar contadores requeridos sin sobrescribir los existentes
     const requiredCounters = ['Ticket', 'Boleta', 'Factura', 'ReciboAbono', 'OrdenServicio'];
     for (const docType of requiredCounters) {

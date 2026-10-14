@@ -344,6 +344,11 @@
         font-size: 12px !important;
         font-weight: 600 !important;
       }
+      body.ticket-58mm #printable-ticket-area {
+        width: 48mm !important;
+        font-size: 10px !important;
+        padding: 1mm !important;
+      }
     }
 
     /* Regla para garantizar que POS se muestre en diseño fluido completo */
@@ -793,7 +798,14 @@
 
       <!-- SESIÓN DE USUARIO & SEGURIDAD (REUBICADO EN HEADER) -->
       <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
-        <button onclick="openUserManagementModal()" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors border border-slate-200" title="Configuración de Cuenta & Seguridad">
+        <!-- BOTÓN CONFIGURACIÓN DE TIENDA Y TICKETS (ADMIN) -->
+        <button id="btn-open-settings" onclick="openSettingsModal()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors border border-slate-200" title="Configuración de Tienda y Tickets">
+          <i class="fa-solid fa-sliders text-xs text-indigo-600"></i>
+          <span class="hidden xl:inline text-xs font-bold">Ajustes</span>
+        </button>
+
+        <!-- BOTÓN GESTIÓN DE COLABORADORES (ADMIN) -->
+        <button id="btn-open-users" onclick="openUserManagementModal()" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors border border-slate-200" title="Configuración de Cuenta & Seguridad">
           <div id="sidebar-user-avatar" class="w-6 h-6 rounded-lg bg-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
             A
           </div>
@@ -1109,6 +1121,9 @@
             <p class="text-xs text-slate-500 font-medium">Control de stock, costos, precios de venta y modelos compatibles asociados.</p>
           </div>
           <div class="flex flex-wrap gap-2">
+            <button onclick="exportInventoryToCSV()" class="btn-secondary px-3.5 py-2.5 rounded-xl font-semibold text-xs shadow-sm flex items-center gap-1.5 transition-colors" title="Exportar catálogo completo a Excel/CSV">
+              <i class="fa-solid fa-file-excel text-emerald-600"></i> Exportar CSV
+            </button>
             <button onclick="openGeneralKardexModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3.5 py-2.5 rounded-xl font-semibold text-xs shadow-sm flex items-center gap-1.5 transition-colors">
               <i class="fa-solid fa-clock-rotate-left text-amber-600"></i> Kardex General
             </button>
@@ -1291,9 +1306,14 @@
             </h2>
             <p class="text-xs text-slate-500 font-medium">Registro y edición de clientes, estado de cuenta histórico, deudas por crédito y emisión de recibos de abono.</p>
           </div>
-          <button onclick="openCustomerModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm flex items-center gap-2">
-            <i class="fa-solid fa-user-plus"></i> Registrar Cliente
-          </button>
+          <div class="flex gap-2">
+            <button onclick="exportCustomersToCSV()" class="btn-secondary px-3.5 py-2.5 rounded-xl font-semibold text-xs shadow-sm flex items-center gap-1.5 transition-colors" title="Exportar deudores y cartera de clientes a Excel/CSV">
+              <i class="fa-solid fa-file-excel text-emerald-600"></i> Exportar Deudores
+            </button>
+            <button onclick="openCustomerModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm flex items-center gap-2">
+              <i class="fa-solid fa-user-plus"></i> Registrar Cliente
+            </button>
+          </div>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
@@ -2327,6 +2347,73 @@
           Cerrar
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL CONFIGURACIÓN DE TIENDA Y COMPROBANTES TÉRMICOS -->
+  <div id="modal-settings" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl p-6 space-y-4 max-h-[92vh] flex flex-col border border-slate-200">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-indigo-600"></i> Configuración de Tienda y Tickets
+        </h3>
+        <button onclick="closeSettingsModal()" class="action-icon-btn text-slate-400 hover:text-slate-700 hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form onsubmit="saveStoreSettings(event)" class="space-y-3 overflow-y-auto custom-scrollbar p-1">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] font-semibold text-slate-600 block mb-1">Nombre Comercial de la Tienda *</label>
+            <input type="text" id="set-store-name" required placeholder="Ej. CELLVENTAS" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold text-slate-600 block mb-1">Giro / Eslogan</label>
+            <input type="text" id="set-store-subheading" placeholder="Ej. Accesorios y Celulares" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] font-semibold text-slate-600 block mb-1">Razón Social / Propietario</label>
+            <input type="text" id="set-store-legal-name" placeholder="Ej. VT VALETEC SAC" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold text-slate-600 block mb-1">RUC</label>
+            <input type="text" id="set-store-ruc" placeholder="Ej. 20601234567" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono-code font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] font-semibold text-slate-600 block mb-1">Dirección Física de la Tienda</label>
+            <input type="text" id="set-store-address" placeholder="Ej. Av. Los Incas 450 - Tienda 12" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold text-slate-600 block mb-1">Teléfono / WhatsApp de Atención</label>
+            <input type="text" id="set-store-phone" placeholder="Ej. 987 654 321" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono-code font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[11px] font-semibold text-slate-600 block mb-1">Ancho de Impresora Térmica</label>
+          <select id="set-ticket-width" class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-bold outline-none bg-slate-50">
+            <option value="80mm">80 mm (Estándar Punto de Venta / Tiqueteras EPSON, Bixolon, etc.)</option>
+            <option value="58mm">58 mm (Tiqueteras Portátiles Bluetooth / Mini POS)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-[11px] font-semibold text-slate-600 block mb-1">Mensaje de Pie de Página / Políticas de Garantía</label>
+          <textarea id="set-ticket-footer" rows="2" placeholder="Ej. ¡Gracias por su compra! Revise su equipo antes de retirarse..." class="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" onclick="closeSettingsModal()" class="btn-secondary px-4 py-2 rounded-xl text-xs">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs shadow-md">
+            <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar Ajustes
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

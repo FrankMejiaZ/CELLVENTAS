@@ -76,6 +76,14 @@ function verifyToken(req, res, next) {
 }
 app.use(verifyToken);
 
+// Middleware para restringir operaciones críticas a Administrador
+function requireAdmin(req, res, next) {
+  if (!req.user || String(req.user.role || '').toLowerCase() !== 'administrador') {
+    return res.status(403).json({ error: 'Acceso denegado. Esta acción requiere permisos de Administrador.' });
+  }
+  next();
+}
+
 // ==========================================
 // 0. AUTENTICACIÓN Y GESTIÓN DE USUARIOS
 // ==========================================
@@ -164,7 +172,7 @@ app.put('/api/auth/change-password', async (req, res) => {
   }
 });
 
-app.post('/api/users', async (req, res) => {
+app.post('/api/users', requireAdmin, async (req, res) => {
   try {
     const { username, name, role, password } = req.body;
     const cleanUser = String(username || '').trim().toLowerCase();
@@ -204,7 +212,7 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-app.put('/api/users/:id/password', async (req, res) => {
+app.put('/api/users/:id/password', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { newPassword } = req.body;
@@ -229,7 +237,7 @@ app.put('/api/users/:id/password', async (req, res) => {
   }
 });
 
-app.delete('/api/users/:id', async (req, res) => {
+app.delete('/api/users/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const userRes = await db.query(`SELECT id, username FROM users WHERE id = ?`, [id]);
@@ -250,6 +258,81 @@ app.delete('/api/users/:id', async (req, res) => {
     res.json({ success: true, message: `Usuario "${user.username}" eliminado del sistema.` });
   } catch (err) {
     sendSafeError(res, req, 'DELETE_USER', err, 'No se pudo eliminar el usuario.');
+  }
+});
+
+// ==========================================
+// 0.1 CONFIGURACIÓN DE TIENDA Y COMPROBANTES
+// ==========================================
+
+app.get('/api/settings', async (req, res) => {
+  try {
+    const result = await db.query(`SELECT * FROM store_settings WHERE id = 1`);
+    if (result.rows.length === 0) {
+      return res.json({
+        store_name: 'CELLVENTAS',
+        store_subheading: 'ACCESORIOS Y CELULARES',
+        store_legal_name: 'VT VALETEC',
+        store_ruc: '20601234567',
+        store_address: 'Av. Comercial 450 - Tienda 12',
+        store_phone: '987 654 321',
+        ticket_footer: '¡Gracias por su preferencia! Revise su producto antes de retirarse. Garantía válida con su ticket.',
+        ticket_width: '80mm'
+      });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    sendSafeError(res, req, 'GET_SETTINGS', err, 'Error al obtener la configuración de la tienda.');
+  }
+});
+
+app.put('/api/settings', requireAdmin, async (req, res) => {
+  try {
+    const {
+      store_name,
+      store_subheading,
+      store_legal_name,
+      store_ruc,
+      store_address,
+      store_phone,
+      ticket_footer,
+      ticket_width
+    } = req.body;
+
+    await db.query(`
+      UPDATE store_settings
+      SET store_name = ?,
+          store_subheading = ?,
+          store_legal_name = ?,
+          store_ruc = ?,
+          store_address = ?,
+          store_phone = ?,
+          ticket_footer = ?,
+          ticket_width = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = 1
+    `, [
+      String(store_name || 'CELLVENTAS').trim(),
+      String(store_subheading || '').trim(),
+      String(store_legal_name || '').trim(),
+      String(store_ruc || '').trim(),
+      String(store_address || '').trim(),
+      String(store_phone || '').trim(),
+      String(ticket_footer || '').trim(),
+      ticket_width === '58mm' ? '58mm' : '80mm'
+    ]);
+
+    const updated = await db.query(`SELECT * FROM store_settings WHERE id = 1`);
+    const settings = updated.rows[0];
+    io.emit('settings_updated', settings);
+
+    res.json({
+      success: true,
+      message: 'Configuración de tienda y comprobantes guardada exitosamente.',
+      settings
+    });
+  } catch (err) {
+    sendSafeError(res, req, 'UPDATE_SETTINGS', err, 'No se pudo guardar la configuración de la tienda.');
   }
 });
 
@@ -1005,8 +1088,8 @@ app.post('/api/sales', async (req, res) => {
   }
 });
 
-// Anular Venta y restituir Stock + IMEIs + Deuda de forma transaccional
-app.put('/api/sales/:id/anular', async (req, res) => {
+// Anular Venta y restituir Stock + IMEIs + Deuda de forma transaccional (Solo Administrador)
+app.put('/api/sales/:id/anular', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const saleRes = await db.query(`SELECT * FROM sales WHERE id = ?`, [id]);
@@ -1713,12 +1796,14 @@ app.get('/api/dashboard', async (req, res) => {
     const todaySales = parseFloat(salesRes.rows[0]?.totalsales || salesRes.rows[0]?.totalSales || 0);
     const todayDiscount = parseFloat(salesRes.rows[0]?.totaldiscount || salesRes.rows[0]?.totalDiscount || 0);
     const grossProfit = parseFloat(profitRes.rows[0]?.grossprofit || profitRes.rows[0]?.grossProfit || 0);
-    const todayProfit = Math.max(0, grossProfit - todayDiscount);
+    const isVendor = req.user && String(req.user.role || '').toLowerCase() === 'vendedor';
+    const todayProfit = isVendor ? null : Math.max(0, grossProfit - todayDiscount);
 
     res.json({
       todaySales,
       todayTickets: parseInt(salesRes.rows[0]?.ticketscount || salesRes.rows[0]?.ticketsCount || 0, 10),
       todayProfit,
+      isVendor,
       totalFiadosDebt: parseFloat(fiadosRes.rows[0]?.totaldebt || fiadosRes.rows[0]?.totalDebt || 0),
       topProduct: topRes.rows[0]?.product_name || 'N/A',
       lowStockCount: lowStockListRes.rows.length,

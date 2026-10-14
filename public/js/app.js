@@ -14,6 +14,7 @@ let selectedPaymentMethod = 'Efectivo';
 let pendingImeiProduct = null;
 let currentCoverageFilter = 'all';
 let currentRepairFilter = 'all';
+let STORE_SETTINGS = null;
 
 let currentUser = null;
 let authToken = localStorage.getItem('cellventas_token') || '';
@@ -49,6 +50,7 @@ if (socket) {
   socket.on('cash_updated', () => { loadCashStatus(); loadCashHistory(); });
   socket.on('abono_registered', () => { loadCustomers(); loadCashStatus(); loadDashboard(); });
   socket.on('repair_updated', () => { loadRepairs(); loadDashboard(); });
+  socket.on('settings_updated', (s) => { STORE_SETTINGS = s; applyTicketWidthCSS(); });
 }
 
 // Inicialización
@@ -66,6 +68,7 @@ async function init() {
   }
   hideLoginScreen();
   updateUserSessionUI();
+  await loadStoreSettings();
   await loadCashStatus();
   await loadCashHistory();
   await loadBrandsAndModels();
@@ -1393,11 +1396,24 @@ function renderThermalTicket(sale) {
 
   const discountVal = parseFloat(sale.discount || 0);
 
+  const storeName = STORE_SETTINGS?.store_name || 'CELLVENTAS';
+  const subHeading = STORE_SETTINGS?.store_subheading || 'ACCESORIOS Y CELULARES';
+  const legalName = STORE_SETTINGS?.store_legal_name || 'VT VALETEC';
+  const rucHtml = STORE_SETTINGS?.store_ruc ? `<div>RUC: ${STORE_SETTINGS.store_ruc}</div>` : '';
+  const addrHtml = STORE_SETTINGS?.store_address ? `<div>${STORE_SETTINGS.store_address}</div>` : '';
+  const phoneHtml = STORE_SETTINGS?.store_phone ? `<div>Tel/WhatsApp: ${STORE_SETTINGS.store_phone}</div>` : '';
+  const footerHtml = STORE_SETTINGS?.ticket_footer 
+    ? `<div>${STORE_SETTINGS.ticket_footer}</div>` 
+    : `<div>¡Gracias por su compra!</div><div>Conserve este comprobante para su garantía.</div>`;
+
   container.innerHTML = `
     <div style="text-align: center; border-bottom: 1px dashed #666; padding-bottom: 6px; margin-bottom: 6px;">
-      <div style="font-size: 14px; font-weight: bold;">CELLVENTAS</div>
-      <div>ACCESORIOS Y CELULARES</div>
-      <div>VT VALETEC</div>
+      <div style="font-size: 14px; font-weight: bold;">${storeName}</div>
+      ${subHeading ? `<div>${subHeading}</div>` : ''}
+      ${legalName ? `<div>${legalName}</div>` : ''}
+      ${rucHtml}
+      ${addrHtml}
+      ${phoneHtml}
       <div style="margin-top: 4px; font-weight: bold;">${(sale.doc_type || 'TICKET').toUpperCase()}: ${sale.receipt_code}</div>
       <div style="font-size: 11px;">${dateStr}</div>
     </div>
@@ -1443,8 +1459,7 @@ function renderThermalTicket(sale) {
     </div>
 
     <div style="text-align: center; margin-top: 10px; border-top: 1px dashed #666; padding-top: 6px; font-size: 11px;">
-      <div>¡Gracias por su compra!</div>
-      <div>Conserve este comprobante para su garantía.</div>
+      ${footerHtml}
     </div>
   `;
 }
@@ -1533,6 +1548,9 @@ function renderSalesHistoryTable() {
   const tbody = document.getElementById('sales-table-body');
   if (!tbody) return;
 
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const isAdmin = userRole === 'administrador' || userRole === 'admin';
+
   const filtered = getFilteredSales();
 
   const countEl = document.getElementById('sales-filter-count');
@@ -1574,7 +1592,7 @@ function renderSalesHistoryTable() {
         <td class="p-4 text-center">
           <div class="flex items-center justify-center gap-2">
             <button onclick="reprintTicket(${s.id})" class="action-icon-btn bg-indigo-50 border-indigo-300 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900" title="Ver / Imprimir Ticket"><i class="fa-solid fa-print text-xs"></i></button>
-            ${!isAnulada ? `
+            ${(!isAnulada && isAdmin) ? `
               <button onclick="anularSale(${s.id}, '${s.receipt_code}')" class="action-icon-btn bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100 hover:text-rose-900" title="Anular Venta"><i class="fa-solid fa-ban text-xs"></i></button>
             ` : ''}
           </div>
@@ -2172,10 +2190,14 @@ function renderArqueoZTicket(s) {
   const closedAt = s.closedAt || s.closed_at || Date.now();
   const cashSales = s.efectivoSales !== undefined ? s.efectivoSales : s.cashSales;
 
+  const storeName = STORE_SETTINGS?.store_name || 'CELLVENTAS';
+  const legalName = STORE_SETTINGS?.store_legal_name || 'VT VALETEC';
+
   container.innerHTML = `
     <div style="text-align: center; border-bottom: 1px dashed #666; padding-bottom: 6px; margin-bottom: 6px;">
-      <div style="font-size: 14px; font-weight: bold;">CELLVENTAS</div>
+      <div style="font-size: 14px; font-weight: bold;">${storeName}</div>
       <div>CORTE DE CAJA - ARQUEO Z</div>
+      <div>${legalName}</div>
       <div style="margin-top: 4px; font-weight: bold;">TURNO #${regId}</div>
       <div style="font-size: 10px;">Apertura: ${new Date(openedAt).toLocaleString()}</div>
       <div style="font-size: 10px;">Cierre: ${new Date(closedAt).toLocaleString()}</div>
@@ -2410,6 +2432,59 @@ async function deleteProduct(id) {
   await loadProducts();
   await loadCoverageData();
 }
+
+function exportInventoryToCSV() {
+  if (!PRODUCTS || PRODUCTS.length === 0) {
+    alert('No hay productos en inventario para exportar.');
+    return;
+  }
+
+  const headers = [
+    'Código',
+    'Producto',
+    'Categoría',
+    'Modelos Compatibles',
+    'Precio Compra (S/)',
+    'Precio Venta (S/)',
+    'Stock Actual',
+    'Stock Mínimo',
+    'Requiere IMEI'
+  ];
+
+  const escapeCSV = (val) => {
+    if (val === null || val === undefined) return '""';
+    const str = String(val).replace(/"/g, '""');
+    return `"${str}"`;
+  };
+
+  const rows = PRODUCTS.map(p => {
+    const models = (p.compatible_models || []).map(m => m.model_name).join(', ') || 'Universal';
+    return [
+      escapeCSV(p.code),
+      escapeCSV(p.name),
+      escapeCSV(p.category || 'General'),
+      escapeCSV(models),
+      escapeCSV(parseFloat(p.purchase_price || 0).toFixed(2)),
+      escapeCSV(parseFloat(p.price || 0).toFixed(2)),
+      escapeCSV(p.stock || 0),
+      escapeCSV(p.min_stock || 5),
+      escapeCSV(p.requires_imei ? 'SÍ' : 'NO')
+    ].join(';');
+  });
+
+  const csvContent = '\uFEFF' + headers.map(h => escapeCSV(h)).join(';') + '\r\n' + rows.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `inventario_cellventas_${dateStr}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 
 // ==========================================
 // KARDEX DE ALMACÉN Y AJUSTES DE STOCK (ANTI-MERMA)
@@ -2747,6 +2822,52 @@ function renderFiadosTable() {
   }).join('');
 }
 
+function exportCustomersToCSV() {
+  if (!CLIENTS || CLIENTS.length === 0) {
+    alert('No hay clientes ni deudores registrados para exportar.');
+    return;
+  }
+
+  const headers = [
+    'Documento (DNI/RUC)',
+    'Nombre Completo',
+    'Teléfono / Celular',
+    'Dirección',
+    'Deuda Actual (S/)',
+    'Condición'
+  ];
+
+  const escapeCSV = (val) => {
+    if (val === null || val === undefined) return '""';
+    const str = String(val).replace(/"/g, '""');
+    return `"${str}"`;
+  };
+
+  const rows = CLIENTS.map(c => {
+    const debt = parseFloat(c.debt || 0);
+    return [
+      escapeCSV(c.doc),
+      escapeCSV(c.name),
+      escapeCSV(c.phone || '-'),
+      escapeCSV(c.address || '-'),
+      escapeCSV(debt.toFixed(2)),
+      escapeCSV(debt > 0 ? 'CON DEUDA PENDIENTE' : 'AL DÍA')
+    ].join(';');
+  });
+
+  const csvContent = '\uFEFF' + headers.map(h => escapeCSV(h)).join(';') + '\r\n' + rows.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `cartera_deudores_cellventas_${dateStr}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function handleAbonoClick(customerId) {
   const customer = CLIENTS.find(c => c.id === customerId);
   if (!customer) return;
@@ -2811,11 +2932,19 @@ function renderAbonoReceipt(r) {
 
   const dateStr = new Date(r.created_at || Date.now()).toLocaleString();
 
+  const storeName = STORE_SETTINGS?.store_name || 'CELLVENTAS';
+  const legalName = STORE_SETTINGS?.store_legal_name || 'VT VALETEC';
+  const rucHtml = STORE_SETTINGS?.store_ruc ? `<div>RUC: ${STORE_SETTINGS.store_ruc}</div>` : '';
+  const phoneHtml = STORE_SETTINGS?.store_phone ? `<div>Tel/WhatsApp: ${STORE_SETTINGS.store_phone}</div>` : '';
+  const footerNote = STORE_SETTINGS?.ticket_footer || '¡Gracias por su abono puntual!';
+
   container.innerHTML = `
     <div style="text-align: center; border-bottom: 1px dashed #666; padding-bottom: 6px; margin-bottom: 6px;">
-      <div style="font-size: 14px; font-weight: bold;">CELLVENTAS</div>
+      <div style="font-size: 14px; font-weight: bold;">${storeName}</div>
       <div>RECIBO DE ABONO A CRÉDITO</div>
-      <div>VT VALETEC</div>
+      <div>${legalName}</div>
+      ${rucHtml}
+      ${phoneHtml}
       <div style="margin-top: 4px; font-weight: bold;">RECIBO: ${r.receipt_code}</div>
       <div style="font-size: 11px;">${dateStr}</div>
     </div>
@@ -2842,7 +2971,7 @@ function renderAbonoReceipt(r) {
     </div>
 
     <div style="text-align: center; margin-top: 10px; font-size: 11px;">
-      <div>¡Gracias por su abono puntual!</div>
+      <div>${footerNote}</div>
       <div style="margin-top: 25px; border-top: 1px solid #000; width: 80%; margin-left: auto; margin-right: auto; padding-top: 4px;">
         Firma / Sello de Recepción
       </div>
@@ -3247,10 +3376,19 @@ function renderRepairThermalTicket(r) {
   const deposit = parseFloat(r.advance_payment || 0);
   const pending = Math.max(0, cost - deposit);
 
+  const storeName = STORE_SETTINGS?.store_name || 'CELLVENTAS';
+  const legalName = STORE_SETTINGS?.store_legal_name || 'VT VALETEC';
+  const phoneHtml = STORE_SETTINGS?.store_phone ? `<div>Tel/WhatsApp: ${STORE_SETTINGS.store_phone}</div>` : '';
+  const footerNote = STORE_SETTINGS?.ticket_footer 
+    ? `<div>${STORE_SETTINGS.ticket_footer}</div>` 
+    : `<div>Conserve este ticket para recoger su equipo.</div><div>Pasados 30 días de notificado, la tienda no se responsabiliza por equipos abandonados.</div>`;
+
   container.innerHTML = `
     <div style="text-align: center; border-bottom: 1px dashed #666; padding-bottom: 6px; margin-bottom: 6px;">
-      <div style="font-size: 14px; font-weight: bold;">CELLVENTAS</div>
+      <div style="font-size: 14px; font-weight: bold;">${storeName}</div>
       <div>ORDEN DE SERVICIO TÉCNICO</div>
+      <div>${legalName}</div>
+      ${phoneHtml}
       <div style="margin-top: 4px; font-weight: bold; font-size: 13px;">${r.order_code}</div>
       <div style="font-size: 10px;">Fecha: ${new Date(r.created_at || Date.now()).toLocaleString()}</div>
       <div style="font-size: 11px; font-weight: bold; margin-top: 2px;">ESTADO: ${(r.status || 'Recibido').toUpperCase()}</div>
@@ -3285,8 +3423,7 @@ function renderRepairThermalTicket(r) {
     </div>
 
     <div style="text-align: center; margin-top: 10px; font-size: 10px;">
-      <div>Conserve este ticket para recoger su equipo.</div>
-      <div>Pasados 30 días de notificado, la tienda no se responsabiliza por equipos abandonados.</div>
+      ${footerNote}
       <div style="margin-top: 24px; border-top: 1px solid #000; width: 80%; margin-left: auto; margin-right: auto; padding-top: 4px;">
         Firma Conformidad Cliente
       </div>
@@ -3302,21 +3439,42 @@ function updateUserSessionUI() {
   const roleEl = document.getElementById('sidebar-user-role');
   const avatarEl = document.getElementById('sidebar-user-avatar');
   const profitCard = document.getElementById('dash-profit-card');
+  const btnSettings = document.getElementById('btn-open-settings');
+  const btnUsers = document.getElementById('btn-open-users');
+  const tabTeam = document.getElementById('tab-btn-team-manage');
 
   if (!currentUser) return;
+  const role = (currentUser.role || '').toLowerCase();
+  const isAdmin = role === 'administrador' || role === 'admin';
+
   if (nameEl) nameEl.innerText = currentUser.name || 'Usuario';
   if (roleEl) roleEl.innerText = (currentUser.role || 'admin').toUpperCase();
   if (avatarEl) avatarEl.innerText = (currentUser.name || 'A').charAt(0).toUpperCase();
 
   // Ocultar utilidad bruta si el rol activo es vendedor
   if (profitCard) {
-    if (currentUser.role === 'vendedor') {
+    if (!isAdmin) {
       profitCard.classList.add('hidden');
     } else {
       profitCard.classList.remove('hidden');
     }
   }
+
+  // Ocultar controles de administración a no-administradores
+  if (btnSettings) {
+    if (!isAdmin) btnSettings.classList.add('hidden');
+    else btnSettings.classList.remove('hidden');
+  }
+  if (btnUsers) {
+    if (!isAdmin) btnUsers.classList.add('hidden');
+    else btnUsers.classList.remove('hidden');
+  }
+  if (tabTeam) {
+    if (!isAdmin) tabTeam.classList.add('hidden');
+    else tabTeam.classList.remove('hidden');
+  }
 }
+
 
 function openLoginModal() {
   document.getElementById('login-username').value = currentUser?.username || 'admin';
@@ -3348,6 +3506,7 @@ async function submitLogin(e) {
     localStorage.setItem('cellventas_user', JSON.stringify(currentUser));
 
     updateUserSessionUI();
+    await loadStoreSettings();
     closeLoginModal();
     showToast('Sesión Iniciada', `Bienvenido, ${currentUser.name} (${currentUser.role.toUpperCase()})`);
   } catch (err) {
@@ -3382,6 +3541,7 @@ async function handleScreenLogin(e) {
 
     hideLoginScreen();
     updateUserSessionUI();
+    await loadStoreSettings();
     showToast('Sesión Iniciada', `Bienvenido, ${currentUser.name} (${currentUser.role.toUpperCase()})`);
 
     const initialTab = getInitialTab();
@@ -3431,6 +3591,102 @@ function setQuickLogin(username, password) {
   if (pInput) {
     pInput.value = password;
     pInput.focus();
+  }
+}
+
+// ==========================================
+// 12. CONFIGURACIÓN DE TIENDA Y TICKETS TÉRMICOS
+// ==========================================
+async function loadStoreSettings() {
+  try {
+    const res = await fetch('/api/settings');
+    if (res.ok) {
+      STORE_SETTINGS = await res.json();
+      applyTicketWidthCSS();
+    }
+  } catch (e) {
+    console.error('Error cargando configuración:', e);
+  }
+}
+
+function applyTicketWidthCSS() {
+  const is58 = STORE_SETTINGS?.ticket_width === '58mm';
+  if (is58) {
+    document.body.classList.add('ticket-58mm');
+    const container = document.getElementById('printable-ticket-area');
+    if (container) {
+      container.style.maxWidth = '250px';
+      container.style.fontSize = '11px';
+    }
+  } else {
+    document.body.classList.remove('ticket-58mm');
+    const container = document.getElementById('printable-ticket-area');
+    if (container) {
+      container.style.maxWidth = '340px';
+      container.style.fontSize = '12px';
+    }
+  }
+}
+
+function openSettingsModal() {
+  if (!STORE_SETTINGS) {
+    STORE_SETTINGS = {
+      store_name: 'CELLVENTAS',
+      store_subheading: 'Accesorios y Celulares',
+      store_legal_name: 'VT VALETEC',
+      store_ruc: '',
+      store_address: '',
+      store_phone: '',
+      ticket_width: '80mm',
+      ticket_footer: '¡Gracias por su compra!\nConserve este comprobante para su garantía.'
+    };
+  }
+  const el = id => document.getElementById(id);
+  if (el('set-store-name')) el('set-store-name').value = STORE_SETTINGS.store_name || '';
+  if (el('set-store-subheading')) el('set-store-subheading').value = STORE_SETTINGS.store_subheading || '';
+  if (el('set-store-legal-name')) el('set-store-legal-name').value = STORE_SETTINGS.store_legal_name || '';
+  if (el('set-store-ruc')) el('set-store-ruc').value = STORE_SETTINGS.store_ruc || '';
+  if (el('set-store-address')) el('set-store-address').value = STORE_SETTINGS.store_address || '';
+  if (el('set-store-phone')) el('set-store-phone').value = STORE_SETTINGS.store_phone || '';
+  if (el('set-ticket-width')) el('set-ticket-width').value = STORE_SETTINGS.ticket_width || '80mm';
+  if (el('set-ticket-footer')) el('set-ticket-footer').value = STORE_SETTINGS.ticket_footer || '';
+  
+  el('modal-settings')?.classList.remove('hidden');
+}
+
+function closeSettingsModal() {
+  document.getElementById('modal-settings')?.classList.add('hidden');
+}
+
+async function saveStoreSettings(e) {
+  e.preventDefault();
+  const el = id => document.getElementById(id);
+  const payload = {
+    store_name: el('set-store-name')?.value.trim() || 'CELLVENTAS',
+    store_subheading: el('set-store-subheading')?.value.trim() || '',
+    store_legal_name: el('set-store-legal-name')?.value.trim() || '',
+    store_ruc: el('set-store-ruc')?.value.trim() || '',
+    store_address: el('set-store-address')?.value.trim() || '',
+    store_phone: el('set-store-phone')?.value.trim() || '',
+    ticket_width: el('set-ticket-width')?.value || '80mm',
+    ticket_footer: el('set-ticket-footer')?.value.trim() || ''
+  };
+
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'PUT',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al guardar configuración');
+
+    STORE_SETTINGS = data.settings || data;
+    applyTicketWidthCSS();
+    closeSettingsModal();
+    showToast('Configuración Guardada', 'Datos de tienda y formato de tiquetera actualizados.');
+  } catch (err) {
+    alert('❌ ' + err.message);
   }
 }
 
