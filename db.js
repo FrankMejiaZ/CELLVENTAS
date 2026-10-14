@@ -530,8 +530,11 @@ async function initDb() {
 
 async function seedRealMarketData() {
   try {
-    // 1. Marcas reales
-    const brandNames = ['Apple', 'Samsung', 'Xiaomi', 'Motorola', 'Honor'];
+    // 1. Marcas reales líderes de mercado
+    const brandNames = [
+      'Apple', 'Samsung', 'Xiaomi', 'Motorola', 'Honor',
+      'TECNO', 'Infinix', 'ZTE', 'Realme', 'OPPO'
+    ];
     const brandMap = {};
     for (const name of brandNames) {
       const existing = await query(`SELECT id FROM brands WHERE name = ?`, [name]);
@@ -543,30 +546,95 @@ async function seedRealMarketData() {
       }
     }
 
-    // 2. Modelos reales por marca
+    // 2. Modelos reales por marca (catálogo comercial listo para mostrador)
     const modelsToSeed = [
+      // Apple
       ['Apple', 'iPhone 16 Pro Max', 2024],
       ['Apple', 'iPhone 16 Pro', 2024],
+      ['Apple', 'iPhone 16', 2024],
       ['Apple', 'iPhone 15 Pro Max', 2023],
       ['Apple', 'iPhone 15 Pro', 2023],
       ['Apple', 'iPhone 15', 2023],
       ['Apple', 'iPhone 14', 2022],
       ['Apple', 'iPhone 13', 2021],
+      ['Apple', 'iPhone 12', 2020],
+      ['Apple', 'iPhone 11', 2019],
+
+      // Samsung
       ['Samsung', 'Samsung Galaxy S24 Ultra', 2024],
+      ['Samsung', 'Samsung Galaxy S24+', 2024],
+      ['Samsung', 'Samsung Galaxy S24', 2024],
+      ['Samsung', 'Samsung Galaxy S23 FE', 2023],
       ['Samsung', 'Samsung Galaxy A55 5G', 2024],
       ['Samsung', 'Samsung Galaxy A35 5G', 2024],
+      ['Samsung', 'Samsung Galaxy A25 5G', 2024],
       ['Samsung', 'Samsung Galaxy A15 4G', 2024],
+      ['Samsung', 'Samsung Galaxy A05s', 2023],
       ['Samsung', 'Samsung Galaxy A54 5G', 2023],
+
+      // Xiaomi
+      ['Xiaomi', 'Xiaomi 14 Ultra', 2024],
       ['Xiaomi', 'Xiaomi Redmi Note 13 Pro+ 5G', 2024],
+      ['Xiaomi', 'Xiaomi Redmi Note 13 Pro 4G', 2024],
       ['Xiaomi', 'Xiaomi Redmi Note 13 4G', 2024],
       ['Xiaomi', 'Xiaomi Poco X6 Pro', 2024],
+      ['Xiaomi', 'Xiaomi Poco F6', 2024],
       ['Xiaomi', 'Xiaomi Redmi 13C', 2023],
+      ['Xiaomi', 'Xiaomi Redmi 12', 2023],
+
+      // Motorola
+      ['Motorola', 'Motorola Edge 50 Ultra', 2024],
       ['Motorola', 'Motorola Edge 50 Fusion', 2024],
       ['Motorola', 'Motorola Moto G84 5G', 2023],
       ['Motorola', 'Motorola Moto G54 5G', 2023],
+      ['Motorola', 'Motorola Moto G24 Power', 2024],
+      ['Motorola', 'Motorola Moto G14', 2023],
+
+      // Honor
+      ['Honor', 'Honor Magic6 Pro', 2024],
       ['Honor', 'Honor Magic6 Lite 5G', 2024],
+      ['Honor', 'Honor 90', 2023],
       ['Honor', 'Honor X8b', 2024],
-      ['Honor', 'Honor X7b', 2024]
+      ['Honor', 'Honor X7b', 2024],
+      ['Honor', 'Honor X6a', 2023],
+
+      // TECNO Mobile
+      ['TECNO', 'TECNO Camon 30 Pro 5G', 2024],
+      ['TECNO', 'TECNO Camon 30', 2024],
+      ['TECNO', 'TECNO Spark 20 Pro+', 2024],
+      ['TECNO', 'TECNO Spark 20 Pro', 2024],
+      ['TECNO', 'TECNO Spark 20', 2023],
+      ['TECNO', 'TECNO Spark 10 Pro', 2023],
+      ['TECNO', 'TECNO Pova 6 Pro 5G', 2024],
+
+      // Infinix
+      ['Infinix', 'Infinix Note 40 Pro+ 5G', 2024],
+      ['Infinix', 'Infinix Note 40 Pro', 2024],
+      ['Infinix', 'Infinix Hot 40 Pro', 2024],
+      ['Infinix', 'Infinix Hot 40i', 2024],
+      ['Infinix', 'Infinix Hot 30', 2023],
+      ['Infinix', 'Infinix Smart 8', 2023],
+
+      // ZTE
+      ['ZTE', 'ZTE Blade V50 Smart', 2023],
+      ['ZTE', 'ZTE Blade V50 Design', 2023],
+      ['ZTE', 'ZTE Blade A72s', 2023],
+      ['ZTE', 'ZTE Blade A54', 2024],
+      ['ZTE', 'ZTE Nubia Neo 2 5G', 2024],
+
+      // Realme
+      ['Realme', 'Realme 12 Pro+ 5G', 2024],
+      ['Realme', 'Realme 12+ 5G', 2024],
+      ['Realme', 'Realme C67 4G', 2024],
+      ['Realme', 'Realme C55', 2023],
+      ['Realme', 'Realme C53', 2023],
+
+      // OPPO
+      ['OPPO', 'OPPO Reno 11F 5G', 2024],
+      ['OPPO', 'OPPO Reno 11 5G', 2024],
+      ['OPPO', 'OPPO A78 4G', 2023],
+      ['OPPO', 'OPPO A58', 2023],
+      ['OPPO', 'OPPO A38', 2023]
     ];
 
     const modelMap = {};

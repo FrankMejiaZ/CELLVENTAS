@@ -288,7 +288,7 @@ function handleGlobalOmnibox(query) {
   // Si son 15 dígitos -> Rastreo directo de IMEI
   if (/^\d{15}$/.test(q)) {
     switchTab('imeis');
-    const imeiInput = document.getElementById('imei-search-input');
+    const imeiInput = document.getElementById('imei-tracker-input') || document.getElementById('imei-search-input');
     if (imeiInput) {
       imeiInput.value = q;
       searchImeiTracker();
