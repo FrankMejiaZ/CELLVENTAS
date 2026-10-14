@@ -589,7 +589,7 @@ app.post('/api/products', async (req, res) => {
     });
 
     io.emit('product_updated', { action: 'created', productId });
-    res.json({ success: true, productId, message: 'Producto guardado con éxito con su matriz de compatibilidad.' });
+    res.json({ success: true, id: productId, productId, message: 'Producto guardado con éxito con su matriz de compatibilidad.' });
   } catch (err) {
     sendSafeError(res, req, 'CREATE_PRODUCT', err, 'No se pudo registrar el producto.');
   }
@@ -1001,12 +1001,18 @@ app.post('/api/sales', async (req, res) => {
       // Registrar Items, actualizar Stock e IMEIs
       for (const item of items) {
         const itemSubtotal = Number(item.quantity) * Number(item.unit_price);
-        const imeiCode = item.imei || '';
+        const imeiCode = item.imei || item.imei_code || '';
+        let prodName = item.product_name || item.name || '';
+        if (!prodName && item.product_id) {
+          const pLookup = await tx(`SELECT name FROM products WHERE id = ?`, [item.product_id]);
+          prodName = pLookup.rows[0]?.name || 'Producto';
+        }
+        if (!prodName) prodName = 'Producto Mostrador';
 
         await tx(`
           INSERT INTO sale_items (sale_id, product_id, product_name, quantity, unit_price, subtotal, imei_code)
           VALUES (?, ?, ?, ?, ?, ?, ?)
-        `, [saleId, item.product_id, item.product_name, item.quantity, item.unit_price, itemSubtotal, imeiCode]);
+        `, [saleId, item.product_id || null, prodName, item.quantity, item.unit_price, itemSubtotal, imeiCode]);
 
         if (imeiCode) {
           await tx(`
