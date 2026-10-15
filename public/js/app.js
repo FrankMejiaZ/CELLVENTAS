@@ -27,6 +27,17 @@ function getAuthHeaders(includeJson = true) {
   return headers;
 }
 
+// Sanitización de HTML para evitar XSS almacenado
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Conexión WebSockets
 const socket = typeof io !== 'undefined' ? io() : null;
 if (socket) {
@@ -810,7 +821,7 @@ async function saveBulkCompatibilities() {
   try {
     const res = await fetch('/api/compatibilities/bulk', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ product_id: parseInt(productId), model_ids: selectedModelIds })
     });
     const data = await res.json();
@@ -834,7 +845,7 @@ async function saveBrand(e) {
   try {
     const res = await fetch('/api/brands', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ name })
     });
     if (!res.ok) throw new Error('Error al guardar marca');
@@ -859,7 +870,7 @@ async function saveModel(e) {
   try {
     const res = await fetch('/api/models', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ brand_id, model_name, release_year })
     });
     if (!res.ok) throw new Error('Error al guardar modelo');
@@ -872,7 +883,7 @@ async function saveModel(e) {
 
 async function deleteModel(id) {
   if (!confirm('¿Eliminar este modelo de celular?')) return;
-  await fetch('/api/models/' + id, { method: 'DELETE' });
+  await fetch('/api/models/' + id, { method: 'DELETE', headers: getAuthHeaders() });
   await loadBrandsAndModels();
   await loadCoverageData();
 }
@@ -1580,7 +1591,7 @@ function renderSalesHistoryTable() {
       <tr class="hover:bg-slate-50/80 transition-colors ${isAnulada ? 'opacity-40 line-through' : ''}">
         <td class="p-4 font-mono-code font-bold text-slate-800 text-xs">${s.receipt_code}</td>
         <td class="p-4 text-slate-500 text-xs">${new Date(s.created_at).toLocaleString()}</td>
-        <td class="p-4 font-bold text-slate-800">${s.customer_name}</td>
+        <td class="p-4 font-bold text-slate-800">${escapeHtml(s.customer_name)}</td>
         <td class="p-4"><span class="bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-lg text-[11px] font-bold">${payLabel}</span></td>
         <td class="p-4 text-xs text-slate-600">${itemsPreview}</td>
         <td class="p-4 text-right font-mono-code tabular-nums font-black text-slate-900">S/ ${parseFloat(s.total).toFixed(2)}</td>
@@ -2797,10 +2808,10 @@ function renderFiadosTable() {
     const debt = parseFloat(c.debt || 0);
     return `
       <tr class="hover:bg-slate-50/80 transition-colors">
-        <td class="p-4 font-mono-code font-bold text-slate-500 text-xs">${c.doc}</td>
-        <td class="p-4 font-bold text-slate-800">${c.name}</td>
-        <td class="p-4 font-mono-code text-slate-500 text-xs">${c.phone || '-'}</td>
-        <td class="p-4 text-slate-500 text-xs">${c.address || '-'}</td>
+        <td class="p-4 font-mono-code font-bold text-slate-500 text-xs">${escapeHtml(c.doc)}</td>
+        <td class="p-4 font-bold text-slate-800">${escapeHtml(c.name)}</td>
+        <td class="p-4 font-mono-code text-slate-500 text-xs">${escapeHtml(c.phone || '-')}</td>
+        <td class="p-4 text-slate-500 text-xs">${escapeHtml(c.address || '-')}</td>
         <td class="p-4 text-right font-mono-code tabular-nums font-black ${debt > 0 ? 'text-rose-600' : 'text-slate-400'}">
           S/ ${debt.toFixed(2)}
         </td>

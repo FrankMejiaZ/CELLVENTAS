@@ -333,6 +333,27 @@ async function initDb() {
     await safeAddColumn('sales', 'discount', 'REAL DEFAULT 0');
     await safeAddColumn('sales', 'cash_register_id', 'INTEGER');
     await safeAddColumn('cash_movements', 'payment_method', "TEXT DEFAULT 'Efectivo'");
+    await safeAddColumn('products', 'is_active', 'INTEGER DEFAULT 1');
+
+    // Índices de integridad y concurrencia (idempotentes)
+    try {
+      if (USE_POSTGRES) {
+        await query(`ALTER TABLE customers ALTER COLUMN debt TYPE DOUBLE PRECISION`);
+        await query(`ALTER TABLE sales ALTER COLUMN total TYPE DOUBLE PRECISION`);
+        await query(`ALTER TABLE sales ALTER COLUMN subtotal TYPE DOUBLE PRECISION`);
+        await query(`ALTER TABLE products ALTER COLUMN price TYPE DOUBLE PRECISION`);
+        await query(`ALTER TABLE products ALTER COLUMN purchase_price TYPE DOUBLE PRECISION`);
+        await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_prod_compat ON product_compatibilities (product_id, phone_model_id)`);
+        await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_single_open_cash_register ON cash_registers (status) WHERE status = 'abierta'`);
+        await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_brand_model ON phone_models (brand_id, LOWER(model_name))`);
+      } else {
+        await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_prod_compat ON product_compatibilities (product_id, phone_model_id)`);
+        await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_single_open_cash_register ON cash_registers (status) WHERE status = 'abierta'`);
+        await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_brand_model ON phone_models (brand_id, model_name)`);
+      }
+    } catch (idxErr) {
+      console.warn('ℹ️ Aviso al crear índices únicos:', idxErr.message);
+    }
 
     // 8. DETALLE DE VENTAS
     await query(`
